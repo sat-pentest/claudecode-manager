@@ -1,0 +1,33 @@
+# .NET build artifacts
+bin/
+obj/
+dist/
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
+*.userprefs
+
+# Build logs
+*.log
+*.tlog
+*.binlog
+
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+project.lock.json
+project.assets.json
+
+# ReSharper / dotCover
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.dotCover
+
+# OS
+Thumbs.db
+.DS_Store
+Desktop.ini

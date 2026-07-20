@@ -1,0 +1,123 @@
+<UserControl x:Class="ClaudeCodeManager.App.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ClaudeCodeManager.App.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             d:DataContext="{d:DesignInstance vm:SettingsViewModel}"
+             mc:Ignorable="d">
+
+    <Grid Background="{StaticResource B.BG.Primary}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Border Background="{StaticResource B.BG.Panel}" Padding="16,10" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="⚙ SETTINGS FILE" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
+                <ComboBox SelectedValue="{Binding ActiveFile}" SelectedValuePath="Content" Width="220" Margin="14,0,0,0">
+                    <ComboBoxItem Content="settings.json"/>
+                    <ComboBoxItem Content="settings.local.json"/>
+                    <ComboBoxItem Content="keybindings.json"/>
+                </ComboBox>
+                <Button Content="SAVE" Style="{StaticResource Btn.Pixel.Primary}" Command="{Binding SaveCommand}" Margin="16,0,6,0"/>
+                <Button Content="VALIDATE" Style="{StaticResource Btn.Pixel}" Command="{Binding ValidateJsonCommand}"/>
+                <TextBlock Text="{Binding JsonValidity}" Style="{StaticResource T.Mono}" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center" Margin="14,0,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0">
+            <TabItem Header="PERMISSIONS">
+                <Grid Margin="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="220"/>
+                        <ColumnDefinition Width="4"/>
+                        <ColumnDefinition Width="*" MinWidth="220"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource Panel.Rust}" Margin="0,0,4,0">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Top" Text="◢ ALLOW" Style="{StaticResource T.Pixel.Section}" Foreground="{StaticResource B.Success}"/>
+                            <Grid DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding NewAllowEntry, UpdateSourceTrigger=PropertyChanged}"/>
+                                <Button Grid.Column="1" Content="ADD" Style="{StaticResource Btn.Pixel}" Command="{Binding AddAllowCommand}" Margin="6,0,0,0"/>
+                            </Grid>
+                            <ListBox ItemsSource="{Binding AllowList}" Margin="0,8,0,0">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="14" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                                            <Button Grid.Column="1" Content="X" Style="{StaticResource Btn.Pixel.Danger}" Padding="8,3" FontSize="9" Command="{Binding DataContext.RemoveAllowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                    </Border>
+                    <GridSplitter Grid.Column="1" Style="{StaticResource Splitter.Vertical}"/>
+                    <Border Grid.Column="2" Style="{StaticResource Panel.Rust}" Margin="4,0,0,0">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Top" Text="◢ DENY" Style="{StaticResource T.Pixel.Section}" Foreground="{StaticResource B.Danger}"/>
+                            <Grid DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding NewDenyEntry, UpdateSourceTrigger=PropertyChanged}"/>
+                                <Button Grid.Column="1" Content="ADD" Style="{StaticResource Btn.Pixel}" Command="{Binding AddDenyCommand}" Margin="6,0,0,0"/>
+                            </Grid>
+                            <ListBox ItemsSource="{Binding DenyList}" Margin="0,8,0,0">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="14" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                                            <Button Grid.Column="1" Content="X" Style="{StaticResource Btn.Pixel.Danger}" Padding="8,3" FontSize="9" Command="{Binding DataContext.RemoveDenyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+            <TabItem Header="HOOKS">
+                <DataGrid ItemsSource="{Binding Hooks}" AutoGenerateColumns="False" Margin="16"
+                          Background="{StaticResource B.BG.Sunken}" Foreground="{StaticResource B.Text}"
+                          BorderBrush="{StaticResource B.Border}" CanUserAddRows="False" IsReadOnly="True"
+                          FontFamily="{StaticResource Font.Mono}" FontSize="14" RowHeight="38">
+                    <DataGrid.ColumnHeaderStyle>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="Background" Value="{StaticResource B.BG.Panel}"/>
+                            <Setter Property="Foreground" Value="{StaticResource B.Ember}"/>
+                            <Setter Property="FontFamily" Value="{StaticResource Font.Pixel}"/>
+                            <Setter Property="FontSize" Value="8"/>
+                            <Setter Property="Padding" Value="10,8"/>
+                            <Setter Property="BorderBrush" Value="{StaticResource B.Border}"/>
+                            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                        </Style>
+                    </DataGrid.ColumnHeaderStyle>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="EVENT" Binding="{Binding Event}" Width="180"/>
+                        <DataGridTextColumn Header="MATCHER" Binding="{Binding Matcher}" Width="180"/>
+                        <DataGridTextColumn Header="COMMAND" Binding="{Binding Command}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+            <TabItem Header="RAW JSON">
+                <TextBox Text="{Binding RawJson, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Margin="16" BorderThickness="1" FontFamily="{StaticResource Font.Mono}" FontSize="15"/>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>

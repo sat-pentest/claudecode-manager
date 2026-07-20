@@ -1,0 +1,87 @@
+<UserControl x:Class="ClaudeCodeManager.App.Views.SearchView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ClaudeCodeManager.App.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             d:DataContext="{d:DesignInstance vm:SearchViewModel}"
+             mc:Ignorable="d">
+
+    <DockPanel Background="{StaticResource B.BG.Primary}">
+        <Border DockPanel.Dock="Top" Background="{StaticResource B.BG.Panel}" Padding="16,12" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="⌕" FontFamily="{StaticResource Font.CRT}" FontSize="26" Foreground="{StaticResource B.Rust}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <TextBox Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" Width="540" FontSize="14">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding RunCommand}"/>
+                        </TextBox.InputBindings>
+                    </TextBox>
+                    <CheckBox Content="regex" IsChecked="{Binding IsRegex}" Margin="14,0,0,0" VerticalAlignment="Center"/>
+                    <CheckBox Content="case" IsChecked="{Binding CaseSensitive}" Margin="14,0,0,0" VerticalAlignment="Center"/>
+                    <Button Content="SEARCH" Style="{StaticResource Btn.Pixel.Primary}" Command="{Binding RunCommand}" Margin="16,0,0,0"/>
+                </StackPanel>
+                <TextBlock Grid.Column="1" Text="{Binding Stats}" Style="{StaticResource T.Mono}" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+        <ListBox ItemsSource="{Binding Hits}" SelectedItem="{Binding Selected}" Margin="0" Background="{StaticResource B.BG.Sunken}" BorderThickness="0">
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                    <EventSetter Event="MouseDoubleClick" Handler="OnItemDoubleClick"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Status}" Value="Inactive">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Status}" Value="Disabled">
+                            <Setter Property="Opacity" Value="0.32"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </ListBox.ItemContainerStyle>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding File}" Style="{StaticResource T.Mono}" FontSize="12" Foreground="{StaticResource B.TextMuted}"/>
+                                <Border Padding="5,3,5,3" Margin="10,0,0,0" VerticalAlignment="Center"
+                                        Background="{StaticResource B.RustDim}"
+                                        Visibility="{Binding Status, Converter={x:Static vm:SearchHitStatusConverter.InactiveVisibility}}">
+                                    <TextBlock Text="PROFILE" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Text}" VerticalAlignment="Center"/>
+                                </Border>
+                                <Border Padding="5,3,5,3" Margin="10,0,0,0" VerticalAlignment="Center"
+                                        Background="{StaticResource B.Danger}"
+                                        Visibility="{Binding Status, Converter={x:Static vm:SearchHitStatusConverter.DisabledVisibility}}">
+                                    <TextBlock Text="OFF" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Text}" VerticalAlignment="Center"/>
+                                </Border>
+                            </StackPanel>
+                            <TextBlock Text="{Binding Preview}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource T.Mono}">
+                                        <Setter Property="FontSize" Value="14"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Status}" Value="Disabled">
+                                                <Setter Property="Opacity" Value="0.55"/>
+                                                <Setter Property="TextDecorations" Value="Strikethrough"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                        <TextBlock Grid.Column="2" Text="{Binding Line, StringFormat=L\{0\}}" Foreground="{StaticResource B.Ember}" FontFamily="{StaticResource Font.CRT}" FontSize="20" Margin="14,0,4,0" VerticalAlignment="Center"/>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </DockPanel>
+</UserControl>

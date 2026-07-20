@@ -1,0 +1,583 @@
+<UserControl x:Class="ClaudeCodeManager.App.Views.MemoryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ClaudeCodeManager.App.ViewModels"
+             xmlns:avalon="http://icsharpcode.net/sharpdevelop/avalonedit"
+             xmlns:helper="clr-namespace:ClaudeCodeManager.App.Services"
+             xmlns:svc="clr-namespace:ClaudeCodeManager.App.Services"
+             xmlns:views="clr-namespace:ClaudeCodeManager.App.Views"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             d:DataContext="{d:DesignInstance vm:MemoryViewModel}"
+             mc:Ignorable="d">
+
+    <UserControl.InputBindings>
+        <KeyBinding Key="S" Modifiers="Control" Command="{Binding SaveEntryCommand}"/>
+        <KeyBinding Key="F" Modifiers="Control" Command="ApplicationCommands.Find"/>
+    </UserControl.InputBindings>
+
+    <UserControl.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.Find" Executed="OnFindExecuted"/>
+    </UserControl.CommandBindings>
+
+    <Grid Background="{StaticResource B.BG.Primary}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Border Background="{StaticResource B.BG.Panel}" Padding="16,10" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <TextBlock Text="◢ PROJECT" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <ComboBox ItemsSource="{Binding Projects}" SelectedItem="{Binding SelectedProject}" DisplayMemberPath="ProjectSlug" Width="380" Background="{StaticResource B.BG.Sunken}" Foreground="{StaticResource B.Text}"/>
+                    <Button Content="RELOAD" Style="{StaticResource Btn.Pixel}" Command="{Binding ReloadProjectCommand}" Margin="10,0,0,0"/>
+                    <Button Content="AUTO-CLASSIFY" Style="{StaticResource Btn.Pixel}" Command="{Binding AutoClassifyByFilenameCommand}" Margin="6,0,0,0"
+                            ToolTip="파일명 prefix(feedback_/project_/reference_/user_) 기준으로 untyped 엔트리의 type 자동 할당"/>
+                    <TextBlock Text="{Binding IndexWarning}" Style="{StaticResource T.Mono}" Foreground="{StaticResource B.Warn}" VerticalAlignment="Center" Margin="18,0,0,0"/>
+                </StackPanel>
+
+                <!-- Memory load status widget: active/total count · load level badge · ? tooltip -->
+                <Border Grid.Column="1" Padding="10,6" BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1" Background="{StaticResource B.BG.Sunken}">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Load level dot + label (colored per level) -->
+                        <Ellipse Width="9" Height="9" Margin="0,0,8,0" VerticalAlignment="Center" Effect="{StaticResource Glow.Soft}">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="{StaticResource B.Success}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding LoadLevel}" Value="CAUTION">
+                                            <Setter Property="Fill" Value="{StaticResource B.Warn}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding LoadLevel}" Value="WARN">
+                                            <Setter Property="Fill" Value="{StaticResource B.Ember}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding LoadLevel}" Value="CRITICAL">
+                                            <Setter Property="Fill" Value="{StaticResource B.Danger}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+
+                        <TextBlock Text="{Binding LoadLevel}" FontFamily="{StaticResource Font.Pixel}" FontSize="8" VerticalAlignment="Center" Margin="0,0,10,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{StaticResource B.Success}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding LoadLevel}" Value="CAUTION">
+                                            <Setter Property="Foreground" Value="{StaticResource B.Warn}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding LoadLevel}" Value="WARN">
+                                            <Setter Property="Foreground" Value="{StaticResource B.Ember}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding LoadLevel}" Value="CRITICAL">
+                                            <Setter Property="Foreground" Value="{StaticResource B.Danger}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <!-- Active / Total count -->
+                        <TextBlock FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.Text}" VerticalAlignment="Center">
+                            <Run Text="{Binding ActiveEntries, Mode=OneWay}" Foreground="{StaticResource B.Success}"/>
+                            <Run Text=" active · "/>
+                            <Run Text="{Binding DisabledEntries, Mode=OneWay}" Foreground="{StaticResource B.TextDim}"/>
+                            <Run Text=" disabled · "/>
+                            <Run Text="{Binding TotalEntries, Mode=OneWay}" Foreground="{StaticResource B.TextMuted}"/>
+                            <Run Text=" total"/>
+                        </TextBlock>
+
+                        <!-- ? help toggle: click to open, click again to close. Popup persists until re-click. -->
+                        <ToggleButton x:Name="HelpToggle" Width="18" Height="18" Margin="10,0,0,0" VerticalAlignment="Center" Cursor="Hand" ToolTip="Click for threshold details">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border x:Name="Bd" CornerRadius="9" Background="{StaticResource B.BorderSoft}">
+                                        <TextBlock Text="?" FontFamily="{StaticResource Font.Mono}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource B.Ember}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" TargetName="Bd" Value="{StaticResource B.BG.Hover}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                        </ToggleButton>
+                        <Popup PlacementTarget="{Binding ElementName=HelpToggle}" Placement="Bottom" HorizontalOffset="-380" VerticalOffset="4"
+                               IsOpen="{Binding IsChecked, ElementName=HelpToggle}"
+                               StaysOpen="True" AllowsTransparency="True">
+                            <Border Background="{StaticResource B.BG.Panel}" BorderBrush="{StaticResource B.Border}" BorderThickness="1" Padding="14,12" MinWidth="420" Effect="{StaticResource Glow.Soft}">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="MEMORY LOAD THRESHOLDS" Style="{StaticResource T.Pixel.Section}" FontSize="8" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"/>
+                                        <Button Grid.Column="1" Content="✕" Width="18" Height="18" Padding="0" FontSize="10" Foreground="{StaticResource B.TextMuted}"
+                                                Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                                Click="OnCloseHelpClicked"/>
+                                    </Grid>
+                                    <TextBlock Text="활성 메모리 개수에 따른 성능·정확도 영향" Style="{StaticResource T.Muted}" FontSize="11" Margin="0,4,0,10" TextWrapping="Wrap"/>
+
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{StaticResource B.Success}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Grid.Column="1" Text="HEALTHY" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Success}" Width="80" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="~80 활성 · 성능 영향 없음" Style="{StaticResource T.Muted}" FontSize="11" TextWrapping="Wrap"/>
+                                    </Grid>
+                                    <Grid Margin="0,3,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{StaticResource B.Warn}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Grid.Column="1" Text="CAUTION" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Warn}" Width="80" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="80~150 · MEMORY.md 200줄 truncation 위험 시작" Style="{StaticResource T.Muted}" FontSize="11" TextWrapping="Wrap"/>
+                                    </Grid>
+                                    <Grid Margin="0,3,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{StaticResource B.Ember}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Grid.Column="1" Text="WARN" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Ember}" Width="80" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="150~300 · 세만틱 검색 노이즈·응답 지연 감지" Style="{StaticResource T.Muted}" FontSize="11" TextWrapping="Wrap"/>
+                                    </Grid>
+                                    <Grid Margin="0,3,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{StaticResource B.Danger}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Grid.Column="1" Text="CRITICAL" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Danger}" Width="80" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="300+ · 명확한 저하, 아카이브 필수" Style="{StaticResource T.Muted}" FontSize="11" TextWrapping="Wrap"/>
+                                    </Grid>
+
+                                    <Border BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="0,1,0,0" Margin="0,8,0,0" Padding="0,6,0,0">
+                                        <StackPanel>
+                                            <TextBlock FontSize="10" Foreground="{StaticResource B.TextMuted}" TextWrapping="Wrap">
+                                                <Run Text="※ 비활성(disabled) 메모리는 컨텍스트에 로드되지 않아 성능 영향 없음."/>
+                                            </TextBlock>
+                                            <TextBlock FontSize="10" Foreground="{StaticResource B.TextMuted}" TextWrapping="Wrap" Margin="0,3,0,0">
+                                                <Run Text="※ 개수보다 description 품질(when-to-use 명확도)이 세만틱 매칭에 더 영향."/>
+                                            </TextBlock>
+                                            <TextBlock FontSize="10" Foreground="{StaticResource B.TextMuted}" TextWrapping="Wrap" Margin="0,3,0,0">
+                                                <Run Text="※ project_* 메모리는 프로그램 종료 후 아카이브/삭제 권장."/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="280" MinWidth="200"/>
+                <ColumnDefinition Width="4"/>
+                <ColumnDefinition Width="*" MinWidth="320"/>
+                <ColumnDefinition x:Name="IndexSplitterColumn" Width="4"/>
+                <ColumnDefinition x:Name="IndexColumn" Width="380" MinWidth="0"/>
+            </Grid.ColumnDefinitions>
+
+            <DockPanel Background="{StaticResource B.BG.Panel}">
+                <TextBlock DockPanel.Dock="Top" Text="◢ ENTRIES" Style="{StaticResource T.Pixel.Section}" Margin="16,14,0,8"/>
+
+                <!-- Filter row 1: type dropdown + over-length toggle + reset -->
+                <Border DockPanel.Dock="Top" Padding="8,0,8,6">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="TYPE" Style="{StaticResource T.Pixel.Section}" FontSize="7" VerticalAlignment="Center" Margin="4,0,6,0"/>
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding TypeFilterOptions}" SelectedItem="{Binding TypeFilter, Mode=TwoWay}" FontFamily="{StaticResource Font.Mono}" FontSize="12"/>
+                        <ToggleButton Grid.Column="2" IsChecked="{Binding OverLengthOnly, Mode=TwoWay}" Padding="8,4" Margin="6,0,0,0" Cursor="Hand" ToolTip="MEMORY.md 인덱스 라인이 150자 초과인 엔트리만 표시">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border x:Name="Bd" Background="{StaticResource B.BG.Sunken}" BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1" Padding="{TemplateBinding Padding}">
+                                        <TextBlock x:Name="Lbl" Text="&gt;150ch" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" TargetName="Bd" Value="{StaticResource B.BG.Hover}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <!-- Active state: keep sunken background, ember border + ember text.
+                                                 Solid Warn bg was too shouty; this reads as "filter engaged" without visual alarm. -->
+                                            <Setter Property="BorderBrush" TargetName="Bd" Value="{StaticResource B.Ember}"/>
+                                            <Setter Property="BorderThickness" TargetName="Bd" Value="1.5"/>
+                                            <Setter Property="Foreground" TargetName="Lbl" Value="{StaticResource B.Ember}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                        </ToggleButton>
+                        <Button Grid.Column="3" Style="{StaticResource Btn.Pixel}" Padding="8,4" Margin="4,0,0,0" Command="{Binding ResetFiltersCommand}" ToolTip="Reset all filters">
+                            <!-- Counterclockwise refresh arrow, matches app's Path-based icon aesthetic -->
+                            <Grid Width="12" Height="12">
+                                <Path Data="M 10 3 A 5 5 0 1 0 10.5 8.5" Stroke="{StaticResource B.Ember}" StrokeThickness="1.6" Fill="Transparent" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                <Path Data="M 10 3 L 7 3 L 10 6 Z" Fill="{StaticResource B.Ember}"/>
+                            </Grid>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <!-- Filter row 2: text search -->
+                <Border DockPanel.Dock="Top" Padding="8,0,8,6">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged, Delay=150}" Padding="10,3" FontSize="13">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                    <Setter Property="Background" Value="{StaticResource B.BG.Sunken}"/>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+                        <Button Grid.Column="1" Content="X" Style="{StaticResource Btn.Pixel}" Padding="8,3" FontSize="9" Margin="4,0,0,0"
+                                Command="{Binding SearchClearCommand}"
+                                Visibility="{Binding SearchText, Converter={x:Static vm:NullToVisibility.Instance}}"/>
+                    </Grid>
+                </Border>
+                <TextBlock DockPanel.Dock="Top" Text="{Binding SearchStats}" Style="{StaticResource T.Muted}" Margin="12,0,12,4" FontSize="11"
+                           Visibility="{Binding SearchStats, Converter={x:Static vm:NullToVisibility.Instance}}"/>
+                <ListBox ItemsSource="{Binding Entries}" SelectedItem="{Binding SelectedEntry}" Margin="8,0,8,8" Background="{StaticResource B.BG.Sunken}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="●" Width="14" VerticalAlignment="Center"
+                                               svc:PulseBehavior.IsActive="{Binding ReferencedInIndex}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{StaticResource B.TextDim}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ReferencedInIndex}" Value="True">
+                                                        <Setter Property="Foreground" Value="{StaticResource B.Success}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Disabled}" Value="True">
+                                                        <Setter Property="Foreground" Value="{StaticResource B.TextDim}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding DisplayName}" FontFamily="{StaticResource Font.Mono}" FontSize="13" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Disabled}" Value="True">
+                                                        <Setter Property="Opacity" Value="0.5"/>
+                                                        <Setter Property="TextDecorations" Value="Strikethrough"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <Border Padding="5,4,5,4" Margin="8,0,0,0" VerticalAlignment="Center"
+                                            Background="{StaticResource B.RustDim}"
+                                            Visibility="{Binding Disabled, Converter={x:Static vm:BoolToVisibility.Instance}}">
+                                        <TextBlock Text="OFF" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Text}" VerticalAlignment="Center"/>
+                                    </Border>
+                                </StackPanel>
+                                <TextBlock Text="{Binding Frontmatter.Description}" Style="{StaticResource T.Muted}" Margin="14,2,0,0" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+
+            <GridSplitter Grid.Column="1" Style="{StaticResource Splitter.Vertical}"/>
+
+            <DockPanel Grid.Column="2" Background="{StaticResource B.BG.Sunken}">
+                <Border DockPanel.Dock="Top" Background="{StaticResource B.BG.Panel}" Padding="14,8" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="SAVE ENTRY" Style="{StaticResource Btn.Pixel.Primary}" Command="{Binding SaveEntryCommand}"/>
+                        <Button Command="{Binding TogglePreviewCommand}" Margin="6,0,0,0"
+                                Visibility="{Binding SelectedEntry, Converter={x:Static vm:NullToVisibility.Instance}}">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource Btn.Pixel}">
+                                    <Setter Property="Content" Value="PREVIEW"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsPreviewMode}" Value="True">
+                                            <Setter Property="Content" Value="EDIT"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button Command="{Binding ToggleEntryCommand}" CommandParameter="{Binding SelectedEntry}" Margin="6,0,0,0"
+                                Visibility="{Binding SelectedEntry, Converter={x:Static vm:NullToVisibility.Instance}}">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource Btn.Pixel}">
+                                    <Setter Property="Content" Value="DISABLE"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SelectedEntry.Disabled}" Value="True">
+                                            <Setter Property="Content" Value="ENABLE"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <TextBlock Text="●" Foreground="{StaticResource B.Warn}" VerticalAlignment="Center" Margin="10,0" Visibility="{Binding IsDirty, Converter={x:Static vm:BoolToVisibility.Instance}}"/>
+                        <TextBlock Text="{Binding SelectedEntry.FilePath}" Style="{StaticResource T.Mono}" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center" Margin="10,0,0,0" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </Border>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Border Style="{StaticResource Panel.Sunken}" BorderThickness="0" Padding="16,12">
+                        <StackPanel>
+                            <TextBlock Text="FRONTMATTER" Style="{StaticResource T.Pixel.Section}" FontSize="8"/>
+                            <Grid Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="160"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition/>
+                                    <RowDefinition/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="name" Style="{StaticResource T.Muted}" VerticalAlignment="Center"/>
+                                <TextBox Grid.Column="1" Text="{Binding FmName, UpdateSourceTrigger=PropertyChanged}" Margin="0,2"/>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
+                                    <TextBlock Text="type" Style="{StaticResource T.Muted}" VerticalAlignment="Center"/>
+                                    <ToggleButton x:Name="TypeHelpToggle" Width="16" Height="16" Margin="6,0,0,0" VerticalAlignment="Center" Cursor="Hand" ToolTip="Click for standard type definitions">
+                                        <ToggleButton.Template>
+                                            <ControlTemplate TargetType="ToggleButton">
+                                                <Border x:Name="Bd" CornerRadius="8" Background="{StaticResource B.BorderSoft}">
+                                                    <TextBlock Text="?" FontFamily="{StaticResource Font.Mono}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource B.Ember}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" TargetName="Bd" Value="{StaticResource B.BG.Hover}"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </ToggleButton.Template>
+                                    </ToggleButton>
+                                    <Popup PlacementTarget="{Binding ElementName=TypeHelpToggle}" Placement="Bottom" HorizontalOffset="-180" VerticalOffset="4"
+                                           IsOpen="{Binding IsChecked, ElementName=TypeHelpToggle}"
+                                           StaysOpen="True" AllowsTransparency="True">
+                                        <Border Background="{StaticResource B.BG.Panel}" BorderBrush="{StaticResource B.Border}" BorderThickness="1" Padding="14,12" MinWidth="380" Effect="{StaticResource Glow.Soft}">
+                                            <StackPanel>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="MEMORY TYPES (STANDARD)" Style="{StaticResource T.Pixel.Section}" FontSize="8" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"/>
+                                                    <Button Grid.Column="1" Content="✕" Width="18" Height="18" Padding="0" FontSize="10" Foreground="{StaticResource B.TextMuted}"
+                                                            Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                                            Click="OnCloseTypeHelpClicked"/>
+                                                </Grid>
+                                                <TextBlock Text="Claude Code 표준 4개 타입 · 세만틱 매칭 힌트로 사용됨" Style="{StaticResource T.Muted}" FontSize="11" Margin="0,4,0,10" TextWrapping="Wrap"/>
+
+                                                <Grid Margin="0,3">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="70"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="user" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Ember}" FontWeight="SemiBold" VerticalAlignment="Top"/>
+                                                    <TextBlock Grid.Column="1" Style="{StaticResource T.Muted}" FontSize="11" TextWrapping="Wrap" Text="사용자 프로필·역할·선호·지식 범위. Claude 응답 톤·설명 깊이 맞추는 데 사용"/>
+                                                </Grid>
+                                                <Grid Margin="0,3">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="70"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="feedback" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Ember}" FontWeight="SemiBold" VerticalAlignment="Top"/>
+                                                    <TextBlock Grid.Column="1" Style="{StaticResource T.Muted}" FontSize="11" TextWrapping="Wrap" Text="작업 접근 방식 가이드 (하지 말 것 · 이렇게 할 것). Why + How to apply 포함 시 판단 향상"/>
+                                                </Grid>
+                                                <Grid Margin="0,3">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="70"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="project" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Ember}" FontWeight="SemiBold" VerticalAlignment="Top"/>
+                                                    <TextBlock Grid.Column="1" Style="{StaticResource T.Muted}" FontSize="11" TextWrapping="Wrap" Text="진행 중 작업·인가 스코프·발견 결과. 상태 변화 잦으니 완료 후 아카이브"/>
+                                                </Grid>
+                                                <Grid Margin="0,3">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="70"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="reference" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Ember}" FontWeight="SemiBold" VerticalAlignment="Top"/>
+                                                    <TextBlock Grid.Column="1" Style="{StaticResource T.Muted}" FontSize="11" TextWrapping="Wrap" Text="외부 시스템·도구·스킬·에이전트 위치 포인터. 어디 있는지·언제 참조하는지"/>
+                                                </Grid>
+
+                                                <Border BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="0,1,0,0" Margin="0,8,0,0" Padding="0,6,0,0">
+                                                    <StackPanel>
+                                                        <TextBlock FontSize="10" Foreground="{StaticResource B.TextMuted}" TextWrapping="Wrap">
+                                                            <Run Text="※ type 없으면 '분류 안 됨' — 동작은 하나 매칭 힌트 약화."/>
+                                                        </TextBlock>
+                                                        <TextBlock FontSize="10" Foreground="{StaticResource B.TextMuted}" TextWrapping="Wrap" Margin="0,3,0,0">
+                                                            <Run Text="※ 커스텀 타입 (skill/agent 등)도 자유롭게 사용 가능."/>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                </Border>
+                                            </StackPanel>
+                                        </Border>
+                                    </Popup>
+                                </StackPanel>
+                                <ComboBox Grid.Column="3" Text="{Binding FmType, UpdateSourceTrigger=PropertyChanged}" IsEditable="True" Background="{StaticResource B.BG.Sunken}" Foreground="{StaticResource B.Text}">
+                                    <ComboBoxItem Content="user"/>
+                                    <ComboBoxItem Content="feedback"/>
+                                    <ComboBoxItem Content="project"/>
+                                    <ComboBoxItem Content="reference"/>
+                                </ComboBox>
+                                <TextBlock Grid.Row="1" Text="description" Style="{StaticResource T.Muted}" VerticalAlignment="Center" Margin="0,8,0,0"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding FmDescription, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,0,0"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Row="1" BorderBrush="{StaticResource B.Border}" BorderThickness="0,1,0,0" Padding="6,4,0,0" Background="{StaticResource B.BG.Sunken}">
+                        <Grid>
+                            <avalon:TextEditor
+                                Background="{StaticResource B.BG.Sunken}"
+                                Foreground="{StaticResource B.Text}"
+                                FontFamily="{StaticResource Font.Mono}"
+                                FontSize="16"
+                                WordWrap="True"
+                                ShowLineNumbers="False"
+                                SyntaxHighlighting="MarkdownRust"
+                                helper:AvalonEditHelper.BindableText="{Binding EntryBody, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                Visibility="{Binding IsPreviewMode, Converter={x:Static vm:InverseBoolToVisibility.Instance}}"/>
+                            <FlowDocumentScrollViewer x:Name="BodyPreview"
+                                                      Background="{StaticResource B.BG.Sunken}"
+                                                      Foreground="{StaticResource B.Text}"
+                                                      Visibility="{Binding IsPreviewMode, Converter={x:Static vm:BoolToVisibility.Instance}}"
+                                                      IsToolBarVisible="False">
+                                <FlowDocumentScrollViewer.CommandBindings>
+                                    <CommandBinding Command="ApplicationCommands.Find" Executed="OnFindExecuted"/>
+                                </FlowDocumentScrollViewer.CommandBindings>
+                            </FlowDocumentScrollViewer>
+                            <views:FindOverlay x:Name="Find" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,10,20,0"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </DockPanel>
+
+            <GridSplitter Grid.Column="3" Style="{StaticResource Splitter.Vertical}"
+                          Visibility="{Binding IsIndexCollapsed, Converter={x:Static vm:InverseBoolToVisibility.Instance}}"/>
+
+            <DockPanel Grid.Column="4" Background="{StaticResource B.BG.Panel}">
+                <!-- Clickable header toggle -->
+                <Border DockPanel.Dock="Top" Background="{StaticResource B.BG.Panel}" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <!-- Toggle area (title + chevron) -->
+                        <Button Command="{Binding ToggleIndexCommand}"
+                                HorizontalContentAlignment="Stretch" Cursor="Hand" Padding="0"
+                                ToolTip="Toggle MEMORY.md panel (click to collapse/expand)">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bd" Background="Transparent" Padding="14,10">
+                                        <ContentPresenter Content="{TemplateBinding Content}" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" TargetName="Bd" Value="{StaticResource B.BG.Hover}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="◢ MEMORY.MD" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"
+                                           Visibility="{Binding IsIndexCollapsed, Converter={x:Static vm:InverseBoolToVisibility.Instance}}"/>
+                                <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="14"
+                                           Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"
+                                           HorizontalAlignment="Center" Margin="4,0" FontWeight="Bold">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="»"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsIndexCollapsed}" Value="True">
+                                                    <Setter Property="Text" Value="«"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                        </Button>
+                        <!-- SAVE button (hidden when collapsed) -->
+                        <Button Grid.Column="1" Content="SAVE" Style="{StaticResource Btn.Pixel}" Command="{Binding SaveIndexCommand}"
+                                Margin="0,6,10,6" VerticalAlignment="Center"
+                                Visibility="{Binding IsIndexCollapsed, Converter={x:Static vm:InverseBoolToVisibility.Instance}}"/>
+                    </Grid>
+                </Border>
+
+                <!-- Vertical label when collapsed (also clickable) -->
+                <Button DockPanel.Dock="Top" Command="{Binding ToggleIndexCommand}"
+                        HorizontalContentAlignment="Stretch" Cursor="Hand" Padding="0"
+                        Visibility="{Binding IsIndexCollapsed, Converter={x:Static vm:BoolToVisibility.Instance}}"
+                        ToolTip="Click to expand MEMORY.md panel">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="Transparent" Padding="0,20,0,20">
+                                <ContentPresenter HorizontalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" TargetName="Bd" Value="{StaticResource B.BG.Hover}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                    <TextBlock Text="MEMORY.MD" Style="{StaticResource T.Pixel.Section}" FontSize="9" HorizontalAlignment="Center">
+                        <TextBlock.LayoutTransform>
+                            <RotateTransform Angle="90"/>
+                        </TextBlock.LayoutTransform>
+                    </TextBlock>
+                </Button>
+
+                <!-- Editor (hidden when collapsed) -->
+                <Border Background="{StaticResource B.BG.Sunken}" Padding="6,4,0,0"
+                        Visibility="{Binding IsIndexCollapsed, Converter={x:Static vm:InverseBoolToVisibility.Instance}}">
+                    <avalon:TextEditor
+                        Background="{StaticResource B.BG.Sunken}"
+                        Foreground="{StaticResource B.Text}"
+                        FontFamily="{StaticResource Font.Mono}"
+                        FontSize="15"
+                        WordWrap="False"
+                        ShowLineNumbers="False"
+                        SyntaxHighlighting="MarkdownRust"
+                        helper:AvalonEditHelper.BindableText="{Binding IndexRaw, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                </Border>
+            </DockPanel>
+        </Grid>
+    </Grid>
+</UserControl>
