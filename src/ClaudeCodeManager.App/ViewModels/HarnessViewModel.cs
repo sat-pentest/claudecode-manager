@@ -83,17 +83,36 @@ public partial class HarnessViewModel : ModuleBase
     [ObservableProperty] private int _agentTotal;
     [ObservableProperty] private int _agentEnabled;
 
+    // Layer 3 (workflows) — .mjs scripts in ~/.claude/workflows/
+    public ObservableCollection<HarnessNode> WorkflowNodes { get; } = new();
+    [ObservableProperty] private int _workflowTotal;
+    [ObservableProperty] private int _workflowEnabled;
+
     // Orchestration flows (predefined based on user setup)
     public ObservableCollection<HarnessFlow> Flows { get; } = new();
 
     // Collapse state for each section (persisted only in-memory)
     [ObservableProperty] private bool _isLayer1Collapsed;
     [ObservableProperty] private bool _isLayer2Collapsed;
+    [ObservableProperty] private bool _isLayer3Collapsed;
     [ObservableProperty] private bool _isFlowsCollapsed;
 
     [RelayCommand] private void ToggleLayer1() => IsLayer1Collapsed = !IsLayer1Collapsed;
     [RelayCommand] private void ToggleLayer2() => IsLayer2Collapsed = !IsLayer2Collapsed;
+    [RelayCommand] private void ToggleLayer3() => IsLayer3Collapsed = !IsLayer3Collapsed;
     [RelayCommand] private void ToggleFlows() => IsFlowsCollapsed = !IsFlowsCollapsed;
+
+    /// <summary>Opens the JSON editor for ~/.claude/harness-flows.json. On successful save, refresh the view.</summary>
+    [RelayCommand]
+    private void EditFlows()
+    {
+        var w = new Views.FlowsEditorWindow
+        {
+            Owner = System.Windows.Application.Current?.MainWindow
+        };
+        var saved = w.ShowDialog() == true;
+        if (saved) Refresh();
+    }
 
     public HarnessViewModel(MainViewModel main) { _main = main; }
 
@@ -211,10 +230,31 @@ public partial class HarnessViewModel : ModuleBase
         AgentTotal = agents.Count;
         AgentEnabled = agents.Count(a => !a.Disabled);
 
+        // ── LAYER 3: Workflows ──────────────────────────────────────────
+        WorkflowNodes.Clear();
+        var workflows = WorkflowLoader.LoadAll();
+        foreach (var w in workflows)
+        {
+            var phasesCount = w.Phases?.Count ?? 0;
+            WorkflowNodes.Add(new HarnessNode
+            {
+                Name = w.Name,
+                Kind = "WORKFLOW",
+                StateBadge = w.Disabled ? "DISABLED" : "ENABLED",
+                IsActive = !w.Disabled,
+                ConnectionState = w.Disabled ? "DISABLED" : "ONLINE",
+                Subtitle = $"{phasesCount} phase{(phasesCount == 1 ? "" : "s")} · {w.FileName}",
+                TargetModuleKey = "WFLW",
+                NavigateFile = w.FilePath
+            });
+        }
+        WorkflowTotal = workflows.Count;
+        WorkflowEnabled = workflows.Count(w => !w.Disabled);
+
         // ── FLOWS: predefined orchestration patterns ────────────────────
         BuildFlows(skills, agents, mcpSummary);
 
-        Status = $"L1: {McpTotal} MCPs, {SessionCount} sessions · L2: {SkillTotal} skills, {AgentTotal} agents · {Flows.Count} flows";
+        Status = $"L1: {McpTotal} MCPs, {SessionCount} sessions · L2: {SkillTotal} skills, {AgentTotal} agents · L3: {WorkflowTotal} workflows · {Flows.Count} flows";
     }
 
     private void BuildFlows(List<Skill> skills, List<AgentDefinition> agents, McpConfigSummary mcps)
@@ -223,6 +263,43 @@ public partial class HarnessViewModel : ModuleBase
         bool SkillActive(string name) => skills.Any(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase) && !s.Disabled);
         bool AgentActive(string name) => agents.Any(a => a.Name.Equals(name, StringComparison.OrdinalIgnoreCase) && !a.Disabled);
         bool McpEnabled(string name) => mcps.Servers.Any(m => m.Name.Equals(name, StringComparison.OrdinalIgnoreCase) && (m.EnabledInSettings || m.Scope == McpScope.ProjectScoped));
+
+        // External flow definitions (from ~/.claude/harness-flows.json) take precedence.
+        // Fall back to hardcoded defaults only when the file is missing/unparseable.
+        var external = HarnessFlowsLoader.TryLoad();
+        if (external is { Count: > 0 })
+        {
+            foreach (var def in external)
+            {
+                var flow = new HarnessFlow
+                {
+                    Name = def.Name,
+                    Description = def.Description,
+                    TriggerHint = def.TriggerHint,
+                    Steps = new List<HarnessFlowStep>()
+                };
+                foreach (var s in def.Steps)
+                {
+                    bool active = s.Kind switch
+                    {
+                        "SKILL" => SkillActive(s.Name),
+                        "AGENT" => AgentActive(s.Name),
+                        "MCP"   => McpEnabled(s.Name),
+                        _       => true    // EXTERNAL is always assumed present
+                    };
+                    flow.Steps.Add(new HarnessFlowStep
+                    {
+                        Kind = s.Kind,
+                        Name = s.Name,
+                        Detail = s.Detail,
+                        Arrow = s.Arrow,
+                        IsActive = active
+                    });
+                }
+                Flows.Add(flow);
+            }
+            return;   // JSON loaded — skip hardcoded fallback
+        }
 
         Flows.Add(new HarnessFlow
         {

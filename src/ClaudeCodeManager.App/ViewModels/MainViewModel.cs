@@ -33,10 +33,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
         Modules.Add(new MemoryViewModel(this));
         Modules.Add(new SkillsViewModel(this));
         Modules.Add(new AgentsViewModel(this));
-        Modules.Add(new SettingsViewModel(this));
+        Modules.Add(new WorkflowsViewModel(this));
         Modules.Add(new McpStatusViewModel(this));
-        Modules.Add(new SearchViewModel(this));
         Modules.Add(new SessionsViewModel(this));
+        Modules.Add(new SettingsViewModel(this));
+        Modules.Add(new SearchViewModel(this));
         Modules.Add(new SnapshotsViewModel(this));
         Modules.Add(new DiagnosticsViewModel(this));
 
@@ -103,6 +104,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         var claudeRoot = ClaudePaths.ClaudeRoot.Replace('/', '\\').TrimEnd('\\');
 
         var skillsRoot = System.IO.Path.Combine(claudeRoot, "skills");
+        var workflowsRoot = System.IO.Path.Combine(claudeRoot, "workflows");
         var projectsRoot = System.IO.Path.Combine(claudeRoot, "projects");
         var fileName = System.IO.Path.GetFileName(normalized);
 
@@ -111,6 +113,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (normalized.StartsWith(skillsRoot, System.StringComparison.OrdinalIgnoreCase))
         {
             target = Modules.FirstOrDefault(m => m is SkillsViewModel);
+        }
+        else if (normalized.StartsWith(workflowsRoot, System.StringComparison.OrdinalIgnoreCase))
+        {
+            target = Modules.FirstOrDefault(m => m is WorkflowsViewModel);
         }
         else if (normalized.StartsWith(projectsRoot, System.StringComparison.OrdinalIgnoreCase))
         {
@@ -153,6 +159,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             case ClaudeMdViewModel cvm: cvm.SelectByPath(normalized); break;
             case MemoryViewModel mvm: mvm.SelectByPath(normalized); break;
             case SkillsViewModel svm: svm.SelectByPath(normalized); break;
+            case WorkflowsViewModel wvm: wvm.SelectByPath(normalized); break;
             case SettingsViewModel setvm: setvm.SelectByPath(normalized); break;
         }
         ExternalChangeNotice = "navigated · " + System.IO.Path.GetFileName(normalized);

@@ -93,10 +93,22 @@ public static class MemoryIndexer
         };
     }
 
+    /// <summary>
+    /// Persist a memory entry surgically — one root-level key at a time, then body.
+    /// This preserves any frontmatter content the parser doesn't round-trip: nested
+    /// `metadata:` blocks that Claude Code's session-summarizer writes, extra keys,
+    /// custom fields, etc. A Serialize round-trip would silently delete those.
+    /// </summary>
     public static async Task SaveEntryAsync(MemoryEntry entry)
     {
-        var text = FrontmatterParser.Serialize(entry.Frontmatter, entry.Body);
-        await AtomicFileWriter.WriteAsync(entry.FilePath, text);
+        var fm = entry.Frontmatter;
+        await FrontmatterUpdater.SetKeyAsync(entry.FilePath, "name",
+            string.IsNullOrWhiteSpace(fm.Name) ? null : fm.Name);
+        await FrontmatterUpdater.SetKeyAsync(entry.FilePath, "description",
+            string.IsNullOrWhiteSpace(fm.Description) ? null : fm.Description);
+        await FrontmatterUpdater.SetKeyAsync(entry.FilePath, "type",
+            string.IsNullOrWhiteSpace(fm.Type) ? null : fm.Type);
+        await FrontmatterUpdater.ReplaceBodyAsync(entry.FilePath, entry.Body);
     }
 
     public static async Task SaveIndexAsync(MemoryProject project, string headerBlock, IEnumerable<MemoryIndexItem> items)

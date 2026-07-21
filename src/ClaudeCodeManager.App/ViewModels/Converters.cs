@@ -46,6 +46,27 @@ public sealed class InverseBoolToVisibility : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
 }
 
+/// <summary>Visible when the string is non-empty, Collapsed otherwise. Used to hide labels/descriptions that would render as blank rows.</summary>
+public sealed class StringToVisibility : IValueConverter
+{
+    public static readonly StringToVisibility Instance = new();
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => string.IsNullOrWhiteSpace(value as string) ? Visibility.Collapsed : Visibility.Visible;
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
+/// <summary>Visible when a collection has at least one item; Collapsed for null or empty. Used to hide empty tool-pill rows.</summary>
+public sealed class ListToVisibility : IValueConverter
+{
+    public static readonly ListToVisibility Instance = new();
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is System.Collections.ICollection c) return c.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        return Visibility.Collapsed;
+    }
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
 public sealed class StringToDocumentConverter : IValueConverter
 {
     public static readonly StringToDocumentConverter Instance = new();

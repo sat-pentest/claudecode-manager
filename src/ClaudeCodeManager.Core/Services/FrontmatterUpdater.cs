@@ -54,8 +54,11 @@ public static class FrontmatterUpdater
         }
         if (endIdx < 0) return (raw, false);
 
-        // Find existing key line inside frontmatter block
-        var keyPattern = new Regex($@"^\s*{Regex.Escape(key)}\s*:\s*(.*)$", RegexOptions.IgnoreCase);
+        // Find existing key line inside frontmatter block.
+        // Anchor at column 0 (no leading whitespace) so nested keys like
+        // `metadata.type` under a mapping block don't accidentally match — otherwise
+        // SetKeyAsync would think the value is "already set" and silently no-op.
+        var keyPattern = new Regex($@"^{Regex.Escape(key)}\s*:\s*(.*)$", RegexOptions.IgnoreCase);
         int existingIdx = -1;
         string existingRaw = "";
         for (int i = 1; i < endIdx; i++)
@@ -98,6 +101,61 @@ public static class FrontmatterUpdater
         var joined = string.Join("\n", lines);
         if (useCrlf) joined = joined.Replace("\n", "\r\n");
         return (joined, true);
+    }
+
+    /// <summary>
+    /// Replace only the body of a markdown file (everything after the closing '---'),
+    /// leaving the entire frontmatter block byte-for-byte intact. Preserves unknown or
+    /// nested keys (like the `metadata:` block Claude Code auto-adds) that a Serialize
+    /// round-trip through Frontmatter would otherwise drop.
+    /// </summary>
+    public static async Task<bool> ReplaceBodyAsync(string filePath, string newBody)
+    {
+        if (!File.Exists(filePath)) throw new FileNotFoundException("Body target file not found", filePath);
+        var raw = await File.ReadAllTextAsync(filePath);
+        var (updated, changed) = ReplaceBody(raw, newBody);
+        if (!changed) return false;
+        await AtomicFileWriter.WriteAsync(filePath, updated);
+        return true;
+    }
+
+    /// <summary>Testable pure function — takes raw text + new body, returns modified text.</summary>
+    public static (string content, bool changed) ReplaceBody(string raw, string? newBody)
+    {
+        if (raw is null) return ("", false);
+
+        var useCrlf = raw.Contains("\r\n");
+        var normalized = raw.Replace("\r\n", "\n");
+        var lines = normalized.Split('\n');
+
+        // No frontmatter block → treat entire file as body
+        if (lines.Length < 2 || lines[0].TrimEnd() != Delimiter)
+        {
+            var justBody = (newBody ?? "").Replace("\r\n", "\n");
+            if (useCrlf) justBody = justBody.Replace("\n", "\r\n");
+            return (justBody, !string.Equals(justBody, raw, StringComparison.Ordinal));
+        }
+
+        int endIdx = -1;
+        for (int i = 1; i < lines.Length; i++)
+        {
+            if (lines[i].TrimEnd() == Delimiter) { endIdx = i; break; }
+        }
+        if (endIdx < 0) return (raw, false);   // malformed frontmatter — refuse to touch
+
+        // Keep everything through the closing '---' verbatim, then blank line + newBody.
+        var sb = new StringBuilder();
+        for (int i = 0; i <= endIdx; i++)
+        {
+            sb.Append(lines[i]);
+            sb.Append('\n');
+        }
+        sb.Append('\n');
+        sb.Append((newBody ?? "").Replace("\r\n", "\n"));
+
+        var result = sb.ToString();
+        if (useCrlf) result = result.Replace("\n", "\r\n");
+        return (result, !string.Equals(result, raw, StringComparison.Ordinal));
     }
 
     private static string YamlScalarEncode(string v)

@@ -56,6 +56,29 @@ public static class FrontmatterParser
                             break;
                     }
                 }
+
+                // Fallback: Claude Code session-summarizer writes `type` NESTED under `metadata:`
+                // rather than at the root. If root-level type wasn't found, look inside metadata.
+                // This is how ~half the memory files in the wild are structured.
+                if (string.IsNullOrEmpty(fm.Type))
+                {
+                    foreach (var kv in map.Children)
+                    {
+                        var key = ((YamlScalarNode)kv.Key).Value ?? "";
+                        if (!key.Equals("metadata", StringComparison.OrdinalIgnoreCase)) continue;
+                        if (kv.Value is not YamlMappingNode metaMap) continue;
+                        foreach (var mkv in metaMap.Children)
+                        {
+                            var mkey = ((YamlScalarNode)mkv.Key).Value ?? "";
+                            if (mkey.Equals("type", StringComparison.OrdinalIgnoreCase))
+                            {
+                                fm.Type = ScalarValue(mkv.Value);
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
             }
         }
         catch

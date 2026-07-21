@@ -1,0 +1,417 @@
+<UserControl x:Class="ClaudeCodeManager.App.Views.WorkflowsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ClaudeCodeManager.App.ViewModels"
+             xmlns:svc="clr-namespace:ClaudeCodeManager.App.Services"
+             xmlns:avalon="http://icsharpcode.net/sharpdevelop/avalonedit"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             d:DataContext="{d:DesignInstance vm:WorkflowsViewModel}"
+             mc:Ignorable="d">
+
+    <Grid Background="{StaticResource B.BG.Primary}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- TOP BAR -->
+        <Border Background="{StaticResource B.BG.Panel}" Padding="16,10"
+                BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="◢ WORKFLOWS" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
+                <Button Content="REFRESH" Style="{StaticResource Btn.Pixel}" Command="{Binding RefreshCommand}" Margin="16,0,0,0"/>
+                <Button Content="OPEN FOLDER" Style="{StaticResource Btn.Pixel}" Command="{Binding OpenFolderCommand}" Margin="8,0,0,0" ToolTip="Open ~/.claude/workflows/ in Explorer"/>
+                <TextBlock Text="{Binding Status}" Style="{StaticResource T.Muted}" FontSize="12" Margin="20,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="380" MinWidth="260"/>
+                <ColumnDefinition Width="4"/>
+                <ColumnDefinition Width="*" MinWidth="420"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT: workflow list -->
+            <DockPanel Background="{StaticResource B.BG.Panel}">
+                <TextBlock DockPanel.Dock="Top" Text="◢ INSTALLED" Style="{StaticResource T.Pixel.Section}" Margin="16,14,0,8"/>
+                <ListBox ItemsSource="{Binding Workflows}" SelectedItem="{Binding Selected}" Margin="8,0,8,8" Background="{StaticResource B.BG.Sunken}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="0,2">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="●" Width="14" VerticalAlignment="Center"
+                                               svc:PulseBehavior.IsActive="{Binding Disabled, Converter={x:Static vm:InverseBool.Instance}}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{StaticResource B.Success}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Disabled}" Value="True">
+                                                        <Setter Property="Foreground" Value="{StaticResource B.TextDim}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding Name}" FontFamily="{StaticResource Font.Mono}" FontSize="14" VerticalAlignment="Center"/>
+                                    <Border Padding="5,4,5,4" Margin="8,0,0,0" VerticalAlignment="Center"
+                                            Background="{StaticResource B.RustDim}"
+                                            Visibility="{Binding Disabled, Converter={x:Static vm:BoolToVisibility.Instance}}">
+                                        <TextBlock Text="OFF" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Text}" VerticalAlignment="Center"/>
+                                    </Border>
+                                </StackPanel>
+                                <TextBlock Text="{Binding Description}" Style="{StaticResource T.Muted}" FontSize="12" Margin="14,3,4,0" TextTrimming="CharacterEllipsis"/>
+                                <StackPanel Orientation="Horizontal" Margin="14,4,4,0">
+                                    <TextBlock Text="{Binding Phases.Count}" FontFamily="{StaticResource Font.Pixel}" FontSize="8" Foreground="{StaticResource B.Ember}"/>
+                                    <TextBlock Text=" PHASES" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.TextMuted}" Margin="2,0,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+
+            <GridSplitter Grid.Column="1" Style="{StaticResource Splitter.Vertical}"/>
+
+            <!-- RIGHT: DETAIL -->
+            <Grid Grid.Column="2" Background="{StaticResource B.BG.Sunken}">
+
+                <!-- Empty state -->
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Selected}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <TextBlock Text="◈" FontFamily="{StaticResource Font.CRT}" FontSize="72" Foreground="{StaticResource B.RustDim}" HorizontalAlignment="Center" Opacity="0.5"/>
+                    <TextBlock Text="SELECT A WORKFLOW" Style="{StaticResource T.Pixel.Section}" FontSize="10" HorizontalAlignment="Center" Margin="0,12,0,0"/>
+                    <TextBlock Text="왼쪽 리스트에서 워크플로를 선택하세요" Style="{StaticResource T.Muted}" FontSize="12" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                </StackPanel>
+
+                <!-- Detail content -->
+                <DockPanel Background="{StaticResource B.BG.Sunken}" Visibility="{Binding Selected, Converter={x:Static vm:NullToVisibility.Instance}}">
+
+                    <!-- Toolbar -->
+                    <Border DockPanel.Dock="Top" Background="{StaticResource B.BG.Panel}" Padding="14,8" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="TOGGLE" Style="{StaticResource Btn.Pixel.Primary}" Command="{Binding ToggleCommand}" CommandParameter="{Binding Selected}" Margin="0,0,6,0"
+                                    ToolTip="Enable ↔ Disable (rename with .disabled suffix)"/>
+                            <Button Content="OPEN FOLDER" Style="{StaticResource Btn.Pixel}" Command="{Binding OpenFolderCommand}" CommandParameter="{Binding Selected}" Margin="0,0,6,0"/>
+                            <Button Content="DELETE" Command="{Binding DeleteCommand}" CommandParameter="{Binding Selected}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource Btn.Pixel}">
+                                        <Setter Property="Foreground" Value="{StaticResource B.Danger}"/>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <TextBlock Text="{Binding Selected.FilePath}" Style="{StaticResource T.Mono}" FontSize="12" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center" Margin="14,0,0,0" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Scrollable content area — every section below the toolbar can overflow,
+                         so wrap them all in a single ScrollViewer. Toolbar stays sticky as the
+                         DockPanel's remaining Top child. -->
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel>
+
+                    <!-- DETAIL toggle header -->
+                    <Button DockPanel.Dock="Top" Command="{Binding ToggleDetailCommand}"
+                            HorizontalContentAlignment="Stretch" Cursor="Hand" Padding="0"
+                            ToolTip="Toggle DETAIL section">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="{StaticResource B.BG.Panel}" Padding="20,10"
+                                        BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
+                                    <ContentPresenter VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" TargetName="Bd" Value="{StaticResource B.BG.Hover}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="◢ DETAIL" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="14"
+                                       Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" FontWeight="Bold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="»"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsDetailCollapsed}" Value="True">
+                                                <Setter Property="Text" Value="«"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                    </Button>
+
+                    <!-- DETAIL content -->
+                    <StackPanel DockPanel.Dock="Top"
+                                Visibility="{Binding IsDetailCollapsed, Converter={x:Static vm:InverseBoolToVisibility.Instance}}">
+                        <!-- Header card -->
+                        <Border Padding="20,16" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1" Background="{StaticResource B.BG.Panel}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="◆" FontSize="14" Foreground="{StaticResource B.Rust}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <TextBlock Text="{Binding Selected.Name}" FontFamily="{StaticResource Font.CRT}" FontSize="28" Foreground="{StaticResource B.Ember}" Effect="{StaticResource Glow.Soft}" VerticalAlignment="Center"/>
+                                    <Border Padding="8,5,8,5" Margin="14,2,0,0" VerticalAlignment="Center"
+                                            svc:PulseBehavior.IsActive="{Binding Selected.Disabled, Converter={x:Static vm:InverseBool.Instance}, FallbackValue=False}">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="{StaticResource B.Success}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Selected.Disabled}" Value="True">
+                                                        <Setter Property="Background" Value="{StaticResource B.Danger}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock FontFamily="{StaticResource Font.Pixel}" FontSize="8" Foreground="{StaticResource B.BG.Primary}" VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Text" Value="ENABLED"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Selected.Disabled}" Value="True">
+                                                            <Setter Property="Text" Value="DISABLED"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Border>
+                                </StackPanel>
+                                <TextBlock Text="{Binding Selected.Description}" Style="{StaticResource T.Body}" FontSize="13" TextWrapping="Wrap" LineHeight="22" Margin="0,12,0,0" Foreground="{StaticResource B.Text}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Meta card: phases, modified, filename -->
+                        <Border Padding="20,14" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1" Background="{StaticResource B.BG.Panel}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="90"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="PHASES" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Top" Margin="0,2,0,0"/>
+                                <ItemsControl Grid.Column="1" ItemsSource="{Binding Selected.Phases}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="{StaticResource B.RustDim}" BorderThickness="1"
+                                                    Background="{StaticResource B.BG.Sunken}"
+                                                    Padding="8,2,8,3" Margin="0,2,5,2">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Index}" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Rust}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="{Binding Title}" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Ember}"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <TextBlock Grid.Row="1" Text="MODIFIED" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center" Margin="0,10,0,0"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Selected.ModifiedAt, StringFormat='yyyy-MM-dd HH:mm:ss'}" Style="{StaticResource T.Mono}" FontSize="11" Foreground="{StaticResource B.TextMuted}" Margin="0,10,0,0" VerticalAlignment="Center"/>
+
+                                <TextBlock Grid.Row="2" Text="FILE" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center" Margin="0,10,0,0"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Selected.FileName}" Style="{StaticResource T.Mono}" FontSize="11" Foreground="{StaticResource B.TextMuted}" Margin="0,10,0,0" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- PIPELINE section (toggle header + vertical layered flow) -->
+                    <Button DockPanel.Dock="Top" Command="{Binding TogglePipelineCommand}"
+                            HorizontalContentAlignment="Stretch" Cursor="Hand" Padding="0"
+                            ToolTip="Toggle PIPELINE section - 워크플로 phase 뎁스 레이어 시각화">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="{StaticResource B.BG.Panel}" Padding="20,8"
+                                        BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
+                                    <ContentPresenter VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" TargetName="Bd" Value="{StaticResource B.BG.Hover}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="◢ PIPELINE" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding Selected.Phases.Count, StringFormat=' ▌ {0} phases'}" Style="{StaticResource T.Muted}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                <TextBlock Text="{Binding PipelineZoomText}" Style="{StaticResource T.Muted}" FontSize="11" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" Margin="10,0,0,0" ToolTip="Ctrl+마우스휠로 확대/축소. 더블클릭으로 100% 리셋."/>
+                            </StackPanel>
+                            <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="14"
+                                       Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,8,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="»"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsPipelineCollapsed}" Value="True">
+                                                <Setter Property="Text" Value="«"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                    </Button>
+
+                    <!-- PIPELINE content: vertical stack of compact phase cards + arrow connectors.
+                         Wrapped in a Grid to capture Ctrl+MouseWheel for zoom without disturbing the
+                         outer ScrollViewer's normal (wheel-without-Ctrl) scrolling.
+                         LayoutTransform on ItemsControl re-lays out (respects ScrollViewer) as scale
+                         changes. Double-click on the zoom badge resets to 100%. -->
+                    <Grid Visibility="{Binding IsPipelineCollapsed, Converter={x:Static vm:InverseBoolToVisibility.Instance}}"
+                          PreviewMouseWheel="OnPipelineWheel"
+                          MouseLeftButtonDown="OnPipelineMouseDown"
+                          Background="{StaticResource B.BG.Sunken}">
+                        <ItemsControl ItemsSource="{Binding Selected.Phases}"
+                                      Margin="24,16,24,16"
+                                      Background="{StaticResource B.BG.Sunken}"
+                                      HorizontalAlignment="Center">
+                            <ItemsControl.LayoutTransform>
+                                <ScaleTransform ScaleX="{Binding PipelineZoom}" ScaleY="{Binding PipelineZoom}"/>
+                            </ItemsControl.LayoutTransform>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel HorizontalAlignment="Center" MaxWidth="640">
+                                        <!-- Phase card -->
+                                        <Border Padding="14,11" BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1"
+                                                Background="{StaticResource B.BG.Panel}">
+                                            <StackPanel>
+                                                <!-- Row 1: number badge + title -->
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Background="{StaticResource B.Rust}" Padding="8,3,8,4"
+                                                            Margin="0,0,12,0" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Index}" FontFamily="{StaticResource Font.Pixel}" FontSize="10" Foreground="{StaticResource B.BG.Primary}"/>
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Title}" FontFamily="{StaticResource Font.Mono}" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"/>
+                                                </StackPanel>
+
+                                                <!-- Detail (optional) -->
+                                                <TextBlock Text="{Binding Detail}" Style="{StaticResource T.Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,6,0,0" LineHeight="19"
+                                                           Visibility="{Binding Detail, Converter={x:Static vm:StringToVisibility.Instance}}"/>
+
+                                                <!-- Tools row (optional) -->
+                                                <ItemsControl ItemsSource="{Binding Tools}"
+                                                              Margin="0,8,0,0"
+                                                              Visibility="{Binding Tools, Converter={x:Static vm:ListToVisibility.Instance}}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <WrapPanel/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border Background="{StaticResource B.BG.Sunken}" BorderBrush="{StaticResource B.RustDim}" BorderThickness="1"
+                                                                    Padding="7,1,7,2" Margin="0,0,5,4">
+                                                                <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.Text}"/>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Downward arrow connector (hidden after last phase) -->
+                                        <TextBlock Text="↓" FontFamily="{StaticResource Font.CRT}" FontSize="22"
+                                                   Foreground="{StaticResource B.Ember}"
+                                                   HorizontalAlignment="Center" Margin="0,4,0,4"
+                                                   Visibility="{Binding IsLast, Converter={x:Static vm:InverseBoolToVisibility.Instance}}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+
+                    <!-- SCRIPT header (toggle) -->
+                    <Button DockPanel.Dock="Top" Command="{Binding ToggleBodyCommand}"
+                            HorizontalContentAlignment="Stretch" Cursor="Hand" Padding="0"
+                            ToolTip="Toggle SCRIPT section">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="{StaticResource B.BG.Panel}" Padding="20,8"
+                                        BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
+                                    <ContentPresenter VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" TargetName="Bd" Value="{StaticResource B.BG.Hover}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="◢ SCRIPT (.mjs)" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="14"
+                                       Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,8,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="»"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsBodyCollapsed}" Value="True">
+                                                <Setter Property="Text" Value="«"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                    </Button>
+
+                    <!-- Script viewer (read-only) -->
+                    <avalon:TextEditor
+                        DockPanel.Dock="Top"
+                        Visibility="{Binding IsBodyCollapsed, Converter={x:Static vm:InverseBoolToVisibility.Instance}}"
+                        FontFamily="{StaticResource Font.Mono}"
+                        FontSize="13"
+                        Background="{StaticResource B.BG.Primary}"
+                        Foreground="{StaticResource B.Text}"
+                        ShowLineNumbers="True"
+                        SyntaxHighlighting="JavaScript"
+                        IsReadOnly="True"
+                        HorizontalScrollBarVisibility="Auto"
+                        VerticalScrollBarVisibility="Auto"
+                        Padding="14,10"
+                        WordWrap="False"
+                        svc:AvalonEditHelper.BindableText="{Binding Selected.Text, Mode=OneWay}"
+                        Height="500"/>
+                    </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

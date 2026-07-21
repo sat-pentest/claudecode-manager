@@ -56,6 +56,9 @@
         <DataTemplate DataType="{x:Type vm:AgentsViewModel}">
             <views:AgentsView/>
         </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:WorkflowsViewModel}">
+            <views:WorkflowsView/>
+        </DataTemplate>
         <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
             <views:SettingsView/>
         </DataTemplate>
@@ -271,10 +274,14 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
+                <!-- Pixel-font glyphs (Press Start 2P) sit near the top of their em-box,
+                     so a plain VerticalAlignment=Center makes them look "raised". Explicit
+                     Padding pushes them down a few pixels for optical center in the 28px bar. -->
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0,0,0">
-                    <TextBlock Text="{Binding Current.Title}" Style="{StaticResource T.Pixel.Section}" FontSize="8"/>
+                    <TextBlock Text="{Binding Current.Title}" Style="{StaticResource T.Pixel.Section}" FontSize="8"
+                               VerticalAlignment="Center" Padding="0,4,0,0"/>
                     <TextBlock Text="  ▌  " Foreground="{StaticResource B.RustDim}" VerticalAlignment="Center" Margin="6,0"/>
-                    <TextBlock Text="{Binding Current.Status}" Style="{StaticResource T.Mono}" Foreground="{StaticResource B.TextMuted}"/>
+                    <TextBlock Text="{Binding Current.Status}" Style="{StaticResource T.Mono}" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center"/>
                 </StackPanel>
                 <TextBlock Grid.Column="1" Text="{Binding ExternalChangeNotice}" Style="{StaticResource T.Mono}" Foreground="{StaticResource B.Warn}" VerticalAlignment="Center" Margin="0,0,20,0"/>
             </Grid>

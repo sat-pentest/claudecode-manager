@@ -323,26 +323,29 @@
             </Border>
 
             <!-- ═══════════════════════════════════════════════════════
-                 ORCHESTRATION FLOWS
+                 LAYER 3 · WORKFLOWS (.mjs scripts in ~/.claude/workflows/)
                  ═══════════════════════════════════════════════════════ -->
-            <Border BorderBrush="{StaticResource B.Border}" BorderThickness="1" Background="{StaticResource B.BG.Panel}" Padding="20,16">
+            <Border BorderBrush="{StaticResource B.Border}" BorderThickness="1" Background="{StaticResource B.BG.Panel}" Padding="20,16" Margin="0,0,0,14">
                 <StackPanel>
-                    <Button Style="{StaticResource SectionHeader}" Command="{Binding ToggleFlowsCommand}" Margin="0,0,0,12">
+                    <Button Style="{StaticResource SectionHeader}" Command="{Binding ToggleLayer3Command}" Margin="0,0,0,12">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="▧ ORCHESTRATION FLOWS" Style="{StaticResource T.Pixel.Section}" FontSize="10" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"/>
-                                <TextBlock Text=" ▌ 작업 유형별 하네스 · 트리거·구성요소·상태" Style="{StaticResource T.Muted}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                <TextBlock Text="▤ LAYER 3 · WORKFLOWS" Style="{StaticResource T.Pixel.Section}" FontSize="10" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"/>
+                                <TextBlock Text=" ▌ .mjs 스크립트 · 다중 에이전트 자율 오케스트레이션" Style="{StaticResource T.Muted}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                <TextBlock Style="{StaticResource T.Muted}" Margin="14,0,0,0" VerticalAlignment="Center">
+                                    <Run Text="{Binding WorkflowEnabled, Mode=OneWay}"/><Run Text=" / "/><Run Text="{Binding WorkflowTotal, Mode=OneWay}"/><Run Text=" active"/>
+                                </TextBlock>
                             </StackPanel>
                             <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="10" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" Margin="0,0,4,0">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="Text" Value="▼"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsFlowsCollapsed}" Value="True">
+                                            <DataTrigger Binding="{Binding IsLayer3Collapsed}" Value="True">
                                                 <Setter Property="Text" Value="▶"/>
                                             </DataTrigger>
                                         </Style.Triggers>
@@ -351,6 +354,85 @@
                             </TextBlock>
                         </Grid>
                     </Button>
+
+                    <ItemsControl ItemsSource="{Binding WorkflowNodes}"
+                                  Visibility="{Binding IsLayer3Collapsed, Converter={x:Static vm:InverseBoolToVisibility.Instance}}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource NodeCard}" HorizontalAlignment="Stretch">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse Width="8" Height="8" Margin="0,0,7,0" VerticalAlignment="Center" Effect="{StaticResource Glow.Soft}"
+                                                     svc:PulseBehavior.IsActive="{Binding IsActive}">
+                                                <Ellipse.Style>
+                                                    <Style TargetType="Ellipse">
+                                                        <Setter Property="Fill" Value="{StaticResource B.TextDim}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                                <Setter Property="Fill" Value="{StaticResource B.Success}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock Text="{Binding Name}" FontFamily="{StaticResource Font.Mono}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource B.Text}"/>
+                                            <Border Padding="5,2,5,3" Margin="10,0,0,0" VerticalAlignment="Center"
+                                                    Background="{StaticResource B.RustDim}"
+                                                    Visibility="{Binding IsActive, Converter={x:Static vm:InverseBoolToVisibility.Instance}}">
+                                                <TextBlock Text="OFF" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Text}" VerticalAlignment="Center"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Subtitle}" Style="{StaticResource T.Muted}" FontSize="11" Margin="15,3,0,0"/>
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- ═══════════════════════════════════════════════════════
+                 ORCHESTRATION FLOWS
+                 ═══════════════════════════════════════════════════════ -->
+            <Border BorderBrush="{StaticResource B.Border}" BorderThickness="1" Background="{StaticResource B.BG.Panel}" Padding="20,16">
+                <StackPanel>
+                    <!-- Header row: SectionHeader Button (fills width, toggles collapse)
+                         + floating EDIT FLOWS Button layered on top (higher ZIndex so click hits it, not the toggle). -->
+                    <Grid Margin="0,0,0,12">
+                        <Button Style="{StaticResource SectionHeader}" Command="{Binding ToggleFlowsCommand}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="▧ ORCHESTRATION FLOWS" Style="{StaticResource T.Pixel.Section}" FontSize="10" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"/>
+                                    <TextBlock Text=" ▌ 작업 유형별 하네스 · 트리거·구성요소·상태" Style="{StaticResource T.Muted}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="10" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" Margin="0,0,4,0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="▼"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsFlowsCollapsed}" Value="True">
+                                                    <Setter Property="Text" Value="▶"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                        </Button>
+                        <!-- EDIT FLOWS button — sits above the section-header button, right of the label, left of chevron.
+                             Panel.ZIndex ensures its clicks aren't intercepted by the outer toggle. -->
+                        <Button HorizontalAlignment="Right" VerticalAlignment="Center"
+                                Margin="0,0,26,0"
+                                Panel.ZIndex="1"
+                                Style="{StaticResource Btn.Pixel}"
+                                Content="EDIT FLOWS"
+                                Command="{Binding EditFlowsCommand}"
+                                ToolTip="Open ~/.claude/harness-flows.json in an in-app editor"/>
+                    </Grid>
 
                     <ItemsControl ItemsSource="{Binding Flows}"
                                   Visibility="{Binding IsFlowsCollapsed, Converter={x:Static vm:InverseBoolToVisibility.Instance}}">
