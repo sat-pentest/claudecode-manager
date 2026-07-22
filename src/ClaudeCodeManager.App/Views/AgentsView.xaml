@@ -26,7 +26,8 @@
 
         <Border Background="{StaticResource B.BG.Panel}" Padding="16,10" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="◈ AGENTS" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
+                <Path Style="{StaticResource Icon.Module}" Data="{Binding Glyph, Converter={x:Static vm:StringToGeometry.Instance}}"/>
+                <TextBlock Text="AGENTS" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
                 <Button Content="OPEN AGENTS FOLDER" Style="{StaticResource Btn.Pixel}" Command="{Binding OpenAgentsRootCommand}" Margin="16,0,0,0"/>
                 <Button Content="REFRESH" Style="{StaticResource Btn.Pixel}" Command="{Binding RefreshCommand}" Margin="8,0,0,0"/>
                 <TextBlock Text="{Binding Status}" Style="{StaticResource T.Muted}" FontSize="12" Margin="20,0,0,0" VerticalAlignment="Center"/>

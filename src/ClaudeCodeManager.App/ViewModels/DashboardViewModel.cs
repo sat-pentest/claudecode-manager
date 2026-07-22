@@ -20,7 +20,18 @@ public partial class DashboardViewModel : ModuleBase
     [ObservableProperty] private int _totalMemoryEntries;
     [ObservableProperty] private int _totalProjects;
     [ObservableProperty] private int _totalSkills;
+    [ObservableProperty] private int _activeSkills;
     [ObservableProperty] private int _disabledSkills;
+    [ObservableProperty] private int _totalAgents;
+    [ObservableProperty] private int _activeAgents;
+    [ObservableProperty] private int _disabledAgents;
+    [ObservableProperty] private int _totalWorkflows;
+    [ObservableProperty] private int _activeWorkflows;
+    [ObservableProperty] private int _disabledWorkflows;
+    [ObservableProperty] private int _totalMcp;
+    [ObservableProperty] private int _onlineMcp;
+    [ObservableProperty] private int _disabledMcp;
+    [ObservableProperty] private int _authRequiredMcp;
     [ObservableProperty] private int _snapshotCount;
     [ObservableProperty] private int _diagErrors;
     [ObservableProperty] private int _diagWarnings;
@@ -30,6 +41,8 @@ public partial class DashboardViewModel : ModuleBase
     [ObservableProperty] private string _snapshotRoot = ClaudePaths.SnapshotsRoot;
     [ObservableProperty] private string _settingsExists = "—";
     [ObservableProperty] private string _localSettingsExists = "—";
+    [ObservableProperty] private string _claudeMdStatus = "—";
+    [ObservableProperty] private int _claudeMdLines;
 
     // Session storage stats (~/.claude/projects/)
     [ObservableProperty] private string _sessionsTotalSize = "0 B";
@@ -62,6 +75,23 @@ public partial class DashboardViewModel : ModuleBase
         var skills = SkillLoader.LoadAll();
         TotalSkills = skills.Count;
         DisabledSkills = skills.Count(s => s.Disabled);
+        ActiveSkills = TotalSkills - DisabledSkills;
+
+        var agents = AgentLoader.LoadAll();
+        TotalAgents = agents.Count;
+        DisabledAgents = agents.Count(a => a.Disabled);
+        ActiveAgents = TotalAgents - DisabledAgents;
+
+        var workflows = WorkflowLoader.LoadAll();
+        TotalWorkflows = workflows.Count;
+        DisabledWorkflows = workflows.Count(w => w.Disabled);
+        ActiveWorkflows = TotalWorkflows - DisabledWorkflows;
+
+        var mcp = McpConfigService.Scan();
+        TotalMcp = mcp.TotalCount;
+        OnlineMcp = mcp.EnabledCount;
+        AuthRequiredMcp = mcp.NeedsAuthCount;
+        DisabledMcp = TotalMcp - OnlineMcp - AuthRequiredMcp;
 
         var snaps = _main.Snapshots.ListSnapshots(500);
         SnapshotCount = snaps.Count;
@@ -77,6 +107,17 @@ public partial class DashboardViewModel : ModuleBase
 
         SettingsExists = File.Exists(ClaudePaths.SettingsJson) ? "OK" : "missing";
         LocalSettingsExists = File.Exists(ClaudePaths.LocalSettingsJson) ? "OK" : "missing";
+        if (File.Exists(ClaudePaths.GlobalClaudeMd))
+        {
+            try
+            {
+                var text = File.ReadAllText(ClaudePaths.GlobalClaudeMd);
+                ClaudeMdLines = text.Replace("\r\n", "\n").Split('\n').Length;
+                ClaudeMdStatus = "OK";
+            }
+            catch { ClaudeMdStatus = "read err"; ClaudeMdLines = 0; }
+        }
+        else { ClaudeMdStatus = "missing"; ClaudeMdLines = 0; }
 
         // Session storage scan
         var storage = SessionStorageService.Scan();
@@ -151,7 +192,20 @@ public partial class DashboardViewModel : ModuleBase
             _ => "OK"
         };
 
-        Status = $"refreshed · {projects.Count} projects · {skills.Count} skills · {SessionsTotalSize} sessions";
+        Status = $"refreshed · {projects.Count} projects · {skills.Count} skills · {agents.Count} agents · {workflows.Count} workflows · {SessionsTotalSize} sessions";
+    }
+
+    /// <summary>
+    /// Navigate to a module by its Key. Wired to the dashboard stat cards so users can
+    /// click any tile to jump into that module.
+    /// </summary>
+    [RelayCommand]
+    private void NavigateTo(string? moduleKey)
+    {
+        if (string.IsNullOrWhiteSpace(moduleKey)) return;
+        var target = _main.Modules.FirstOrDefault(m => m.Key == moduleKey);
+        if (target is null) return;
+        _main.NavigateCommand.Execute(target);
     }
 }
 

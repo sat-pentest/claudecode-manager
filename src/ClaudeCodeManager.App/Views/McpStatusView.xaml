@@ -19,7 +19,8 @@
             <StackPanel>
                 <Grid Margin="0,0,0,12">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="◇ MCP CONNECTIONS" Style="{StaticResource T.Pixel.Section}" FontSize="13"/>
+                        <Path Style="{StaticResource Icon.Module}" Data="{Binding Glyph, Converter={x:Static vm:StringToGeometry.Instance}}"/>
+                        <TextBlock Text="MCP CONNECTIONS" Style="{StaticResource T.Pixel.Section}" FontSize="13" VerticalAlignment="Center"/>
                         <TextBlock Text="  ▌  Model Context Protocol servers" Style="{StaticResource T.Mono}" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center" Margin="6,0,0,0"/>
                     </StackPanel>
                     <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">

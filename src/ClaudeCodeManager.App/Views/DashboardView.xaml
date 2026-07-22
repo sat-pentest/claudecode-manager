@@ -9,15 +9,43 @@
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24" Background="{StaticResource B.BG.Primary}">
         <StackPanel>
+            <!-- Clickable dashboard stat cards. Each Button navigates to its owning module.
+                 Reusable local style below wraps a Panel.Rust border with hover glow.
+                 (Property elements must precede content children — placed at top of StackPanel.) -->
+            <StackPanel.Resources>
+                <Style x:Key="DashCard" TargetType="Button">
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    <Setter Property="Padding" Value="0"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Style="{StaticResource Panel.Rust}">
+                                    <ContentPresenter/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource B.Ember}"/>
+                                        <Setter TargetName="Bd" Property="Effect" Value="{StaticResource Glow.Soft}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </StackPanel.Resources>
+
             <Grid Margin="0,0,0,16">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="▣ DASHBOARD" Style="{StaticResource T.Pixel.Section}" FontSize="13"/>
+                    <Path Style="{StaticResource Icon.Module}" Data="{Binding Glyph, Converter={x:Static vm:StringToGeometry.Instance}}"/>
+                    <TextBlock Text="DASHBOARD" Style="{StaticResource T.Pixel.Section}" FontSize="13" VerticalAlignment="Center"/>
                 </StackPanel>
                 <Button HorizontalAlignment="Right" Style="{StaticResource Btn.Pixel}" Content="REFRESH" Command="{Binding RefreshCommand}"/>
             </Grid>
 
-            <UniformGrid Columns="4" Rows="1" Margin="0,0,0,16">
-                <Border Style="{StaticResource Panel.Rust}" Margin="0,0,8,0">
+            <!-- Row 1: content-config cards (things the user actively curates) -->
+            <UniformGrid Columns="4" Rows="1" Margin="0,0,0,8">
+                <Button Style="{StaticResource DashCard}" Command="{Binding NavigateToCommand}" CommandParameter="MEMO" Margin="0,0,8,0" ToolTip="→ MEMORY 모듈">
                     <StackPanel>
                         <TextBlock Text="MEMORY" Style="{StaticResource T.Pixel.Section}" FontSize="9"/>
                         <TextBlock Text="{Binding TotalMemoryEntries}" Style="{StaticResource T.CRT.Stat}" Margin="0,6,0,0"/>
@@ -25,24 +53,67 @@
                             <Run Text="across "/><Run Text="{Binding TotalProjects, Mode=OneWay}"/><Run Text=" projects"/>
                         </TextBlock>
                     </StackPanel>
-                </Border>
-                <Border Style="{StaticResource Panel.Rust}" Margin="4,0,4,0">
+                </Button>
+                <Button Style="{StaticResource DashCard}" Command="{Binding NavigateToCommand}" CommandParameter="SKIL" Margin="4,0,4,0" ToolTip="→ SKILLS 모듈">
                     <StackPanel>
                         <TextBlock Text="SKILLS" Style="{StaticResource T.Pixel.Section}" FontSize="9"/>
                         <TextBlock Text="{Binding TotalSkills}" Style="{StaticResource T.CRT.Stat}" Margin="0,6,0,0"/>
                         <TextBlock Style="{StaticResource T.Muted}">
-                            <Run Text="{Binding DisabledSkills, Mode=OneWay}"/><Run Text=" disabled"/>
+                            <Run Text="{Binding ActiveSkills, Mode=OneWay}" Foreground="{StaticResource B.Success}"/><Run Text=" 활성 · "/><Run Text="{Binding DisabledSkills, Mode=OneWay}"/><Run Text=" 비활성"/>
                         </TextBlock>
                     </StackPanel>
-                </Border>
-                <Border Style="{StaticResource Panel.Rust}" Margin="4,0,4,0">
+                </Button>
+                <Button Style="{StaticResource DashCard}" Command="{Binding NavigateToCommand}" CommandParameter="AGNT" Margin="4,0,4,0" ToolTip="→ AGENTS 모듈">
+                    <StackPanel>
+                        <TextBlock Text="AGENTS" Style="{StaticResource T.Pixel.Section}" FontSize="9"/>
+                        <TextBlock Text="{Binding TotalAgents}" Style="{StaticResource T.CRT.Stat}" Margin="0,6,0,0"/>
+                        <TextBlock Style="{StaticResource T.Muted}">
+                            <Run Text="{Binding ActiveAgents, Mode=OneWay}" Foreground="{StaticResource B.Success}"/><Run Text=" 활성 · "/><Run Text="{Binding DisabledAgents, Mode=OneWay}"/><Run Text=" 비활성"/>
+                        </TextBlock>
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource DashCard}" Command="{Binding NavigateToCommand}" CommandParameter="WFLW" Margin="8,0,0,0" ToolTip="→ WORKFLOWS 모듈">
+                    <StackPanel>
+                        <TextBlock Text="WORKFLOWS" Style="{StaticResource T.Pixel.Section}" FontSize="9"/>
+                        <TextBlock Text="{Binding TotalWorkflows}" Style="{StaticResource T.CRT.Stat}" Margin="0,6,0,0"/>
+                        <TextBlock Style="{StaticResource T.Muted}">
+                            <Run Text="{Binding ActiveWorkflows, Mode=OneWay}" Foreground="{StaticResource B.Success}"/><Run Text=" 활성 · "/><Run Text="{Binding DisabledWorkflows, Mode=OneWay}"/><Run Text=" 비활성"/>
+                        </TextBlock>
+                    </StackPanel>
+                </Button>
+            </UniformGrid>
+
+            <!-- Row 2: runtime/infra cards -->
+            <UniformGrid Columns="4" Rows="1" Margin="0,0,0,16">
+                <Button Style="{StaticResource DashCard}" Command="{Binding NavigateToCommand}" CommandParameter="MCP" Margin="0,0,8,0" ToolTip="→ MCP 모듈">
+                    <StackPanel>
+                        <TextBlock Text="MCP" Style="{StaticResource T.Pixel.Section}" FontSize="9"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                            <TextBlock Text="{Binding OnlineMcp}" FontFamily="{StaticResource Font.CRT}" FontSize="42" Foreground="{StaticResource B.Success}" Effect="{StaticResource Glow.Soft}"/>
+                            <TextBlock Text="/" FontFamily="{StaticResource Font.CRT}" FontSize="34" Foreground="{StaticResource B.TextDim}" Margin="6,4,6,0"/>
+                            <TextBlock Text="{Binding TotalMcp}" FontFamily="{StaticResource Font.CRT}" FontSize="42" Foreground="{StaticResource B.Text}"/>
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource T.Muted}">
+                            <Run Text="{Binding DisabledMcp, Mode=OneWay}"/><Run Text=" disabled · "/>
+                            <Run Text="{Binding AuthRequiredMcp, Mode=OneWay}"/><Run Text=" auth"/>
+                        </TextBlock>
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource DashCard}" Command="{Binding NavigateToCommand}" CommandParameter="SESSIONS" Margin="4,0,4,0" ToolTip="→ SESSIONS 모듈">
+                    <StackPanel>
+                        <TextBlock Text="SESSIONS" Style="{StaticResource T.Pixel.Section}" FontSize="9"/>
+                        <TextBlock Text="{Binding SessionsFileCount}" Style="{StaticResource T.CRT.Stat}" Margin="0,6,0,0"/>
+                        <TextBlock Text="{Binding SessionsTotalSize}" Style="{StaticResource T.Muted}"/>
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource DashCard}" Command="{Binding NavigateToCommand}" CommandParameter="SNAP" Margin="4,0,4,0" ToolTip="→ SNAPSHOTS 모듈">
                     <StackPanel>
                         <TextBlock Text="SNAPSHOTS" Style="{StaticResource T.Pixel.Section}" FontSize="9"/>
                         <TextBlock Text="{Binding SnapshotCount}" Style="{StaticResource T.CRT.Stat}" Margin="0,6,0,0"/>
                         <TextBlock Text="{Binding LastSnapshot}" Style="{StaticResource T.Muted}" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
-                </Border>
-                <Border Style="{StaticResource Panel.Rust}" Margin="8,0,0,0">
+                </Button>
+                <Button Style="{StaticResource DashCard}" Command="{Binding NavigateToCommand}" CommandParameter="DIAG" Margin="8,0,0,0" ToolTip="→ DIAGNOSTICS 모듈">
                     <StackPanel>
                         <TextBlock Text="DIAGNOSTICS" Style="{StaticResource T.Pixel.Section}" FontSize="9"/>
                         <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
@@ -56,7 +127,7 @@
                             <Run Text=" info)"/>
                         </TextBlock>
                     </StackPanel>
-                </Border>
+                </Button>
             </UniformGrid>
 
             <!-- STORAGE / SESSIONS CARD -->

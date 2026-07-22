@@ -8,12 +8,15 @@ namespace ClaudeCodeManager.Core.Services;
 
 public enum SearchHitStatus { Active, Inactive, Disabled }
 
+public enum SearchHitCategory { All, ClaudeMd, Memory, Skills, Agents, Workflows, Settings, Other }
+
 public sealed class SearchHit
 {
     public string File { get; set; } = "";
     public int Line { get; set; }
     public string Preview { get; set; } = "";
     public SearchHitStatus Status { get; set; } = SearchHitStatus.Active;
+    public SearchHitCategory Category { get; set; } = SearchHitCategory.Other;
 }
 
 public static class SearchService
@@ -24,6 +27,43 @@ public static class SearchService
     // CLAUDE.<name>.md (with any name that has no dots inside) — inactive profile
     private static readonly Regex ClaudeProfileRegex = new(
         @"^CLAUDE\.[^.]+\.md$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    private static SearchHitCategory DetermineCategory(string filePath)
+    {
+        var normalized = filePath.Replace('/', '\\');
+        var root = ClaudePaths.ClaudeRoot.Replace('/', '\\').TrimEnd('\\');
+        var name = Path.GetFileName(normalized);
+
+        var skillsRoot = Path.Combine(root, "skills");
+        var agentsRoot = Path.Combine(root, "agents");
+        var workflowsRoot = Path.Combine(root, "workflows");
+        var projectsRoot = Path.Combine(root, "projects");
+
+        if (normalized.StartsWith(skillsRoot, StringComparison.OrdinalIgnoreCase))
+            return SearchHitCategory.Skills;
+        if (normalized.StartsWith(agentsRoot, StringComparison.OrdinalIgnoreCase))
+            return SearchHitCategory.Agents;
+        if (normalized.StartsWith(workflowsRoot, StringComparison.OrdinalIgnoreCase))
+            return SearchHitCategory.Workflows;
+        if (normalized.StartsWith(projectsRoot, StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.Equals(name, "CLAUDE.md", StringComparison.OrdinalIgnoreCase))
+                return SearchHitCategory.ClaudeMd;
+            return SearchHitCategory.Memory;
+        }
+        if (normalized.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+        {
+            if (name.StartsWith("CLAUDE", StringComparison.OrdinalIgnoreCase)
+                && (name.EndsWith(".md", StringComparison.OrdinalIgnoreCase)
+                 || name.EndsWith(".md.disabled", StringComparison.OrdinalIgnoreCase)))
+                return SearchHitCategory.ClaudeMd;
+            if (name.Equals("settings.json", StringComparison.OrdinalIgnoreCase)
+             || name.Equals("settings.local.json", StringComparison.OrdinalIgnoreCase)
+             || name.Equals("keybindings.json", StringComparison.OrdinalIgnoreCase))
+                return SearchHitCategory.Settings;
+        }
+        return SearchHitCategory.Other;
+    }
 
     private static SearchHitStatus DetermineStatus(string filePath)
     {
@@ -62,6 +102,7 @@ public static class SearchService
             string[] lines;
             try { lines = File.ReadAllLines(file); } catch { continue; }
             var status = DetermineStatus(file);
+            var category = DetermineCategory(file);
             for (int i = 0; i < lines.Length; i++)
             {
                 var line = lines[i];
@@ -73,7 +114,8 @@ public static class SearchService
                         File = file,
                         Line = i + 1,
                         Preview = line.Length > 240 ? line[..240] : line,
-                        Status = status
+                        Status = status,
+                        Category = category
                     };
                 }
             }

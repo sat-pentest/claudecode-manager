@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using ClaudeCodeManager.Core.Models;
 using ClaudeCodeManager.Core.Parsers;
 using ClaudeCodeManager.Core.Paths;
@@ -10,6 +11,25 @@ namespace ClaudeCodeManager.Core.Services;
 
 public static class SkillLoader
 {
+    // Match "..." or `...` phrases (1-80 chars, no newline inside)
+    private static readonly Regex TriggerPhraseRegex = new(
+        "(?:\"([^\"\\r\\n]{1,80})\"|`([^`\\r\\n]{1,60})`)",
+        RegexOptions.Compiled);
+
+    public static List<string> ExtractTriggers(string? description)
+    {
+        var result = new List<string>();
+        if (string.IsNullOrWhiteSpace(description)) return result;
+        foreach (Match m in TriggerPhraseRegex.Matches(description))
+        {
+            var v = (m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value).Trim();
+            if (v.Length == 0) continue;
+            if (!result.Contains(v, StringComparer.OrdinalIgnoreCase))
+                result.Add(v);
+        }
+        return result;
+    }
+
     public static List<Skill> LoadAll()
     {
         var skills = new List<Skill>();
@@ -35,6 +55,7 @@ public static class SkillLoader
                 Description = fm.Description,
                 Model = fm.Model,
                 Tools = fm.Tools,
+                Triggers = ExtractTriggers(fm.Description),
                 Body = body,
                 Disabled = disabled,
                 ModifiedAt = fi.LastWriteTime

@@ -40,7 +40,10 @@ public sealed class McpConfigSummary
     public int RemoteCount => Servers.Count(s => s.Transport == McpTransport.Sse || s.Transport == McpTransport.Http);
     public int NeedsAuthCount => Servers.Count(s => s.NeedsAuth);
     public int TotalCount => Servers.Count;
-    public int EnabledCount => Servers.Count(s => s.EnabledInSettings);
+    // "Enabled/online" = active for the workspace: either explicitly listed in
+    // enabledMcpjsonServers (global) OR project-scoped (always active for its project).
+    // Auth-required entries are their own bucket, not counted here.
+    public int EnabledCount => Servers.Count(s => !s.NeedsAuth && (s.EnabledInSettings || s.Scope == McpScope.ProjectScoped));
     public List<string> EnabledInSettings { get; set; } = new();
 }
 

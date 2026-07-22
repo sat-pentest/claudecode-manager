@@ -28,6 +28,42 @@
                 <TextBlock Grid.Column="1" Text="{Binding Stats}" Style="{StaticResource T.Mono}" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center"/>
             </Grid>
         </Border>
+        <Border DockPanel.Dock="Top" Background="{StaticResource B.BG.Panel}" Padding="16,8" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
+            <ItemsControl ItemsSource="{Binding Filters}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Margin="0,0,6,0"
+                                Command="{Binding DataContext.SelectFilterCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                CommandParameter="{Binding}">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource Btn.Pixel}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                            <Setter Property="Background" Value="{StaticResource B.RustDim}"/>
+                                            <Setter Property="BorderBrush" Value="{StaticResource B.Rust}"/>
+                                            <Setter Property="Foreground" Value="{StaticResource B.Text}"/>
+                                            <Setter Property="Effect" Value="{StaticResource Glow.Rust}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Count}" Value="0">
+                                            <Setter Property="Opacity" Value="0.4"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Label}"/>
+                                <TextBlock Text="{Binding Count}" Margin="8,0,0,0" Foreground="{StaticResource B.Ember}"/>
+                            </StackPanel>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Border>
         <ListBox ItemsSource="{Binding Hits}" SelectedItem="{Binding Selected}" Margin="0" Background="{StaticResource B.BG.Sunken}" BorderThickness="0">
             <ListBox.ItemContainerStyle>
                 <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">

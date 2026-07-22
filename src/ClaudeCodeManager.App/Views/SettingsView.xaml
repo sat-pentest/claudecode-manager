@@ -15,7 +15,8 @@
 
         <Border Background="{StaticResource B.BG.Panel}" Padding="16,10" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="⚙ SETTINGS FILE" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
+                <Path Style="{StaticResource Icon.Module}" Data="{Binding Glyph, Converter={x:Static vm:StringToGeometry.Instance}}"/>
+                <TextBlock Text="SETTINGS FILE" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
                 <ComboBox SelectedValue="{Binding ActiveFile}" SelectedValuePath="Content" Width="220" Margin="14,0,0,0">
                     <ComboBoxItem Content="settings.json"/>
                     <ComboBoxItem Content="settings.local.json"/>
@@ -93,27 +94,126 @@
                 </Grid>
             </TabItem>
             <TabItem Header="HOOKS">
-                <DataGrid ItemsSource="{Binding Hooks}" AutoGenerateColumns="False" Margin="16"
-                          Background="{StaticResource B.BG.Sunken}" Foreground="{StaticResource B.Text}"
-                          BorderBrush="{StaticResource B.Border}" CanUserAddRows="False" IsReadOnly="True"
-                          FontFamily="{StaticResource Font.Mono}" FontSize="14" RowHeight="38">
-                    <DataGrid.ColumnHeaderStyle>
-                        <Style TargetType="DataGridColumnHeader">
-                            <Setter Property="Background" Value="{StaticResource B.BG.Panel}"/>
-                            <Setter Property="Foreground" Value="{StaticResource B.Ember}"/>
-                            <Setter Property="FontFamily" Value="{StaticResource Font.Pixel}"/>
-                            <Setter Property="FontSize" Value="8"/>
-                            <Setter Property="Padding" Value="10,8"/>
-                            <Setter Property="BorderBrush" Value="{StaticResource B.Border}"/>
-                            <Setter Property="BorderThickness" Value="0,0,1,1"/>
-                        </Style>
-                    </DataGrid.ColumnHeaderStyle>
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="EVENT" Binding="{Binding Event}" Width="180"/>
-                        <DataGridTextColumn Header="MATCHER" Binding="{Binding Matcher}" Width="180"/>
-                        <DataGridTextColumn Header="COMMAND" Binding="{Binding Command}" Width="*"/>
-                    </DataGrid.Columns>
-                </DataGrid>
+                <Grid Margin="16">
+                    <!-- Empty state (visible when Hooks is empty) -->
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Hooks.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="⚡" FontFamily="{StaticResource Font.CRT}" FontSize="72" Foreground="{StaticResource B.RustDim}" HorizontalAlignment="Center" Opacity="0.5"/>
+                        <TextBlock Text="NO HOOKS CONFIGURED" Style="{StaticResource T.Pixel.Section}" FontSize="10" HorizontalAlignment="Center" Margin="0,12,0,0"/>
+                        <TextBlock Text="hooks 블록이 없거나 비어 있습니다. RAW JSON 탭에서 직접 추가할 수 있습니다." Style="{StaticResource T.Muted}" FontSize="12" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                    </StackPanel>
+
+                    <!-- Hook list (visible when Hooks has items) -->
+                    <DataGrid ItemsSource="{Binding Hooks}" AutoGenerateColumns="False"
+                              Background="{StaticResource B.BG.Sunken}" Foreground="{StaticResource B.Text}"
+                              BorderBrush="{StaticResource B.Border}" BorderThickness="1"
+                              CanUserAddRows="False" IsReadOnly="True"
+                              GridLinesVisibility="Horizontal"
+                              HorizontalGridLinesBrush="{StaticResource B.Border}"
+                              RowBackground="{StaticResource B.BG.Sunken}"
+                              AlternatingRowBackground="{StaticResource B.BG.Panel}"
+                              HeadersVisibility="Column"
+                              SelectionMode="Single" SelectionUnit="FullRow"
+                              FontFamily="{StaticResource Font.Mono}" FontSize="13" RowHeight="36">
+                        <DataGrid.Style>
+                            <Style TargetType="DataGrid">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Hooks.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.Style>
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="Background" Value="{StaticResource B.BG.Panel}"/>
+                                <Setter Property="Foreground" Value="{StaticResource B.Ember}"/>
+                                <Setter Property="FontFamily" Value="{StaticResource Font.Pixel}"/>
+                                <Setter Property="FontSize" Value="8"/>
+                                <Setter Property="Padding" Value="12,10"/>
+                                <Setter Property="BorderBrush" Value="{StaticResource B.Border}"/>
+                                <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
+                        <DataGrid.CellStyle>
+                            <Style TargetType="DataGridCell">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Padding" Value="10,6"/>
+                                <Setter Property="Foreground" Value="{StaticResource B.Text}"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="DataGridCell">
+                                            <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource B.RustDim}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource B.Text}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.CellStyle>
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Setter Property="Background" Value="{StaticResource B.BG.Sunken}"/>
+                                <Setter Property="Foreground" Value="{StaticResource B.Text}"/>
+                                <Setter Property="BorderBrush" Value="{StaticResource B.Border}"/>
+                                <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource B.BG.Hover}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource B.RustDim}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="EVENT" Binding="{Binding Event}" Width="180">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{StaticResource B.Ember}"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="MATCHER" Binding="{Binding Matcher}" Width="160">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{StaticResource B.TextMuted}"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="COMMAND" Binding="{Binding Command}" Width="*">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{StaticResource B.Text}"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
             </TabItem>
             <TabItem Header="RAW JSON">
                 <TextBox Text="{Binding RawJson, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Margin="16" BorderThickness="1" FontFamily="{StaticResource Font.Mono}" FontSize="15"/>

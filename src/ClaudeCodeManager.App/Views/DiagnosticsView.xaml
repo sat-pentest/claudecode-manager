@@ -10,7 +10,8 @@
     <DockPanel Background="{StaticResource B.BG.Primary}">
         <Border DockPanel.Dock="Top" Background="{StaticResource B.BG.Panel}" Padding="16,12" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="⚠ DIAGNOSTICS" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
+                <Path Style="{StaticResource Icon.Module}" Data="{Binding Glyph, Converter={x:Static vm:StringToGeometry.Instance}}"/>
+                <TextBlock Text="DIAGNOSTICS" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
                 <Button Content="RUN" Style="{StaticResource Btn.Pixel.Primary}" Command="{Binding RunCommand}" Margin="16,0,0,0"/>
                 <CheckBox Content="errors" IsChecked="{Binding ShowError}" Foreground="{StaticResource B.Danger}" Margin="20,0,0,0" VerticalAlignment="Center"/>
                 <CheckBox Content="warnings" IsChecked="{Binding ShowWarning}" Foreground="{StaticResource B.Warn}" Margin="12,0,0,0" VerticalAlignment="Center"/>

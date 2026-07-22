@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -8,6 +9,14 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace ClaudeCodeManager.App.ViewModels;
 
+public partial class SearchFilterChip : ObservableObject
+{
+    public SearchHitCategory Key { get; init; }
+    public string Label { get; init; } = "";
+    [ObservableProperty] private int _count;
+    [ObservableProperty] private bool _isActive;
+}
+
 public partial class SearchViewModel : ModuleBase
 {
     public override string Key => "SRCH";
@@ -15,6 +24,7 @@ public partial class SearchViewModel : ModuleBase
     public override string Glyph => "M4,11 A7,7 0 1 0 18,11 A7,7 0 1 0 4,11 Z M16,16 L21,21";
 
     private readonly MainViewModel _main;
+    private readonly List<SearchHit> _allHits = new();
 
     [ObservableProperty] private string _query = "";
     [ObservableProperty] private bool _isRegex;
@@ -23,23 +33,73 @@ public partial class SearchViewModel : ModuleBase
     public ObservableCollection<SearchHit> Hits { get; } = new();
     [ObservableProperty] private SearchHit? _selected;
 
-    public SearchViewModel(MainViewModel main) { _main = main; }
+    public ObservableCollection<SearchFilterChip> Filters { get; } = new();
+    [ObservableProperty] private SearchHitCategory _activeFilter = SearchHitCategory.All;
+
+    public SearchViewModel(MainViewModel main)
+    {
+        _main = main;
+        Filters.Add(new SearchFilterChip { Key = SearchHitCategory.All, Label = "ALL", IsActive = true });
+        Filters.Add(new SearchFilterChip { Key = SearchHitCategory.ClaudeMd, Label = "CLAUDE.MD" });
+        Filters.Add(new SearchFilterChip { Key = SearchHitCategory.Memory, Label = "MEMORY" });
+        Filters.Add(new SearchFilterChip { Key = SearchHitCategory.Skills, Label = "SKILLS" });
+        Filters.Add(new SearchFilterChip { Key = SearchHitCategory.Agents, Label = "AGENTS" });
+        Filters.Add(new SearchFilterChip { Key = SearchHitCategory.Workflows, Label = "WORKFLOWS" });
+        Filters.Add(new SearchFilterChip { Key = SearchHitCategory.Settings, Label = "SETTINGS" });
+        Filters.Add(new SearchFilterChip { Key = SearchHitCategory.Other, Label = "OTHER" });
+    }
 
     [RelayCommand]
     private void Run()
     {
-        Hits.Clear();
+        _allHits.Clear();
         var sw = Stopwatch.StartNew();
         int count = 0;
         foreach (var h in SearchService.Search(Query, IsRegex, CaseSensitive))
         {
-            Hits.Add(h);
+            _allHits.Add(h);
             count++;
-            if (count > 1000) break;
+            if (count > 2000) break;
         }
         sw.Stop();
-        Stats = $"{Hits.Count} hits in {sw.ElapsedMilliseconds}ms";
+        RecomputeCounts();
+        ApplyFilter();
+        Stats = $"{_allHits.Count} hits in {sw.ElapsedMilliseconds}ms";
         Status = Stats;
+    }
+
+    private void RecomputeCounts()
+    {
+        foreach (var f in Filters)
+        {
+            f.Count = f.Key == SearchHitCategory.All
+                ? _allHits.Count
+                : _allHits.Count(h => h.Category == f.Key);
+        }
+    }
+
+    private void ApplyFilter()
+    {
+        Hits.Clear();
+        IEnumerable<SearchHit> src = ActiveFilter == SearchHitCategory.All
+            ? _allHits
+            : _allHits.Where(h => h.Category == ActiveFilter);
+        int shown = 0;
+        foreach (var h in src)
+        {
+            Hits.Add(h);
+            shown++;
+            if (shown > 1000) break;
+        }
+    }
+
+    [RelayCommand]
+    private void SelectFilter(SearchFilterChip? chip)
+    {
+        if (chip is null) return;
+        ActiveFilter = chip.Key;
+        foreach (var f in Filters) f.IsActive = f.Key == chip.Key;
+        ApplyFilter();
     }
 
     [RelayCommand]

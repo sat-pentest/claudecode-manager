@@ -122,4 +122,73 @@ public partial class SkillsViewModel : ModuleBase
 
     [RelayCommand]
     private void Refresh() => OnActivated();
+
+    [RelayCommand]
+    private async Task AddTrigger(Skill? skill)
+    {
+        if (skill is null) return;
+        var (ok, phrase) = Views.InputDialog.Show(null,
+            "Add TRIGGER",
+            "새 트리거 문구 입력 (한국어/영어):",
+            "");
+        if (!ok || string.IsNullOrWhiteSpace(phrase)) return;
+        phrase = phrase.Trim().Trim('"').Trim('`');
+        if (string.IsNullOrEmpty(phrase)) return;
+        if (skill.Triggers.Contains(phrase, System.StringComparer.OrdinalIgnoreCase))
+        {
+            Status = "trigger already exists: " + phrase;
+            return;
+        }
+
+        var desc = (skill.Description ?? "").TrimEnd();
+        var addition = string.IsNullOrEmpty(desc) ? $"\"{phrase}\"" : $"{desc} · \"{phrase}\"";
+        _main.Snapshots.CreateSnapshot($"add trigger · skill {skill.Name}");
+        try
+        {
+            var changed = await FrontmatterUpdater.SetKeyAsync(skill.SkillFilePath, "description", addition);
+            if (changed)
+            {
+                var curPath = skill.SkillFilePath;
+                OnActivated();
+                Selected = Skills.FirstOrDefault(s => s.SkillFilePath == curPath);
+                Status = $"{skill.Name} trigger added: \"{phrase}\"";
+            }
+        }
+        catch (System.Exception ex) { Status = "add trigger failed: " + ex.Message; }
+    }
+
+    [RelayCommand]
+    private async Task RemoveTrigger(string? phrase)
+    {
+        if (Selected is null || string.IsNullOrWhiteSpace(phrase)) return;
+        var skill = Selected;
+        var desc = skill.Description ?? "";
+        var quoted = "\"" + phrase + "\"";
+        var backtick = "`" + phrase + "`";
+
+        string newDesc = desc;
+        foreach (var form in new[] {
+            " · " + quoted, "·" + quoted, ", " + quoted, "," + quoted, quoted,
+            " · " + backtick, "·" + backtick, ", " + backtick, "," + backtick, backtick
+        })
+        {
+            newDesc = newDesc.Replace(form, "");
+        }
+        while (newDesc.Contains("  ")) newDesc = newDesc.Replace("  ", " ");
+        newDesc = newDesc.Trim(' ', ',', '·');
+
+        _main.Snapshots.CreateSnapshot($"remove trigger · skill {skill.Name}");
+        try
+        {
+            var changed = await FrontmatterUpdater.SetKeyAsync(skill.SkillFilePath, "description", newDesc);
+            if (changed)
+            {
+                var curPath = skill.SkillFilePath;
+                OnActivated();
+                Selected = Skills.FirstOrDefault(s => s.SkillFilePath == curPath);
+                Status = $"{skill.Name} trigger removed: \"{phrase}\"";
+            }
+        }
+        catch (System.Exception ex) { Status = "remove trigger failed: " + ex.Message; }
+    }
 }

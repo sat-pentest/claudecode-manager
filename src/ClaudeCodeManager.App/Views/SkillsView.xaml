@@ -28,7 +28,8 @@
         <!-- TOP BAR (matches MemoryView header) -->
         <Border Background="{StaticResource B.BG.Panel}" Padding="16,10" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="◢ SKILLS" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
+                <Path Style="{StaticResource Icon.Module}" Data="{Binding Glyph, Converter={x:Static vm:StringToGeometry.Instance}}"/>
+                <TextBlock Text="SKILLS" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
                 <Button Content="REFRESH" Style="{StaticResource Btn.Pixel}" Command="{Binding RefreshCommand}" Margin="16,0,0,0"/>
                 <TextBlock Text="{Binding Status}" Style="{StaticResource T.Muted}" FontSize="12" Margin="20,0,0,0" VerticalAlignment="Center"/>
             </StackPanel>
@@ -199,6 +200,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
                             <TextBlock Text="MODEL" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center"/>
@@ -228,8 +230,38 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
 
-                            <TextBlock Grid.Row="2" Text="FOLDER" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center" Margin="0,10,0,0"/>
-                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Selected.FolderPath}" Style="{StaticResource T.Mono}" FontSize="11" Foreground="{StaticResource B.TextMuted}" TextTrimming="CharacterEllipsis" Margin="0,10,0,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="2" Text="TRIGGERS" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Top" Margin="0,10,0,0"/>
+                            <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Vertical" Margin="0,8,0,0">
+                                <ItemsControl ItemsSource="{Binding Selected.Triggers}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="{StaticResource B.Ember}" BorderThickness="1"
+                                                    Background="{StaticResource B.BG.Sunken}"
+                                                    Padding="8,2,4,3" Margin="0,2,5,2">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Text}" VerticalAlignment="Center"/>
+                                                    <Button Content="×" Style="{StaticResource Btn.ChipDelete}" Margin="4,0,0,0"
+                                                            ToolTip="트리거 삭제"
+                                                            Command="{Binding DataContext.RemoveTriggerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Button Content="+ ADD TRIGGER" Style="{StaticResource Btn.Pixel}" Padding="10,3,10,4" Margin="0,4,0,0"
+                                        HorizontalAlignment="Left"
+                                        Command="{Binding AddTriggerCommand}" CommandParameter="{Binding Selected}"
+                                        ToolTip="새 트리거 문구 추가"/>
+                            </StackPanel>
+
+                            <TextBlock Grid.Row="3" Text="FOLDER" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center" Margin="0,10,0,0"/>
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Selected.FolderPath}" Style="{StaticResource T.Mono}" FontSize="11" Foreground="{StaticResource B.TextMuted}" TextTrimming="CharacterEllipsis" Margin="0,10,0,0" VerticalAlignment="Center"/>
                         </Grid>
                     </Border>
                     </StackPanel>

@@ -18,7 +18,8 @@
             <StackPanel>
                 <Grid Margin="0,0,0,12">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="▤ SESSIONS" Style="{StaticResource T.Pixel.Section}" FontSize="13"/>
+                        <Path Style="{StaticResource Icon.Module}" Data="{Binding Glyph, Converter={x:Static vm:StringToGeometry.Instance}}"/>
+                        <TextBlock Text="SESSIONS" Style="{StaticResource T.Pixel.Section}" FontSize="13" VerticalAlignment="Center"/>
                         <TextBlock Text="  ▌  ~/.claude/projects/" Style="{StaticResource T.Mono}" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center" Margin="6,0,0,0"/>
                     </StackPanel>
                     <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
