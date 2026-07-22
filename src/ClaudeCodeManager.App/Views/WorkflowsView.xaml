@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:ClaudeCodeManager.App.ViewModels"
              xmlns:svc="clr-namespace:ClaudeCodeManager.App.Services"
+             xmlns:local="clr-namespace:ClaudeCodeManager.App.Views"
              xmlns:avalon="http://icsharpcode.net/sharpdevelop/avalonedit"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -27,7 +28,9 @@
             </StackPanel>
         </Border>
 
-        <Grid Grid.Row="1">
+        <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" SelectedIndex="{Binding ActiveTabIndex}">
+            <TabItem Header="INSTALLED">
+        <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="380" MinWidth="260"/>
                 <ColumnDefinition Width="4"/>
@@ -414,5 +417,25 @@
                 </DockPanel>
             </Grid>
         </Grid>
+            </TabItem>
+
+            <!-- ═══════════════════════════════════════════════════════════
+                 LIVE tab — running/recently-active workflow runs
+                 ═══════════════════════════════════════════════════════════ -->
+            <TabItem x:Name="LiveTab" MouseDoubleClick="OnLiveTabDoubleClick"
+                     ToolTip="더블클릭 시 별도 창으로 팝업">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="LIVE" VerticalAlignment="Center"/>
+                        <Ellipse Width="8" Height="8" Margin="8,1,0,0" VerticalAlignment="Center"
+                                 Fill="{StaticResource B.Success}"
+                                 svc:PulseBehavior.IsActive="True"
+                                 Visibility="{Binding HasActiveRun, Converter={x:Static vm:BoolToVisibility.Instance}}"
+                                 ToolTip="ACTIVE workflow running"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <local:WorkflowsLiveView/>
+            </TabItem>
+        </TabControl>
     </Grid>
 </UserControl>

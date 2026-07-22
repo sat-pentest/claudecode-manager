@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
+using System.Windows.Threading;
 using ClaudeCodeManager.App.Views;
 using ClaudeCodeManager.Core.Models;
 using ClaudeCodeManager.Core.Services;
@@ -35,7 +36,135 @@ public partial class WorkflowsViewModel : ModuleBase
 
     [RelayCommand] private void ResetPipelineZoom() => PipelineZoom = 1.0;
 
-    public WorkflowsViewModel(MainViewModel main) { _main = main; }
+    // LIVE tab state
+    public ObservableCollection<WorkflowRunEntry> ActiveRuns { get; } = new();
+    [ObservableProperty] private WorkflowRunEntry? _selectedRun;
+    [ObservableProperty] private bool _includeIdleRuns;
+    [ObservableProperty] private string _liveStatus = "";
+    [ObservableProperty] private int _activeTabIndex; // 0 = INSTALLED, 1 = LIVE
+    [ObservableProperty] private bool _isLiveHeaderCollapsed;
+    [ObservableProperty] private bool _isLiveResultsCollapsed;
+    [ObservableProperty] private bool _hasActiveRun;
+
+    [RelayCommand] private void ToggleLiveHeader() => IsLiveHeaderCollapsed = !IsLiveHeaderCollapsed;
+    [RelayCommand] private void ToggleLiveResults() => IsLiveResultsCollapsed = !IsLiveResultsCollapsed;
+
+    private readonly DispatcherTimer _liveTimer;
+
+    public WorkflowsViewModel(MainViewModel main)
+    {
+        _main = main;
+        _liveTimer = new DispatcherTimer { Interval = System.TimeSpan.FromSeconds(5) };
+        _liveTimer.Tick += (_, _) => RefreshLiveRuns();
+    }
+
+    partial void OnActiveTabIndexChanged(int value)
+    {
+        // Timer is kept running for the whole module lifetime (see OnActivated) so the
+        // LIVE tab's ACTIVE indicator can appear even while the user is on INSTALLED.
+        // On explicit switch to LIVE, force an immediate refresh so the detail view
+        // isn't waiting for the next tick.
+        if (value == 1) RefreshLiveRuns();
+    }
+
+    partial void OnIncludeIdleRunsChanged(bool value) => RefreshLiveRuns();
+
+    private void RefreshLiveRuns()
+    {
+        var currentId = SelectedRun?.RunId;
+
+        // Preserve expanded state on SelectedRun.RecentResults across refreshes.
+        // Without this, the 5s auto-refresh creates new WorkflowResultSummary instances
+        // (IsExpanded defaults to false) → the user's clicked-open card silently collapses.
+        var expandedAgentIds = SelectedRun is null
+            ? new System.Collections.Generic.HashSet<string>()
+            : new System.Collections.Generic.HashSet<string>(
+                SelectedRun.RecentResults.Where(r => r.IsExpanded).Select(r => r.AgentIdFull));
+
+        var runs = WorkflowLiveService.Scan(IncludeIdleRuns);
+        ActiveRuns.Clear();
+        foreach (var r in runs) ActiveRuns.Add(r);
+        SelectedRun = currentId is null
+            ? ActiveRuns.FirstOrDefault()
+            : ActiveRuns.FirstOrDefault(r => r.RunId == currentId) ?? ActiveRuns.FirstOrDefault();
+
+        // Restore expanded state on the fresh RecentResults instances.
+        if (SelectedRun is not null && expandedAgentIds.Count > 0)
+        {
+            foreach (var res in SelectedRun.RecentResults)
+            {
+                if (!string.IsNullOrEmpty(res.AgentIdFull) && expandedAgentIds.Contains(res.AgentIdFull))
+                    res.IsExpanded = true;
+            }
+        }
+
+        var active = ActiveRuns.Count(r => r.Status == "ACTIVE" || r.Status == "RECENT");
+        LiveStatus = $"{ActiveRuns.Count} runs · {active} active · refresh 5s";
+        HasActiveRun = ActiveRuns.Any(r => r.Status == "ACTIVE");
+    }
+
+    [RelayCommand]
+    private void RefreshLive() => RefreshLiveRuns();
+
+    [RelayCommand]
+    private void OpenRunFolder(WorkflowRunEntry? r)
+    {
+        if (r is null || !Directory.Exists(r.DirPath)) return;
+        try { Process.Start(new ProcessStartInfo("explorer.exe", $"\"{r.DirPath}\"") { UseShellExecute = true }); } catch { }
+    }
+
+    [RelayCommand]
+    private void CopyResumeCmd(WorkflowRunEntry? r)
+    {
+        if (r is null) return;
+        // Try to infer script path from workflow name pattern (redteam-triage.mjs, bbp-static-recon.mjs, etc.)
+        // Fallback: leave placeholder for user to fill in
+        var homeWorkflows = System.IO.Path.Combine(
+            System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile),
+            ".claude", "workflows");
+        var candidates = System.IO.Directory.Exists(homeWorkflows)
+            ? System.IO.Directory.GetFiles(homeWorkflows, "*.mjs")
+            : System.Array.Empty<string>();
+        var scriptHint = candidates.Length == 1
+            ? candidates[0].Replace('\\', '/')
+            : "<workflow-script-path>.mjs";
+
+        var cmd = $@"Workflow 도구로 아래 워크플로우 재개해줘 (같은 세션에서만 가능):
+
+- scriptPath: {scriptHint}
+- resumeFromRunId: {r.RunId}
+
+동작:
+1. TaskStop으로 진행 중이던 기존 run 먼저 종료
+2. Workflow({{scriptPath, resumeFromRunId}}) 호출
+3. 완료된 agent()는 캐시된 결과 즉시 반환, 미완료/실패한 것부터 재실행
+
+대상: {r.Target}
+Session: {r.SessionId}";
+        try
+        {
+            System.Windows.Clipboard.SetText(cmd);
+            Status = $"resume cmd copied · {r.ShortId} (paste into Claude session {r.ShortSession})";
+        }
+        catch (System.Exception ex) { Status = "copy failed: " + ex.Message; }
+    }
+
+    [RelayCommand]
+    private void CopyRunId(WorkflowRunEntry? r)
+    {
+        if (r is null) return;
+        try
+        {
+            System.Windows.Clipboard.SetText(r.RunId);
+            Status = $"run ID copied · {r.RunId}";
+        }
+        catch (System.Exception ex) { Status = "copy failed: " + ex.Message; }
+    }
+
+    public override void OnDeactivated()
+    {
+        _liveTimer.Stop();
+    }
 
     public override void OnActivated()
     {
@@ -47,6 +176,11 @@ public partial class WorkflowsViewModel : ModuleBase
             : Workflows.FirstOrDefault(w => w.FilePath == curPath) ?? Workflows.FirstOrDefault();
         var disabled = Workflows.Count(w => w.Disabled);
         Status = $"{Workflows.Count} workflows · {disabled} disabled · {WorkflowLoader.WorkflowsDir}";
+
+        // Kick off live-runs scan immediately so the LIVE tab's ACTIVE indicator
+        // pulses even before user clicks the LIVE sub-tab.
+        RefreshLiveRuns();
+        _liveTimer.Start();
     }
 
     [RelayCommand]

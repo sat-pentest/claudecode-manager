@@ -1,0 +1,83 @@
+<Window x:Class="ClaudeCodeManager.App.Views.WorkflowsLiveWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:ClaudeCodeManager.App.ViewModels"
+        xmlns:svc="clr-namespace:ClaudeCodeManager.App.Services"
+        xmlns:local="clr-namespace:ClaudeCodeManager.App.Views"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        d:DataContext="{d:DesignInstance vm:WorkflowsViewModel}"
+        mc:Ignorable="d"
+        Title="CCM · WORKFLOWS LIVE"
+        Height="720" Width="1200" MinHeight="480" MinWidth="800"
+        Background="{StaticResource B.BG.Primary}"
+        Foreground="{StaticResource B.Text}"
+        Icon="../Assets/icon.ico"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        BorderBrush="{StaticResource B.Border}"
+        BorderThickness="1"
+        WindowStartupLocation="CenterOwner"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        TextOptions.TextHintingMode="Fixed">
+
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="42"
+                            ResizeBorderThickness="6"
+                            GlassFrameThickness="0"
+                            CornerRadius="0"
+                            UseAeroCaptionButtons="False"/>
+    </shell:WindowChrome.WindowChrome>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="42"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- TITLE BAR -->
+        <Border Grid.Row="0" Background="{StaticResource B.BG.Panel}" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: icon + title + pulsing ACTIVE dot -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
+                    <Image Source="../Assets/icon.ico" Width="22" Height="22" Margin="0,0,10,0"/>
+                    <TextBlock Text="CCM" Style="{StaticResource T.Pixel.Section}" FontSize="11" Foreground="{StaticResource B.Rust}" VerticalAlignment="Center"/>
+                    <TextBlock Text="  ▌  WORKFLOWS LIVE" Style="{StaticResource T.Pixel.Section}" FontSize="10" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                    <Ellipse Width="8" Height="8" Margin="10,0,0,0" VerticalAlignment="Center"
+                             Fill="{StaticResource B.Success}"
+                             svc:PulseBehavior.IsActive="True"
+                             Visibility="{Binding HasActiveRun, Converter={x:Static vm:BoolToVisibility.Instance}}"
+                             ToolTip="ACTIVE workflow running"/>
+                </StackPanel>
+
+                <!-- Middle: current run summary -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Visibility="{Binding SelectedRun, Converter={x:Static vm:NullToVisibility.Instance}}">
+                    <TextBlock Text="{Binding SelectedRun.ShortId}" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding SelectedRun.ProgressText, StringFormat=' · {0}'}" Style="{StaticResource T.Muted}" FontSize="11" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                    <TextBlock Text="{Binding SelectedRun.Status, StringFormat=' · {0}'}" Style="{StaticResource T.Muted}" FontSize="11" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                </StackPanel>
+
+                <!-- Right: caption buttons -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource Btn.Caption}" Content="—" Click="Caption_Minimize" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
+                    <Button Style="{StaticResource Btn.Caption}" Content="▢" Click="Caption_MaxRestore" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
+                    <Button Style="{StaticResource Btn.Caption.Close}" Content="✕" Click="Caption_Close" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Body -->
+        <local:WorkflowsLiveView Grid.Row="1"/>
+    </Grid>
+</Window>

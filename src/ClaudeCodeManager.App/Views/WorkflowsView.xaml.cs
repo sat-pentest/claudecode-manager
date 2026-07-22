@@ -43,4 +43,34 @@ public partial class WorkflowsView : UserControl
         vm.PipelineZoom = 1.0;
         e.Handled = true;
     }
+
+    /// <summary>
+    /// Double-click on the LIVE tab opens a detached WorkflowsLiveWindow that shares
+    /// the same ViewModel — so both the tab and the popup show the same real-time state.
+    /// Only one popup at a time; re-clicks bring the existing window to front.
+    /// </summary>
+    private WorkflowsLiveWindow? _liveWindow;
+    private void OnLiveTabDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (DataContext is not WorkflowsViewModel vm) return;
+        if (_liveWindow is not null)
+        {
+            try
+            {
+                _liveWindow.Activate();
+                if (_liveWindow.WindowState == WindowState.Minimized) _liveWindow.WindowState = WindowState.Normal;
+                e.Handled = true;
+                return;
+            }
+            catch { _liveWindow = null; }
+        }
+        _liveWindow = new WorkflowsLiveWindow
+        {
+            DataContext = vm,
+            Owner = Window.GetWindow(this)
+        };
+        _liveWindow.Closed += (_, _) => _liveWindow = null;
+        _liveWindow.Show();
+        e.Handled = true;
+    }
 }

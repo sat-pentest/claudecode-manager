@@ -24,6 +24,45 @@
         <Setter Property="Margin" Value="0,0,10,0"/>
     </Style>
 
+    <!-- ═══════════════════════════════════════════════════════
+         TOOLTIP — CCM rust theme (applies globally to all ToolTips)
+         ═══════════════════════════════════════════════════════ -->
+
+    <Style TargetType="ToolTip">
+        <Setter Property="Background" Value="{StaticResource B.BG.Panel}"/>
+        <Setter Property="Foreground" Value="{StaticResource B.Text}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource B.Rust}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="10,7"/>
+        <Setter Property="FontFamily" Value="{StaticResource Font.Mono}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="HasDropShadow" Value="False"/>
+        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToolTip">
+                    <Grid>
+                        <!-- Subtle outer glow layer -->
+                        <Border Background="{StaticResource B.BG.Panel}"
+                                BorderBrush="{StaticResource B.Rust}"
+                                BorderThickness="1"
+                                Padding="{TemplateBinding Padding}"
+                                Effect="{StaticResource Glow.Soft}"
+                                SnapsToDevicePixels="True">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="›" FontFamily="{StaticResource Font.Mono}" FontSize="12" FontWeight="Bold"
+                                           Foreground="{StaticResource B.Ember}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <ContentPresenter VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Chip inline delete "×" button — transparent by default, subtle on hover. -->
     <Style x:Key="Btn.ChipDelete" TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>

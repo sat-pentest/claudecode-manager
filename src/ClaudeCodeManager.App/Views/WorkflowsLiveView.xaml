@@ -1,0 +1,439 @@
+<UserControl x:Class="ClaudeCodeManager.App.Views.WorkflowsLiveView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ClaudeCodeManager.App.ViewModels"
+             xmlns:svc="clr-namespace:ClaudeCodeManager.App.Services"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             d:DataContext="{d:DesignInstance vm:WorkflowsViewModel}"
+             mc:Ignorable="d">
+
+    <Grid Background="{StaticResource B.BG.Primary}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- LIVE toolbar -->
+        <Border Background="{StaticResource B.BG.Panel}" Padding="16,8" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="◢ ACTIVE RUNS" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
+                <Button Content="REFRESH NOW" Style="{StaticResource Btn.Pixel}" Command="{Binding RefreshLiveCommand}" Margin="16,0,0,0"/>
+                <CheckBox Content="show idle (30m+)" IsChecked="{Binding IncludeIdleRuns}" Margin="14,0,0,0" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding LiveStatus}" Style="{StaticResource T.Muted}" FontSize="12" Margin="20,0,0,0" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <!-- Empty state -->
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ActiveRuns.Count}" Value="0">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+                <TextBlock Text="⏱" FontFamily="{StaticResource Font.CRT}" FontSize="72" Foreground="{StaticResource B.RustDim}" HorizontalAlignment="Center" Opacity="0.5"/>
+                <TextBlock Text="NO ACTIVE RUNS" Style="{StaticResource T.Pixel.Section}" FontSize="10" HorizontalAlignment="Center" Margin="0,12,0,0"/>
+                <TextBlock Text="실행 중인 워크플로우가 없거나 30분 이상 유휴 상태입니다" Style="{StaticResource T.Muted}" FontSize="12" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                <TextBlock Text="'show idle' 체크하면 유휴 run도 표시됩니다" Style="{StaticResource T.Muted}" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+            </StackPanel>
+
+            <!-- Runs list + detail split -->
+            <Grid Visibility="{Binding ActiveRuns.Count, Converter={x:Static vm:IntPositiveToVisibility.Instance}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="420" MinWidth="300"/>
+                    <ColumnDefinition Width="4"/>
+                    <ColumnDefinition Width="*" MinWidth="420"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- LEFT: runs list -->
+                <ListBox Grid.Column="0" ItemsSource="{Binding ActiveRuns}" SelectedItem="{Binding SelectedRun}"
+                         Background="{StaticResource B.BG.Panel}" BorderThickness="0" Margin="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="4,6">
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Padding="8,5,8,5" Margin="0,0,8,0" VerticalAlignment="Center">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="{StaticResource B.Success}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Status}" Value="RECENT">
+                                                        <Setter Property="Background" Value="{StaticResource B.Ember}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Status}" Value="STALE">
+                                                        <Setter Property="Background" Value="{StaticResource B.RustDim}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Status}" Value="IDLE">
+                                                        <Setter Property="Background" Value="{StaticResource B.TextDim}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock Text="{Binding Status}" FontFamily="{StaticResource Font.Pixel}" FontSize="8" Foreground="{StaticResource B.BG.Primary}" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Text="{Binding ShortId}" FontFamily="{StaticResource Font.Mono}" FontSize="13" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding ShortSession, StringFormat=' · sess {0}'}" Style="{StaticResource T.Muted}" FontSize="10" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                                </StackPanel>
+                                <TextBlock Text="{Binding Target}" Style="{StaticResource T.Muted}" FontSize="12" Margin="0,4,4,0" TextTrimming="CharacterEllipsis" TextWrapping="Wrap"/>
+                                <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressPct, Mode=OneWay}"
+                                             Height="8" Margin="0,6,4,0"
+                                             Background="{StaticResource B.BG.Sunken}"
+                                             Foreground="{StaticResource B.Ember}"
+                                             BorderThickness="0"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                    <TextBlock Text="{Binding ProgressText}" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Ember}"/>
+                                    <TextBlock Text=" agents · " Style="{StaticResource T.Muted}" FontSize="11"/>
+                                    <TextBlock Text="{Binding AgentsPending}" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Text}"/>
+                                    <TextBlock Text=" pending · last " Style="{StaticResource T.Muted}" FontSize="11"/>
+                                    <TextBlock Text="{Binding LastActivityText}" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.TextMuted}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <GridSplitter Grid.Column="1" Style="{StaticResource Splitter.Vertical}"/>
+
+                <!-- RIGHT: detail (scrollable — expanded cards can overflow) -->
+                <ScrollViewer Grid.Column="2" Background="{StaticResource B.BG.Sunken}"
+                              VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              Visibility="{Binding SelectedRun, Converter={x:Static vm:NullToVisibility.Instance}}">
+                <DockPanel>
+                    <!-- Header toggle -->
+                    <Button DockPanel.Dock="Top" Command="{Binding ToggleLiveHeaderCommand}"
+                            HorizontalContentAlignment="Stretch" Cursor="Hand" Padding="0"
+                            ToolTip="Toggle run header (title + target)">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="{StaticResource B.BG.Panel}" Padding="18,8"
+                                        BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
+                                    <ContentPresenter VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" TargetName="Bd" Value="{StaticResource B.BG.Hover}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="◆" FontSize="14" Foreground="{StaticResource B.Rust}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <TextBlock Text="{Binding SelectedRun.RunId}" FontFamily="{StaticResource Font.CRT}" FontSize="22" Foreground="{StaticResource B.Ember}" Effect="{StaticResource Glow.Soft}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="14"
+                                       Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,8,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="»"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsLiveHeaderCollapsed}" Value="True">
+                                                <Setter Property="Text" Value="«"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                    </Button>
+
+                    <!-- Header content -->
+                    <Border DockPanel.Dock="Top" Background="{StaticResource B.BG.Panel}" Padding="18,14" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1"
+                            Visibility="{Binding IsLiveHeaderCollapsed, Converter={x:Static vm:InverseBoolToVisibility.Instance}}">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="OPEN FOLDER" Style="{StaticResource Btn.Pixel}"
+                                        Command="{Binding OpenRunFolderCommand}" CommandParameter="{Binding SelectedRun}"
+                                        ToolTip="Explorer로 workflow 세션 폴더 열기"/>
+                                <Button Content="COPY RESUME" Style="{StaticResource Btn.Pixel.Primary}" Margin="8,0,0,0"
+                                        Command="{Binding CopyResumeCmdCommand}" CommandParameter="{Binding SelectedRun}"
+                                        ToolTip="클립보드에 재개 명령 복사"/>
+                                <Button Content="COPY WF ID" Style="{StaticResource Btn.Pixel}" Margin="8,0,0,0"
+                                        Command="{Binding CopyRunIdCommand}" CommandParameter="{Binding SelectedRun}"
+                                        ToolTip="workflow ID만 클립보드에 복사"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding SelectedRun.Target}" Style="{StaticResource T.Body}" FontSize="13" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border DockPanel.Dock="Top" Padding="18,12" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1" Background="{StaticResource B.BG.Panel}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="STATUS" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedRun.Status}" FontFamily="{StaticResource Font.Mono}" FontSize="14" Foreground="{StaticResource B.Ember}"/>
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Session:" Style="{StaticResource T.Muted}" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding SelectedRun.ShortSession}" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.TextMuted}"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="PROGRESS" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center" Margin="0,10,14,0"/>
+                            <Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ProgressBar Grid.Column="0" Minimum="0" Maximum="100" Value="{Binding SelectedRun.ProgressPct, Mode=OneWay}"
+                                             Height="14" VerticalAlignment="Center"
+                                             Background="{StaticResource B.BG.Sunken}"
+                                             Foreground="{StaticResource B.Ember}"
+                                             BorderThickness="0"/>
+                                <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                    <Run Text="{Binding SelectedRun.AgentsCompleted, Mode=OneWay}" Foreground="{StaticResource B.Ember}" FontFamily="Consolas" FontSize="14"/>
+                                    <Run Text=" / "/>
+                                    <Run Text="{Binding SelectedRun.AgentsStarted, Mode=OneWay}" FontFamily="Consolas" FontSize="14"/>
+                                    <Run Text="  ("/>
+                                    <Run Text="{Binding SelectedRun.AgentsPending, Mode=OneWay}" Foreground="{StaticResource B.Text}"/>
+                                    <Run Text=" pending)"/>
+                                </TextBlock>
+                            </Grid>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="LAST LOG" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center" Margin="0,10,14,0"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Margin="0,10,0,0" VerticalAlignment="Center">
+                                <Run Text="{Binding SelectedRun.LastActivityText, Mode=OneWay}" FontFamily="Consolas" FontSize="12"/>
+                                <Run Text="  · idle "/>
+                                <Run Text="{Binding SelectedRun.IdleMinutes, Mode=OneWay}" Foreground="{StaticResource B.TextMuted}"/>
+                                <Run Text="m" Foreground="{StaticResource B.TextMuted}"/>
+                            </TextBlock>
+                        </Grid>
+                    </Border>
+
+                    <!-- Recent results toggle -->
+                    <Button DockPanel.Dock="Top" Command="{Binding ToggleLiveResultsCommand}"
+                            HorizontalContentAlignment="Stretch" Cursor="Hand" Padding="0"
+                            ToolTip="Toggle RECENT RESULTS section">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="{StaticResource B.BG.Panel}" Padding="18,8"
+                                        BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
+                                    <ContentPresenter VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" TargetName="Bd" Value="{StaticResource B.BG.Hover}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="◢ RECENT RESULTS (last 5)" Style="{StaticResource T.Pixel.Section}" FontSize="9" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="14"
+                                       Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,8,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="»"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsLiveResultsCollapsed}" Value="True">
+                                                <Setter Property="Text" Value="«"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                    </Button>
+
+                    <!-- Recent results content -->
+                    <Border DockPanel.Dock="Top" Padding="12,10" Background="{StaticResource B.BG.Panel}" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1"
+                            Visibility="{Binding IsLiveResultsCollapsed, Converter={x:Static vm:InverseBoolToVisibility.Instance}}">
+                        <ItemsControl ItemsSource="{Binding SelectedRun.RecentResults}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,3" Background="{StaticResource B.BG.Sunken}"
+                                            BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1"
+                                            Cursor="Hand" MouseLeftButtonUp="OnResultCardClick"
+                                            ToolTip="클릭 시 전체 JSON 결과 펼치기">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Opacity" Value="1.0"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsEmpty}" Value="True">
+                                                        <Setter Property="Opacity" Value="0.55"/>
+                                                    </DataTrigger>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="BorderBrush" Value="{StaticResource B.Ember}"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                        <!-- Header row (always visible) -->
+                                        <Grid Margin="10,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <Border Grid.Column="0" Padding="8,4,8,5" Margin="0,0,10,0" VerticalAlignment="Top" MinWidth="56">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="{StaticResource B.RustDim}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding SeverityLevel}" Value="Critical">
+                                                                <Setter Property="Background" Value="{StaticResource B.Danger}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding SeverityLevel}" Value="High">
+                                                                <Setter Property="Background" Value="{StaticResource B.Ember}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding SeverityLevel}" Value="Medium">
+                                                                <Setter Property="Background" Value="{StaticResource B.Rust}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding SeverityLevel}" Value="Low">
+                                                                <Setter Property="Background" Value="{StaticResource B.RustDim}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding SeverityLevel}" Value="Info">
+                                                                <Setter Property="Background" Value="{StaticResource B.TextDim}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding SeverityLevel}" Value="Empty">
+                                                                <Setter Property="Background" Value="Transparent"/>
+                                                                <Setter Property="BorderBrush" Value="{StaticResource B.TextDim}"/>
+                                                                <Setter Property="BorderThickness" Value="1"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock Text="{Binding SeverityBadge}" FontFamily="{StaticResource Font.Pixel}" FontSize="9"
+                                                           Foreground="{StaticResource B.BG.Primary}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="{StaticResource B.BG.Primary}"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding SeverityLevel}" Value="Empty">
+                                                                    <Setter Property="Foreground" Value="{StaticResource B.TextMuted}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Border>
+
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="{Binding Headline}" FontFamily="{StaticResource Font.Mono}" FontSize="13"
+                                                           Foreground="{StaticResource B.Text}" TextWrapping="Wrap"/>
+
+                                                <ItemsControl ItemsSource="{Binding Tags}" Margin="0,5,0,0"
+                                                              Visibility="{Binding Tags.Count, Converter={x:Static vm:IntPositiveToVisibility.Instance}}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <WrapPanel/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border BorderBrush="{StaticResource B.RustDim}" BorderThickness="1"
+                                                                    Background="{StaticResource B.BG.Panel}"
+                                                                    Padding="6,1,6,2" Margin="0,0,4,3">
+                                                                <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="10" Foreground="{StaticResource B.Ember}"/>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+
+                                                <ItemsControl ItemsSource="{Binding DetailLines}" Margin="0,3,0,0"
+                                                              Visibility="{Binding DetailLines.Count, Converter={x:Static vm:IntPositiveToVisibility.Instance}}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                                <TextBlock Text="›" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Rust}" Margin="0,0,6,0"/>
+                                                                <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.TextMuted}" TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+
+                                            <TextBlock Grid.Column="2" Text="{Binding AgentIdShort}" FontFamily="{StaticResource Font.Mono}" FontSize="9"
+                                                       Foreground="{StaticResource B.TextDim}" VerticalAlignment="Top" Margin="10,2,0,0"/>
+
+                                            <!-- Chevron indicating expand/collapse -->
+                                            <TextBlock Grid.Column="3" FontFamily="{StaticResource Font.Mono}" FontSize="12" FontWeight="Bold"
+                                                       Foreground="{StaticResource B.Ember}" VerticalAlignment="Top" Margin="8,2,0,0">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="▾"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                                                <Setter Property="Text" Value="▴"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Grid>
+
+                                        <!-- Expanded detail panel -->
+                                        <Border Padding="10,8,10,10" Background="{StaticResource B.BG.Primary}"
+                                                BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="0,1,0,0"
+                                                Visibility="{Binding IsExpanded, Converter={x:Static vm:BoolToVisibility.Instance}}">
+                                            <StackPanel>
+                                                <!-- Metadata row -->
+                                                <Grid Margin="0,0,0,8">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="80"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                    </Grid.RowDefinitions>
+
+                                                    <TextBlock Text="AGENT ID" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding AgentIdFull}" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                    <Button Grid.Column="2" Content="OPEN LOG" Style="{StaticResource Btn.Pixel}" Padding="8,2,8,3" FontSize="8"
+                                                            Click="OnOpenAgentLog" DataContext="{Binding}"
+                                                            ToolTip="Explorer로 agent-*.jsonl 로그 파일 열기"/>
+
+                                                    <TextBlock Grid.Row="1" Text="KIND" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center" Margin="0,6,0,0"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Kind}" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Text}" VerticalAlignment="Center" Margin="0,6,0,0"/>
+                                                </Grid>
+
+                                                <!-- Full JSON -->
+                                                <TextBlock Text="FULL JSON" Style="{StaticResource T.Pixel.Section}" FontSize="8" Margin="0,4,0,4"/>
+                                                <Border Background="{StaticResource B.BG.Sunken}" BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1" Padding="10,8" MaxHeight="360">
+                                                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                                                        <TextBox Text="{Binding FullJson, Mode=OneWay}" IsReadOnly="True"
+                                                                 Background="Transparent" Foreground="{StaticResource B.Text}"
+                                                                 BorderThickness="0" FontFamily="{StaticResource Font.Mono}" FontSize="11"
+                                                                 TextWrapping="NoWrap"/>
+                                                    </ScrollViewer>
+                                                </Border>
+                                            </StackPanel>
+                                        </Border>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Border>
+                </DockPanel>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>
