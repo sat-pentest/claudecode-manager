@@ -377,28 +377,6 @@ public partial class HarnessViewModel : ModuleBase
 
         Flows.Add(new HarnessFlow
         {
-            Name = "FSI Report",
-            Description = "금융권 표준 5단 제출 양식",
-            TriggerHint = "\"FSI 리포트\", \"금융권 리포트\"",
-            Steps = new List<HarnessFlowStep>
-            {
-                new() { Kind = "SKILL", Name = "fsi-report", Detail = "제목공식·요약·분류·발생정보·상세5단", IsActive = SkillActive("fsi-report"), Arrow = "" }
-            }
-        });
-
-        Flows.Add(new HarnessFlow
-        {
-            Name = "FTG (Findthegap) Report",
-            Description = "파인더갭 9단 표준 양식, API 단위 분할",
-            TriggerHint = "\"FTG 리포트\", \"파인더갭\"",
-            Steps = new List<HarnessFlowStep>
-            {
-                new() { Kind = "SKILL", Name = "ftg-report", Detail = "9단, 최민우 문구 패턴", IsActive = SkillActive("ftg-report"), Arrow = "" }
-            }
-        });
-
-        Flows.Add(new HarnessFlow
-        {
             Name = "Cross-Session Memory",
             Description = "프로젝트 컨텍스트 자동 로딩 · 새 세션에도 유지",
             TriggerHint = "자동 (세션 시작 시)",
