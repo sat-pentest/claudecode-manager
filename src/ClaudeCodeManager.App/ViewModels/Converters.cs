@@ -7,6 +7,33 @@ using ICSharpCode.AvalonEdit.Document;
 
 namespace ClaudeCodeManager.App.ViewModels;
 
+public sealed class UpperCaseConverter : IValueConverter
+{
+    public static readonly UpperCaseConverter Instance = new();
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => value is string s ? s.ToUpperInvariant() : "";
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
+public sealed class BoolToOnOffConverter : IValueConverter
+{
+    public static readonly BoolToOnOffConverter Instance = new();
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => (value is bool b && b) ? "ON" : "OFF";
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
+public sealed class InverseIntPositiveToVisibility : IValueConverter
+{
+    public static readonly InverseIntPositiveToVisibility Instance = new();
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        int n = value switch { int i => i, long l => (int)Math.Min(l, int.MaxValue), _ => 0 };
+        return n > 0 ? Visibility.Collapsed : Visibility.Visible;
+    }
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
 public sealed class StringToGeometry : IValueConverter
 {
     public static readonly StringToGeometry Instance = new();

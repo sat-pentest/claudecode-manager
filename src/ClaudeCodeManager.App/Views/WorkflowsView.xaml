@@ -436,6 +436,30 @@
                 </TabItem.Header>
                 <local:WorkflowsLiveView/>
             </TabItem>
+
+            <!-- ═══════════════════════════════════════════════════════════
+                 SAFETY tab — engagement scope guard (arm/disarm/kill)
+                 ═══════════════════════════════════════════════════════════ -->
+            <TabItem ToolTip="롯데 엔게이지먼트 안전 계층 (enforce/kill-switch/mitmproxy)">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="SAFETY" VerticalAlignment="Center"/>
+                        <!-- Enforce indicator: green pulse -->
+                        <Ellipse Width="8" Height="8" Margin="8,1,0,0" VerticalAlignment="Center"
+                                 Fill="{StaticResource B.Success}"
+                                 svc:PulseBehavior.IsActive="True"
+                                 Visibility="{Binding Safety.IsArmed, Converter={x:Static vm:BoolToVisibility.Instance}}"
+                                 ToolTip="ENFORCED — 스코프 정책 강제 활성 상태"/>
+                        <!-- Kill-switch indicator: red (overrides armed) -->
+                        <Ellipse Width="8" Height="8" Margin="8,1,0,0" VerticalAlignment="Center"
+                                 Fill="{StaticResource B.Danger}"
+                                 svc:PulseBehavior.IsActive="True"
+                                 Visibility="{Binding Safety.IsKillSwitchActive, Converter={x:Static vm:BoolToVisibility.Instance}}"
+                                 ToolTip="KILL-SWITCH 활성"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <local:SafetyView DataContext="{Binding Safety}"/>
+            </TabItem>
         </TabControl>
     </Grid>
 </UserControl>

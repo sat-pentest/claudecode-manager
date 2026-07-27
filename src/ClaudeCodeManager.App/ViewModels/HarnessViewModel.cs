@@ -33,23 +33,46 @@ public partial class HarnessNode : ObservableObject
     public McpServerEntry? McpSource { get; set; }                // set for MCP nodes so ProbeAsync can be re-run
 }
 
-public sealed class HarnessFlow
+public partial class HarnessFlow : ObservableObject
 {
-    public string Name { get; set; } = "";
-    public string Description { get; set; } = "";
-    public string TriggerHint { get; set; } = "";
+    [ObservableProperty] private string _name = "";
+    [ObservableProperty] private string _description = "";
+    [ObservableProperty] private string _triggerHint = "";
     public List<HarnessFlowStep> Steps { get; set; } = new();
-    public bool AllStepsActive => Steps.All(s => s.IsActive);
-    public string StateBadge => AllStepsActive ? "READY" : "PARTIAL";
+
+    [ObservableProperty] private bool _allStepsActive;
+    [ObservableProperty] private string _stateBadge = "";
+
+    /// <summary>Recompute AllStepsActive/StateBadge from current Steps' IsActive.</summary>
+    public void Recompute()
+    {
+        AllStepsActive = Steps.Count > 0 && Steps.All(s => s.IsActive);
+        StateBadge = AllStepsActive ? "READY" : "PARTIAL";
+    }
+
+    /// <summary>Subscribe to each step's IsActive change so aggregate state (READY/PARTIAL)
+    /// stays fresh as async MCP probes resolve. Call after Steps are populated.</summary>
+    public void AttachStepListeners()
+    {
+        foreach (var step in Steps)
+        {
+            step.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(HarnessFlowStep.IsActive))
+                    Recompute();
+            };
+        }
+        Recompute();
+    }
 }
 
-public sealed class HarnessFlowStep
+public partial class HarnessFlowStep : ObservableObject
 {
-    public string Kind { get; set; } = "";     // SKILL / AGENT / MCP / EXTERNAL
-    public string Name { get; set; } = "";
-    public string Detail { get; set; } = "";
-    public bool IsActive { get; set; }
-    public string Arrow { get; set; } = "";    // "↓" / "↓×N" / "↔" / "→"
+    [ObservableProperty] private string _kind = "";     // SKILL / AGENT / MCP / EXTERNAL
+    [ObservableProperty] private string _name = "";
+    [ObservableProperty] private string _detail = "";
+    [ObservableProperty] private bool _isActive;
+    [ObservableProperty] private string _arrow = "";    // "↓" / "↓×N" / "↔" / "→"
 }
 
 // ─── ViewModel ─────────────────────────────────────────────────────────────
@@ -253,6 +276,8 @@ public partial class HarnessViewModel : ModuleBase
 
         // ── FLOWS: predefined orchestration patterns ────────────────────
         BuildFlows(skills, agents, mcpSummary);
+        // Wire step→flow listeners so async MCP probes update aggregate state live
+        foreach (var f in Flows) f.AttachStepListeners();
 
         Status = $"L1: {McpTotal} MCPs, {SessionCount} sessions · L2: {SkillTotal} skills, {AgentTotal} agents · L3: {WorkflowTotal} workflows · {Flows.Count} flows";
     }
@@ -402,7 +427,7 @@ public partial class HarnessViewModel : ModuleBase
         await Task.WhenAll(tasks);
     }
 
-    private static async Task ProbeOneAsync(HarnessNode vm, CancellationToken ct)
+    private async Task ProbeOneAsync(HarnessNode vm, CancellationToken ct)
     {
         var entry = vm.McpSource!;
         var result = await McpConfigService.ProbeAsync(entry, ct);
@@ -414,10 +439,23 @@ public partial class HarnessViewModel : ModuleBase
             McpConnectionStatus.Disabled => "DISABLED",
             _ => "UNKNOWN"
         };
+        var isOnline = state == "ONLINE";
         System.Windows.Application.Current?.Dispatcher.Invoke(() =>
         {
             vm.ConnectionState = state;
-            vm.IsActive = state == "ONLINE";
+            vm.IsActive = isOnline;
+
+            // Propagate to flow steps referring to this MCP so that flows go
+            // READY→PARTIAL (or vice versa) as reachability changes. Each step's
+            // IsActive change fires the flow's Recompute() via AttachStepListeners.
+            foreach (var flow in Flows)
+            {
+                foreach (var step in flow.Steps)
+                {
+                    if (step.Kind == "MCP" && step.Name.Equals(entry.Name, StringComparison.OrdinalIgnoreCase))
+                        step.IsActive = isOnline;
+                }
+            }
         });
     }
 

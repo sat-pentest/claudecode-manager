@@ -47,7 +47,9 @@
                                 <TextBox Text="{Binding NewAllowEntry, UpdateSourceTrigger=PropertyChanged}"/>
                                 <Button Grid.Column="1" Content="ADD" Style="{StaticResource Btn.Pixel}" Command="{Binding AddAllowCommand}" Margin="6,0,0,0"/>
                             </Grid>
-                            <ListBox ItemsSource="{Binding AllowList}" Margin="0,8,0,0">
+                            <ListBox ItemsSource="{Binding AllowList}" Margin="0,8,0,0"
+                                     HorizontalContentAlignment="Stretch"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <Grid>
@@ -55,7 +57,7 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="14" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="14" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"/>
                                             <Button Grid.Column="1" Content="X" Style="{StaticResource Btn.Pixel.Danger}" Padding="8,3" FontSize="9" Command="{Binding DataContext.RemoveAllowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
                                         </Grid>
                                     </DataTemplate>
@@ -75,7 +77,9 @@
                                 <TextBox Text="{Binding NewDenyEntry, UpdateSourceTrigger=PropertyChanged}"/>
                                 <Button Grid.Column="1" Content="ADD" Style="{StaticResource Btn.Pixel}" Command="{Binding AddDenyCommand}" Margin="6,0,0,0"/>
                             </Grid>
-                            <ListBox ItemsSource="{Binding DenyList}" Margin="0,8,0,0">
+                            <ListBox ItemsSource="{Binding DenyList}" Margin="0,8,0,0"
+                                     HorizontalContentAlignment="Stretch"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <Grid>
@@ -83,7 +87,7 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="14" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="14" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"/>
                                             <Button Grid.Column="1" Content="X" Style="{StaticResource Btn.Pixel.Danger}" Padding="8,3" FontSize="9" Command="{Binding DataContext.RemoveDenyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
                                         </Grid>
                                     </DataTemplate>

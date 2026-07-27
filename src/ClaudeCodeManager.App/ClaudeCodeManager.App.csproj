@@ -35,6 +35,7 @@
     <Resource Include="Fonts\IBMPlexSansKR-Regular.ttf" />
     <Resource Include="Fonts\IBMPlexSansKR-Medium.ttf" />
     <Resource Include="Themes\MarkdownRust.xshd" />
+    <Resource Include="Themes\ES6JavaScript.xshd" />
   </ItemGroup>
 
 </Project>

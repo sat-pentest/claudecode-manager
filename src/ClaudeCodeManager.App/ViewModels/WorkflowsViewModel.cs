@@ -51,6 +51,8 @@ public partial class WorkflowsViewModel : ModuleBase
 
     private readonly DispatcherTimer _liveTimer;
 
+    public EngagementSafetyViewModel Safety { get; } = new();
+
     public WorkflowsViewModel(MainViewModel main)
     {
         _main = main;
@@ -164,6 +166,7 @@ Session: {r.SessionId}";
     public override void OnDeactivated()
     {
         _liveTimer.Stop();
+        Safety.StopPolling();
     }
 
     public override void OnActivated()
@@ -181,6 +184,10 @@ Session: {r.SessionId}";
         // pulses even before user clicks the LIVE sub-tab.
         RefreshLiveRuns();
         _liveTimer.Start();
+
+        // Safety layer polling — runs while module is active so tab-header dot
+        // reflects armed/kill-switch state even before user opens SAFETY tab.
+        Safety.StartPolling();
     }
 
     [RelayCommand]

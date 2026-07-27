@@ -17,6 +17,7 @@ public partial class App : Application
         ClaudePaths.EnsureManagerDirs();
         HookExceptions();
         RegisterMarkdownRust();
+        RegisterES6JavaScript();
     }
 
     private void HookExceptions()
@@ -61,6 +62,34 @@ public partial class App : Application
         catch (Exception ex)
         {
             Log("RegisterMarkdownRust", ex);
+        }
+    }
+
+    /// <summary>
+    /// Register ES6-aware JavaScript highlighter so template literals (backticks) don't
+    /// confuse `/*` patterns inside strings into block comments. Overrides AvalonEdit's
+    /// built-in JavaScript definition so views using SyntaxHighlighting="JavaScript" pick
+    /// this up automatically.
+    /// </summary>
+    private static void RegisterES6JavaScript()
+    {
+        try
+        {
+            var info = GetResourceStream(new Uri("pack://application:,,,/Themes/ES6JavaScript.xshd"));
+            if (info?.Stream is null) return;
+            using var reader = new XmlTextReader(info.Stream);
+            var def = HighlightingLoader.Load(reader, HighlightingManager.Instance);
+            // Register under multiple names so both "JavaScript" (built-in override) and
+            // "ES6JavaScript" (explicit) resolve to this definition.
+            HighlightingManager.Instance.RegisterHighlighting(
+                "JavaScript",
+                new[] { ".js", ".mjs", ".cjs", ".jsx", ".ts" },
+                def);
+            HighlightingManager.Instance.RegisterHighlighting("ES6JavaScript", null, def);
+        }
+        catch (Exception ex)
+        {
+            Log("RegisterES6JavaScript", ex);
         }
     }
 }

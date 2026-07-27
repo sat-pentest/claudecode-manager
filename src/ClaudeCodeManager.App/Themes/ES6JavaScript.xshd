@@ -1,0 +1,150 @@
+<?xml version="1.0"?>
+<SyntaxDefinition name="ES6JavaScript" extensions=".js;.mjs;.cjs;.jsx;.ts"
+                  xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         ES6+ JavaScript highlighting for CCM.
+         Fixes built-in AvalonEdit JS highlighter which pre-dates ES6:
+         · template literals (backticks) as multiline strings
+         · ${...} interpolation shown as expression
+         · /* inside a string doesn't open a comment
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <Color name="Comment"        foreground="#7A8B7A" fontStyle="italic"/>
+    <Color name="String"         foreground="#D4A05C"/>
+    <Color name="TemplateLit"    foreground="#D4A05C"/>
+    <Color name="EscapeSeq"      foreground="#D4A05C" fontWeight="bold"/>
+    <Color name="Interpolation" foreground="#F26A2E" fontWeight="bold"/>
+    <Color name="Keyword"        foreground="#E85D3E" fontWeight="bold"/>
+    <Color name="Constant"       foreground="#E85D3E"/>
+    <Color name="Number"         foreground="#B5A882"/>
+    <Color name="Regex"          foreground="#D4A05C"/>
+
+    <RuleSet ignoreCase="false">
+
+        <!-- Template literals (backticks) — highest priority so /* inside gets treated as string content -->
+        <Span color="TemplateLit" multiline="true">
+            <Begin>`</Begin>
+            <End>`</End>
+            <RuleSet>
+                <!-- Escape sequences inside template literal -->
+                <Span color="EscapeSeq">
+                    <Begin>\\</Begin>
+                    <End>.</End>
+                </Span>
+                <!-- ${...} interpolation -->
+                <Span color="Interpolation" multiline="true">
+                    <Begin>\$\{</Begin>
+                    <End>\}</End>
+                </Span>
+            </RuleSet>
+        </Span>
+
+        <!-- Double-quoted strings -->
+        <Span color="String">
+            <Begin>"</Begin>
+            <End>"</End>
+            <RuleSet>
+                <Span color="EscapeSeq">
+                    <Begin>\\</Begin>
+                    <End>.</End>
+                </Span>
+            </RuleSet>
+        </Span>
+
+        <!-- Single-quoted strings -->
+        <Span color="String">
+            <Begin>'</Begin>
+            <End>'</End>
+            <RuleSet>
+                <Span color="EscapeSeq">
+                    <Begin>\\</Begin>
+                    <End>.</End>
+                </Span>
+            </RuleSet>
+        </Span>
+
+        <!-- Line comments -->
+        <Span color="Comment" begin="//"/>
+
+        <!-- Block comments -->
+        <Span color="Comment" multiline="true">
+            <Begin>/\*</Begin>
+            <End>\*/</End>
+        </Span>
+
+        <!-- Reserved keywords -->
+        <Keywords color="Keyword">
+            <Word>async</Word>
+            <Word>await</Word>
+            <Word>break</Word>
+            <Word>case</Word>
+            <Word>catch</Word>
+            <Word>class</Word>
+            <Word>const</Word>
+            <Word>continue</Word>
+            <Word>debugger</Word>
+            <Word>default</Word>
+            <Word>delete</Word>
+            <Word>do</Word>
+            <Word>else</Word>
+            <Word>enum</Word>
+            <Word>export</Word>
+            <Word>extends</Word>
+            <Word>finally</Word>
+            <Word>for</Word>
+            <Word>from</Word>
+            <Word>function</Word>
+            <Word>get</Word>
+            <Word>if</Word>
+            <Word>implements</Word>
+            <Word>import</Word>
+            <Word>in</Word>
+            <Word>instanceof</Word>
+            <Word>interface</Word>
+            <Word>let</Word>
+            <Word>new</Word>
+            <Word>of</Word>
+            <Word>package</Word>
+            <Word>private</Word>
+            <Word>protected</Word>
+            <Word>public</Word>
+            <Word>return</Word>
+            <Word>set</Word>
+            <Word>static</Word>
+            <Word>super</Word>
+            <Word>switch</Word>
+            <Word>this</Word>
+            <Word>throw</Word>
+            <Word>try</Word>
+            <Word>typeof</Word>
+            <Word>var</Word>
+            <Word>void</Word>
+            <Word>while</Word>
+            <Word>with</Word>
+            <Word>yield</Word>
+        </Keywords>
+
+        <!-- Literals and globals -->
+        <Keywords color="Constant">
+            <Word>true</Word>
+            <Word>false</Word>
+            <Word>null</Word>
+            <Word>undefined</Word>
+            <Word>NaN</Word>
+            <Word>Infinity</Word>
+            <Word>globalThis</Word>
+        </Keywords>
+
+        <!-- Numbers -->
+        <Rule color="Number">
+            \b(
+                0[xX][0-9a-fA-F_]+n?
+              | 0[bB][01_]+n?
+              | 0[oO][0-7_]+n?
+              | (\d[\d_]*(\.[\d_]+)?|\.[\d_]+)([eE][+\-]?[\d_]+)?n?
+            )\b
+        </Rule>
+
+    </RuleSet>
+</SyntaxDefinition>
