@@ -307,22 +307,87 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel HorizontalAlignment="Center" MaxWidth="640">
-                                        <!-- Phase card -->
-                                        <Border Padding="14,11" BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1"
-                                                Background="{StaticResource B.BG.Panel}">
+                                        <!-- Phase card.
+                                             Every visual below resolves to its plain resting value when the
+                                             sweep crest is elsewhere (see PipelineSweepConverter), so the
+                                             static look of this card is unchanged from before the animation. -->
+                                        <Border Padding="14,11" BorderThickness="1" RenderTransformOrigin="0.5,0.5">
+                                            <Border.BorderBrush>
+                                                <MultiBinding Converter="{x:Static vm:PipelineSweepConverter.CardBorder}">
+                                                    <Binding Path="Clock" Source="{x:Static svc:PipelineTicker.Current}"/>
+                                                    <Binding Path="Index"/>
+                                                    <Binding Path="Count"/>
+                                                </MultiBinding>
+                                            </Border.BorderBrush>
+                                            <Border.Background>
+                                                <MultiBinding Converter="{x:Static vm:PipelineSweepConverter.CardBackground}">
+                                                    <Binding Path="Clock" Source="{x:Static svc:PipelineTicker.Current}"/>
+                                                    <Binding Path="Index"/>
+                                                    <Binding Path="Count"/>
+                                                </MultiBinding>
+                                            </Border.Background>
+                                            <Border.Effect>
+                                                <MultiBinding Converter="{x:Static vm:PipelineSweepConverter.CardGlow}">
+                                                    <Binding Path="Clock" Source="{x:Static svc:PipelineTicker.Current}"/>
+                                                    <Binding Path="Index"/>
+                                                    <Binding Path="Count"/>
+                                                </MultiBinding>
+                                            </Border.Effect>
+                                            <!-- RenderTransform, not Layout: the swell must not reflow the
+                                                 stack (or fight the zoom LayoutTransform on the ItemsControl). -->
+                                            <Border.RenderTransform>
+                                                <ScaleTransform>
+                                                    <ScaleTransform.ScaleX>
+                                                        <MultiBinding Converter="{x:Static vm:PipelineSweepConverter.CardScale}">
+                                                            <Binding Path="Clock" Source="{x:Static svc:PipelineTicker.Current}"/>
+                                                            <Binding Path="Index"/>
+                                                            <Binding Path="Count"/>
+                                                        </MultiBinding>
+                                                    </ScaleTransform.ScaleX>
+                                                    <ScaleTransform.ScaleY>
+                                                        <MultiBinding Converter="{x:Static vm:PipelineSweepConverter.CardScale}">
+                                                            <Binding Path="Clock" Source="{x:Static svc:PipelineTicker.Current}"/>
+                                                            <Binding Path="Index"/>
+                                                            <Binding Path="Count"/>
+                                                        </MultiBinding>
+                                                    </ScaleTransform.ScaleY>
+                                                </ScaleTransform>
+                                            </Border.RenderTransform>
                                             <StackPanel>
                                                 <!-- Row 1: number badge + title -->
                                                 <StackPanel Orientation="Horizontal">
-                                                    <Border Background="{StaticResource B.Rust}" Padding="8,3,8,4"
-                                                            Margin="0,0,12,0" VerticalAlignment="Center">
+                                                    <Border Padding="8,3,8,4" Margin="0,0,12,0" VerticalAlignment="Center">
+                                                        <Border.Background>
+                                                            <MultiBinding Converter="{x:Static vm:PipelineSweepConverter.BadgeBackground}">
+                                                                <Binding Path="Clock" Source="{x:Static svc:PipelineTicker.Current}"/>
+                                                                <Binding Path="Index"/>
+                                                                <Binding Path="Count"/>
+                                                            </MultiBinding>
+                                                        </Border.Background>
                                                         <TextBlock Text="{Binding Index}" FontFamily="{StaticResource Font.Pixel}" FontSize="10" Foreground="{StaticResource B.BG.Primary}"/>
                                                     </Border>
-                                                    <TextBlock Text="{Binding Title}" FontFamily="{StaticResource Font.Mono}" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding Title}" FontFamily="{StaticResource Font.Mono}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center">
+                                                        <TextBlock.Foreground>
+                                                            <MultiBinding Converter="{x:Static vm:PipelineSweepConverter.TitleBrush}">
+                                                                <Binding Path="Clock" Source="{x:Static svc:PipelineTicker.Current}"/>
+                                                                <Binding Path="Index"/>
+                                                                <Binding Path="Count"/>
+                                                            </MultiBinding>
+                                                        </TextBlock.Foreground>
+                                                    </TextBlock>
                                                 </StackPanel>
 
                                                 <!-- Detail (optional) -->
                                                 <TextBlock Text="{Binding Detail}" Style="{StaticResource T.Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,6,0,0" LineHeight="19"
-                                                           Visibility="{Binding Detail, Converter={x:Static vm:StringToVisibility.Instance}}"/>
+                                                           Visibility="{Binding Detail, Converter={x:Static vm:StringToVisibility.Instance}}">
+                                                    <TextBlock.Foreground>
+                                                        <MultiBinding Converter="{x:Static vm:PipelineSweepConverter.DetailBrush}">
+                                                            <Binding Path="Clock" Source="{x:Static svc:PipelineTicker.Current}"/>
+                                                            <Binding Path="Index"/>
+                                                            <Binding Path="Count"/>
+                                                        </MultiBinding>
+                                                    </TextBlock.Foreground>
+                                                </TextBlock>
 
                                                 <!-- Tools row (optional) -->
                                                 <ItemsControl ItemsSource="{Binding Tools}"
@@ -347,9 +412,16 @@
 
                                         <!-- Downward arrow connector (hidden after last phase) -->
                                         <TextBlock Text="↓" FontFamily="{StaticResource Font.CRT}" FontSize="22"
-                                                   Foreground="{StaticResource B.Ember}"
                                                    HorizontalAlignment="Center" Margin="0,4,0,4"
-                                                   Visibility="{Binding IsLast, Converter={x:Static vm:InverseBoolToVisibility.Instance}}"/>
+                                                   Visibility="{Binding IsLast, Converter={x:Static vm:InverseBoolToVisibility.Instance}}">
+                                            <TextBlock.Foreground>
+                                                <MultiBinding Converter="{x:Static vm:PipelineSweepConverter.ArrowBrush}">
+                                                    <Binding Path="Clock" Source="{x:Static svc:PipelineTicker.Current}"/>
+                                                    <Binding Path="Index"/>
+                                                    <Binding Path="Count"/>
+                                                </MultiBinding>
+                                            </TextBlock.Foreground>
+                                        </TextBlock>
                                     </StackPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>

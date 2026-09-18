@@ -38,7 +38,12 @@
                     </Grid.ColumnDefinitions>
                     <Border Style="{StaticResource Panel.Rust}" Margin="0,0,4,0">
                         <DockPanel>
-                            <TextBlock DockPanel.Dock="Top" Text="◢ ALLOW" Style="{StaticResource T.Pixel.Section}" Foreground="{StaticResource B.Success}"/>
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                                <TextBlock Text="◢ ALLOW" Style="{StaticResource T.Pixel.Section}" Foreground="{StaticResource B.Success}" VerticalAlignment="Center"/>
+                                <TextBlock Style="{StaticResource T.Mono}" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center" Margin="12,0,0,0">
+                                    <Run Text="{Binding AllowList.Count, Mode=OneWay}"/><Run Text=" rules"/>
+                                </TextBlock>
+                            </StackPanel>
                             <Grid DockPanel.Dock="Bottom" Margin="0,8,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -58,7 +63,11 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="14" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"/>
-                                            <Button Grid.Column="1" Content="X" Style="{StaticResource Btn.Pixel.Danger}" Padding="8,3" FontSize="9" Command="{Binding DataContext.RemoveAllowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                            <Button Grid.Column="1" Content="✕" VerticalAlignment="Center" Margin="8,0,4,0"
+                                                    Command="{Binding DataContext.RemoveAllowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Style="{StaticResource Btn.RowDelete}"
+                                                    ToolTip="이 permission 제거"/>
                                         </Grid>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
@@ -68,7 +77,12 @@
                     <GridSplitter Grid.Column="1" Style="{StaticResource Splitter.Vertical}"/>
                     <Border Grid.Column="2" Style="{StaticResource Panel.Rust}" Margin="4,0,0,0">
                         <DockPanel>
-                            <TextBlock DockPanel.Dock="Top" Text="◢ DENY" Style="{StaticResource T.Pixel.Section}" Foreground="{StaticResource B.Danger}"/>
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                                <TextBlock Text="◢ DENY" Style="{StaticResource T.Pixel.Section}" Foreground="{StaticResource B.Danger}" VerticalAlignment="Center"/>
+                                <TextBlock Style="{StaticResource T.Mono}" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center" Margin="12,0,0,0">
+                                    <Run Text="{Binding DenyList.Count, Mode=OneWay}"/><Run Text=" rules"/>
+                                </TextBlock>
+                            </StackPanel>
                             <Grid DockPanel.Dock="Bottom" Margin="0,8,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -88,7 +102,11 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="14" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"/>
-                                            <Button Grid.Column="1" Content="X" Style="{StaticResource Btn.Pixel.Danger}" Padding="8,3" FontSize="9" Command="{Binding DataContext.RemoveDenyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                            <Button Grid.Column="1" Content="✕" VerticalAlignment="Center" Margin="8,0,4,0"
+                                                    Command="{Binding DataContext.RemoveDenyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Style="{StaticResource Btn.RowDelete}"
+                                                    ToolTip="이 permission 제거"/>
                                         </Grid>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>

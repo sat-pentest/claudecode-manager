@@ -37,7 +37,16 @@ public sealed class WorkflowResultSummary : INotifyPropertyChanged
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
-public sealed class WorkflowRunEntry
+/// <summary>
+/// A workflow run as shown in the LIVE tab.
+///
+/// Several members here are derived from the clock rather than from state — Status, IdleMinutes,
+/// IdleSeconds — so they change with no setter ever running. Without notification the UI only
+/// caught up when the 5s scan replaced the whole entry, leaving the status dot and progress sweep
+/// disagreeing with the STATUS text for up to five seconds. <see cref="NotifyClockDerived"/> lets a
+/// cheap timer re-raise exactly those, with no disk access.
+/// </summary>
+public sealed class WorkflowRunEntry : INotifyPropertyChanged
 {
     public string RunId { get; set; } = "";
     public string ShortId => RunId.Length > 12 ? RunId.Substring(0, 12) : RunId;
@@ -58,11 +67,45 @@ public sealed class WorkflowRunEntry
     public string LastActivityText => LastActivity.ToString("HH:mm:ss");
     public string ProgressText => $"{AgentsCompleted}/{AgentsStarted}";
     public string DirPath { get; set; } = "";
+
+    /// <summary>Opening brief of the agent that is still outstanding — "what it is doing now".</summary>
+    public string CurrentTask { get; set; } = "";
+    public bool HasCurrentTask => !string.IsNullOrWhiteSpace(CurrentTask);
+
     public List<WorkflowResultSummary> RecentResults { get; set; } = new();
+
+    /// <summary>
+    /// Re-raise the clock-derived members. Call on a short timer; it reads no files, so it is safe
+    /// to run far more often than the scan that rebuilds these entries.
+    /// </summary>
+    public void NotifyClockDerived()
+    {
+        OnPropertyChanged(nameof(IdleSeconds));
+        OnPropertyChanged(nameof(IdleMinutes));
+        OnPropertyChanged(nameof(Status));
+        OnPropertyChanged(nameof(LastActivityText));
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
 public static class WorkflowLiveService
 {
+    /// <summary>
+    /// System.Text.Json escapes every non-ASCII character by default, which turned Korean result
+    /// text into \uXXXX soup in the FULL JSON panel. Allowing all Unicode ranges prints it as-is;
+    /// the encoder still escapes the HTML-sensitive characters, and this string is only ever shown
+    /// in a WPF text block, never re-parsed or rendered as markup.
+    /// </summary>
+    private static readonly JsonSerializerOptions FullJsonOptions = new()
+    {
+        WriteIndented = true,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Create(
+            System.Text.Unicode.UnicodeRanges.All)
+    };
+
     public static List<WorkflowRunEntry> Scan(bool includeIdle = false)
     {
         var results = new List<WorkflowRunEntry>();
@@ -124,6 +167,10 @@ public static class WorkflowLiveService
         int started = 0, completed = 0;
         var recentResults = new List<WorkflowResultSummary>();
         string? firstTarget = null;
+        // Track which agents are still outstanding so the run can say what it is doing *now*,
+        // rather than only what it has already finished.
+        var startedIds = new List<string>();
+        var finishedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         try
         {
@@ -139,10 +186,17 @@ public static class WorkflowLiveService
                     var root = doc.RootElement;
                     if (!root.TryGetProperty("type", out var typeEl)) continue;
                     var type = typeEl.GetString();
-                    if (type == "started") started++;
+                    if (type == "started")
+                    {
+                        started++;
+                        if (root.TryGetProperty("agentId", out var sidEl) && sidEl.GetString() is { Length: > 0 } sid)
+                            startedIds.Add(sid);
+                    }
                     else if (type == "result")
                     {
                         completed++;
+                        if (root.TryGetProperty("agentId", out var fidEl) && fidEl.GetString() is { Length: > 0 } fid)
+                            finishedIds.Add(fid);
                         if (root.TryGetProperty("result", out var resultEl) && resultEl.ValueKind == JsonValueKind.Object)
                         {
                             // First-seen target extraction
@@ -171,8 +225,7 @@ public static class WorkflowLiveService
                                 ? "" : Path.Combine(wfDir, $"agent-{agentId}.jsonl");
                             try
                             {
-                                summary.FullJson = JsonSerializer.Serialize(resultEl,
-                                    new JsonSerializerOptions { WriteIndented = true });
+                                summary.FullJson = JsonSerializer.Serialize(resultEl, FullJsonOptions);
                             }
                             catch { summary.FullJson = resultEl.GetRawText(); }
                             recentResults.Add(summary);
@@ -190,8 +243,110 @@ public static class WorkflowLiveService
         // Keep only last 5 results
         entry.RecentResults = recentResults.Skip(Math.Max(0, recentResults.Count - 5)).ToList();
 
+        // What is running right now: the newest agent with no result yet. Its brief is the first
+        // user message in its transcript, which is the closest thing the journal offers to a
+        // phase label (the journal itself records only ids).
+        var pendingId = startedIds.LastOrDefault(id => !finishedIds.Contains(id));
+        if (pendingId is not null)
+            entry.CurrentTask = ReadAgentBrief(Path.Combine(wfDir, $"agent-{pendingId}.jsonl"));
+
         return entry;
     }
+
+    /// <summary>
+    /// First line of an agent's opening prompt, cleaned up for a one-line status. Reads only the
+    /// head of the file — these transcripts run to tens of thousands of lines.
+    /// </summary>
+    private static string ReadAgentBrief(string agentLogPath)
+    {
+        try
+        {
+            if (!File.Exists(agentLogPath)) return "";
+            using var stream = new FileStream(agentLogPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new StreamReader(stream);
+            var line = reader.ReadLine();
+            if (string.IsNullOrWhiteSpace(line)) return "";
+
+            using var doc = JsonDocument.Parse(line);
+            if (!doc.RootElement.TryGetProperty("message", out var msg)) return "";
+            if (!msg.TryGetProperty("content", out var content)) return "";
+
+            var text = content.ValueKind switch
+            {
+                JsonValueKind.String => content.GetString() ?? "",
+                // content can also arrive as [{type:"text", text:"..."}]
+                JsonValueKind.Array => content.EnumerateArray()
+                    .Where(e => e.ValueKind == JsonValueKind.Object && e.TryGetProperty("text", out _))
+                    .Select(e => e.GetProperty("text").GetString() ?? "")
+                    .FirstOrDefault() ?? "",
+                _ => ""
+            };
+            if (string.IsNullOrWhiteSpace(text)) return "";
+
+            // Prompts don't reliably open with prose — some phases interpolate a serialized array
+            // first (e.g. `stackHints([...])`), which makes a naive "first line" useless as a status.
+            // Collapse data blobs, then take the first line that still reads like a sentence.
+            var lines = text.Replace("\r", "").Split('\n')
+                            .Select(l => l.Replace("**", "").Replace("##", "").Trim())
+                            .Where(l => l.Length > 0)
+                            .Take(10)
+                            .ToList();
+            if (lines.Count == 0) return "";
+
+            string best = CollapseBlobs(lines[0]);
+            foreach (var candidate in lines.Select(CollapseBlobs))
+            {
+                if (ProseScore(candidate) >= 12) { best = candidate; break; }
+            }
+            return Trunc(best, 170);
+        }
+        catch { return ""; }
+    }
+
+    /// <summary>
+    /// Replace payloads that carry no meaning in a one-line status with an ellipsis: serialized
+    /// arrays/objects, and long absolute paths in parentheses. An unabridged scratchpad path ate
+    /// most of the line budget and pushed the actual task description past the truncation.
+    /// </summary>
+    private static string CollapseBlobs(string s)
+    {
+        var sb = new System.Text.StringBuilder(s.Length);
+        var depth = 0;
+        var blobStart = -1;
+        char openChar = '\0';
+
+        for (var i = 0; i < s.Length; i++)
+        {
+            var c = s[i];
+            if (c is '[' or '{' or '(')
+            {
+                if (depth == 0) { blobStart = i; openChar = c; sb.Append(c); }
+                depth++;
+            }
+            else if (c is ']' or '}' or ')')
+            {
+                depth = Math.Max(0, depth - 1);
+                if (depth == 0 && blobStart >= 0)
+                {
+                    var innerLen = i - blobStart - 1;
+                    var inner = innerLen > 0 ? s.Substring(blobStart + 1, innerLen) : "";
+                    // Data blobs collapse past 30 chars; parentheses hold prose as often as not,
+                    // so only fold them when they are long *and* look like a filesystem path.
+                    var collapse = openChar == '('
+                        ? innerLen > 40 && (inner.Contains('\\') || inner.Contains('/'))
+                        : innerLen > 30;
+                    sb.Append(collapse ? "…" : inner);
+                    sb.Append(c);
+                }
+            }
+            else if (depth == 0) sb.Append(c);
+        }
+        if (depth > 0 && blobStart >= 0) sb.Append('…');
+        return sb.ToString().Trim();
+    }
+
+    /// <summary>Rough "is this a sentence" measure — letters outside of punctuation noise.</summary>
+    private static int ProseScore(string s) => s.Count(char.IsLetter);
 
     private static string Trunc(string? s, int max)
     {
@@ -374,17 +529,80 @@ public static class WorkflowLiveService
             }
         }
 
-        // 9) Fallback: list keys
+        // 8b) Asset harvest (web-static-recon Phase 2). Worth its own card: a harvest that collected
+        //     nothing makes every later phase run on an empty scratchpad, so it has to read as a
+        //     failure here rather than as a neutral key list.
+        if (r.TryGetProperty("fetchStats", out var fst) && fst.ValueKind == JsonValueKind.Object)
+        {
+            int Num(string k) => fst.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetInt32() : 0;
+            var total = Num("total");
+            s.Kind = ResultKind.Recon;
+            s.SeverityBadge = "HARV";
+
+            if (total == 0)
+            {
+                s.Headline = "harvest · 0 assets — 수집 실패";
+                s.SeverityLevel = "High";
+            }
+            else
+            {
+                s.Headline = $"harvest · {total} assets (html {Num("html")} · js {Num("js")} · css {Num("css")} · map {Num("sourcemap")})";
+                s.SeverityLevel = "Info";
+            }
+
+            if (r.TryGetProperty("routes", out var rts) && rts.ValueKind == JsonValueKind.Array)
+                s.Tags.Add($"routes {rts.GetArrayLength()}");
+            if (r.TryGetProperty("sourcemapRecovered", out var smr))
+                s.Tags.Add(smr.ValueKind == JsonValueKind.True ? "sourcemap ✓" : "sourcemap ✗");
+
+            // stackHints doubles as the diagnosis channel when a harvest fails. Surface the lines
+            // that explain *why* instead of burying them in the raw JSON.
+            if (r.TryGetProperty("stackHints", out var sh) && sh.ValueKind == JsonValueKind.Array)
+            {
+                var diagnostics = new List<string>();
+                var plain = new List<string>();
+                foreach (var h in sh.EnumerateArray())
+                {
+                    if (h.ValueKind != JsonValueKind.String) continue;
+                    var text = h.GetString() ?? "";
+                    if (text.Length == 0) continue;
+                    var u = text.ToUpperInvariant();
+                    if (u.Contains("UNRESOLV") || u.Contains("NXDOMAIN") || u.Contains("ERROR") ||
+                        u.Contains("BLOCK") || u.Contains("ACTION REQUIRED") || u.Contains("TYPO") ||
+                        u.Contains("REFUSED") || u.Contains("TIMEOUT") || u.Contains("403") || u.Contains("429"))
+                        diagnostics.Add(text);
+                    else
+                        plain.Add(text);
+                }
+                foreach (var d in diagnostics.Take(3)) s.DetailLines.Add(Trunc(d, 110) ?? "");
+                if (diagnostics.Count == 0)
+                    foreach (var p in plain.Take(3)) s.Tags.Add(Trunc(p, 28) ?? "");
+            }
+            return s;
+        }
+
+        // 9) Fallback: name the fields *and* their shape — a bare key list says nothing about
+        //    whether the agent actually produced anything.
         var keys = new List<string>();
         foreach (var prop in r.EnumerateObject())
         {
-            keys.Add(prop.Name);
+            var v = prop.Value;
+            keys.Add(v.ValueKind switch
+            {
+                JsonValueKind.Array  => $"{prop.Name}[{v.GetArrayLength()}]",
+                JsonValueKind.Object => $"{prop.Name}{{}}",
+                JsonValueKind.String => $"{prop.Name}:{Trunc(v.GetString(), 18)}",
+                JsonValueKind.Number => $"{prop.Name}:{v}",
+                JsonValueKind.True   => $"{prop.Name}:true",
+                JsonValueKind.False  => $"{prop.Name}:false",
+                _ => prop.Name
+            });
             if (keys.Count >= 4) break;
         }
         s.Kind = ResultKind.Generic;
         s.SeverityBadge = "?";
         s.SeverityLevel = "Info";
-        s.Headline = keys.Count > 0 ? "result · " + string.Join(", ", keys) : "(empty result)";
+        s.Headline = keys.Count > 0 ? "result · " + string.Join(" · ", keys) : "(empty result)";
         return s;
     }
 

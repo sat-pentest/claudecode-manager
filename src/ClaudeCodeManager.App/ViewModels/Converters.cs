@@ -221,6 +221,50 @@ public sealed class PercentToWidthConverter : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
 }
 
+/// <summary>
+/// Width of the filled portion of a progress bar: [0]=percent 0..100, [1]=full track width.
+/// The sweep is clipped to this so it dies at the progress edge instead of running on over
+/// track that has not been earned yet.
+/// </summary>
+public sealed class FilledWidthConverter : IMultiValueConverter
+{
+    public static readonly FilledWidthConverter Instance = new();
+
+    public object Convert(object[] values, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var pct = values is { Length: > 0 } && values[0] is double p ? p : 0;
+        var w = values is { Length: > 1 } && values[1] is double tw ? tw : 0;
+        if (w <= 0 || pct <= 0) return 0d;
+        var filled = w * Math.Clamp(pct, 0, 100) / 100.0;
+        return Math.Max(0, filled);
+    }
+
+    public object[] ConvertBack(object? value, Type[] targetTypes, object? parameter, CultureInfo culture)
+        => Array.Empty<object>();
+}
+
+/// <summary>
+/// Maps FlowTicker.ChainProgress (0..1) to the X offset of a progress-bar sweep, starting off the
+/// left edge and ending as it clears the right edge of whatever it is travelling across.
+/// Values are [0]=progress, [1]=travel width (the filled portion, not the whole track).
+/// </summary>
+public sealed class SweepPositionConverter : IMultiValueConverter
+{
+    public static readonly SweepPositionConverter Instance = new();
+    private const double BandWidth = 70;
+
+    public object Convert(object[] values, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var p = values is { Length: > 0 } && values[0] is double d ? d : 0;
+        var w = values is { Length: > 1 } && values[1] is double tw && tw > 0 ? tw : 0;
+        if (w <= 0) return -BandWidth;
+        return -BandWidth + p * (w + BandWidth);
+    }
+
+    public object[] ConvertBack(object? value, Type[] targetTypes, object? parameter, CultureInfo culture)
+        => Array.Empty<object>();
+}
+
 public sealed class SearchHitStatusConverter : IValueConverter
 {
     public static readonly SearchHitStatusConverter InactiveVisibility = new() { Match = ClaudeCodeManager.Core.Services.SearchHitStatus.Inactive };
@@ -233,6 +277,28 @@ public sealed class SearchHitStatusConverter : IValueConverter
         if (value is ClaudeCodeManager.Core.Services.SearchHitStatus s && s == Match)
             return Visibility.Visible;
         return Visibility.Collapsed;
+    }
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
+/// <summary>
+/// Colour for a host-security verdict. Bound to EffectiveStatus rather than Status, so an accepted
+/// risk reads as settled (muted) instead of shouting red at every scan.
+/// </summary>
+public sealed class CheckStatusToBrush : IValueConverter
+{
+    public static readonly CheckStatusToBrush Instance = new();
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var key = value?.ToString() switch
+        {
+            "Fail" => "B.Danger",
+            "Warn" => "B.Warn",
+            "Pass" => "B.Success",
+            "Skip" => "B.TextMuted",
+            _ => "B.Text"
+        };
+        return Application.Current.Resources[key] ?? System.Windows.Media.Brushes.White;
     }
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
 }

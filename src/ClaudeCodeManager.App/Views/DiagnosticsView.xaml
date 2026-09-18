@@ -7,53 +7,166 @@
              d:DataContext="{d:DesignInstance vm:DiagnosticsViewModel}"
              mc:Ignorable="d">
 
-    <DockPanel Background="{StaticResource B.BG.Primary}">
-        <Border DockPanel.Dock="Top" Background="{StaticResource B.BG.Panel}" Padding="16,12" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
+    <Grid Background="{StaticResource B.BG.Primary}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- TOP BAR -->
+        <Border Background="{StaticResource B.BG.Panel}" Padding="16,10"
+                BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
             <StackPanel Orientation="Horizontal">
                 <Path Style="{StaticResource Icon.Module}" Data="{Binding Glyph, Converter={x:Static vm:StringToGeometry.Instance}}"/>
                 <TextBlock Text="DIAGNOSTICS" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
-                <Button Content="RUN" Style="{StaticResource Btn.Pixel.Primary}" Command="{Binding RunCommand}" Margin="16,0,0,0"/>
-                <CheckBox Content="errors" IsChecked="{Binding ShowError}" Foreground="{StaticResource B.Danger}" Margin="20,0,0,0" VerticalAlignment="Center"/>
-                <CheckBox Content="warnings" IsChecked="{Binding ShowWarning}" Foreground="{StaticResource B.Warn}" Margin="12,0,0,0" VerticalAlignment="Center"/>
-                <CheckBox Content="info" IsChecked="{Binding ShowInfo}" Margin="12,0,0,0" VerticalAlignment="Center"/>
-                <TextBox Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}" Width="260" Margin="20,0,0,0"/>
             </StackPanel>
         </Border>
-        <ListBox ItemsSource="{Binding Filtered}" Background="{StaticResource B.BG.Sunken}" BorderThickness="0">
-            <ListBox.ItemContainerStyle>
-                <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
-                    <EventSetter Event="MouseDoubleClick" Handler="OnItemDoubleClick"/>
-                </Style>
-            </ListBox.ItemContainerStyle>
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="100"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="{Binding Severity}" FontFamily="{StaticResource Font.Pixel}" FontSize="9">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="{StaticResource B.TextMuted}"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Severity}" Value="Error"><Setter Property="Foreground" Value="{StaticResource B.Danger}"/></DataTrigger>
-                                            <DataTrigger Binding="{Binding Severity}" Value="Warning"><Setter Property="Foreground" Value="{StaticResource B.Warn}"/></DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                            <TextBlock Text="{Binding Category}" Style="{StaticResource T.Muted}" FontSize="12" Margin="0,3,0,0"/>
+
+        <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" SelectedIndex="{Binding ActiveTabIndex}">
+
+            <!-- ═══════════════════════════════════════════════════════════
+                 LINT — is the configuration well-formed
+                 ═══════════════════════════════════════════════════════════ -->
+            <TabItem Header="LINT">
+                <DockPanel Background="{StaticResource B.BG.Primary}">
+                    <Border DockPanel.Dock="Top" Background="{StaticResource B.BG.Panel}" Padding="16,10"
+                            BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="RUN" Style="{StaticResource Btn.Pixel.Primary}" Command="{Binding RunCommand}"/>
+                            <CheckBox Content="errors" IsChecked="{Binding ShowError}" Foreground="{StaticResource B.Danger}" Margin="20,0,0,0" VerticalAlignment="Center"/>
+                            <CheckBox Content="warnings" IsChecked="{Binding ShowWarning}" Foreground="{StaticResource B.Warn}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                            <CheckBox Content="info" IsChecked="{Binding ShowInfo}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                            <TextBox Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}" Width="260" Margin="20,0,0,0"/>
+                            <TextBlock Text="{Binding Status}" Style="{StaticResource T.Muted}" FontSize="12" Margin="20,0,0,0"
+                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
-                        <StackPanel Grid.Column="1">
-                            <TextBlock Text="{Binding Message}" Style="{StaticResource T.Body}" FontSize="14" TextWrapping="Wrap"/>
-                            <TextBlock Text="{Binding File}" Style="{StaticResource T.Mono}" FontSize="12" Foreground="{StaticResource B.TextMuted}" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
-                            <TextBlock Text="{Binding Hint}" Style="{StaticResource T.Muted}" FontSize="13" Margin="0,3,0,0" Visibility="{Binding Hint, Converter={x:Static vm:NullToVisibility.Instance}}"/>
+                    </Border>
+
+                    <ListBox ItemsSource="{Binding Filtered}" Background="{StaticResource B.BG.Sunken}" BorderThickness="0">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                <EventSetter Event="MouseDoubleClick" Handler="OnItemDoubleClick"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Severity}" FontFamily="{StaticResource Font.Pixel}" FontSize="9"
+                                                   Foreground="{Binding Severity, Converter={x:Static vm:SeverityToBrush.Instance}}"/>
+                                        <TextBlock Text="{Binding Category}" Style="{StaticResource T.Muted}" FontSize="12" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="{Binding Message}" Style="{StaticResource T.Body}" FontSize="14" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding File}" Style="{StaticResource T.Mono}" FontSize="12" Foreground="{StaticResource B.TextMuted}" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Hint}" Style="{StaticResource T.Muted}" FontSize="13" Margin="0,3,0,0" Visibility="{Binding Hint, Converter={x:Static vm:NullToVisibility.Instance}}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </TabItem>
+
+            <!-- ═══════════════════════════════════════════════════════════
+                 HOST SECURITY — what reaches this workstation, and how far
+                 the agent reaches from it
+                 ═══════════════════════════════════════════════════════════ -->
+            <TabItem Header="HOST SECURITY">
+                <DockPanel Background="{StaticResource B.BG.Primary}">
+
+                    <Border DockPanel.Dock="Top" Background="{StaticResource B.BG.Panel}" Padding="16,10"
+                            BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="SCAN" Style="{StaticResource Btn.Pixel.Primary}"
+                                    Command="{Binding RunSecurityScanCommand}"
+                                    IsEnabled="{Binding IsScanning, Converter={x:Static vm:InverseBool.Instance}}"/>
+                            <TextBlock Text="scanning…" Style="{StaticResource T.Muted}" FontSize="12" Margin="12,0,0,0" VerticalAlignment="Center"
+                                       Foreground="{StaticResource B.Ember}"
+                                       Visibility="{Binding IsScanning, Converter={x:Static vm:BoolToVisibility.Instance}}"/>
+                            <CheckBox Content="show resolved" IsChecked="{Binding ShowResolvedChecks}" Margin="20,0,0,0" VerticalAlignment="Center"
+                                      ToolTip="Include passing checks, accepted risks, and probes that could not be determined"/>
+                            <TextBlock Text="{Binding SecurityStatus}" Style="{StaticResource T.Muted}" FontSize="12" Margin="20,0,0,0"
+                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
-                    </Grid>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
-    </DockPanel>
+                    </Border>
+
+                    <!-- Empty state -->
+                    <TextBlock DockPanel.Dock="Top" Margin="24,28,24,0" TextWrapping="Wrap"
+                               Style="{StaticResource T.Muted}" FontSize="13"
+                               Visibility="{Binding HasSecurityResults, Converter={x:Static vm:InverseBoolToVisibility.Instance}}"
+                               Text="Press SCAN to probe host controls, the agent's permission surface, MCP endpoints, secrets in auto-loaded context, and the engagement safety layer. Read-only — nothing here changes machine state."/>
+
+                    <ListBox ItemsSource="{Binding SecurityFiltered}" Background="{StaticResource B.BG.Sunken}" BorderThickness="0"
+                             HorizontalContentAlignment="Stretch"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="112"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- verdict + category -->
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding EffectiveStatus}" FontFamily="{StaticResource Font.Pixel}" FontSize="9"
+                                                   Foreground="{Binding EffectiveStatus, Converter={x:Static vm:CheckStatusToBrush.Instance}}"/>
+                                        <TextBlock Text="{Binding Severity}" Style="{StaticResource T.Muted}" FontSize="11" Margin="0,4,0,0"/>
+                                        <TextBlock Text="{Binding Category}" Style="{StaticResource T.Muted}" FontSize="11" Margin="0,2,0,0"/>
+                                    </StackPanel>
+
+                                    <!-- finding -->
+                                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                                        <TextBlock Text="{Binding Name}" Style="{StaticResource T.Body}" FontSize="14" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding Detail}" Style="{StaticResource T.Muted}" FontSize="12" Margin="0,3,0,0" TextWrapping="Wrap"/>
+
+                                        <!-- remediation -->
+                                        <Border Margin="0,6,0,0" Padding="8,6" Background="{StaticResource B.BG.Panel}"
+                                                BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1"
+                                                Visibility="{Binding Fix, Converter={x:Static vm:StringNotEmptyToVisibility.Instance}}">
+                                            <TextBlock Text="{Binding Fix}" Style="{StaticResource T.Mono}" FontSize="11"
+                                                       Foreground="{StaticResource B.TextDim}" TextWrapping="Wrap"/>
+                                        </Border>
+
+                                        <!-- accepted-risk rationale -->
+                                        <TextBlock Margin="0,6,0,0" FontSize="11" TextWrapping="Wrap"
+                                                   Style="{StaticResource T.Muted}"
+                                                   Foreground="{StaticResource B.Ember}"
+                                                   Visibility="{Binding AcceptedNote, Converter={x:Static vm:StringNotEmptyToVisibility.Instance}}">
+                                            <Run Text="ACCEPTED · "/><Run Text="{Binding AcceptedNote, Mode=OneWay}"/>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding Id}" Style="{StaticResource T.Mono}" FontSize="10"
+                                                   Foreground="{StaticResource B.TextMuted}" Margin="0,4,0,0"/>
+                                    </StackPanel>
+
+                                    <!-- actions -->
+                                    <StackPanel Grid.Column="2" VerticalAlignment="Top">
+                                        <Button Content="COPY FIX" Style="{StaticResource Btn.Pixel}" MinWidth="96"
+                                                Command="{Binding DataContext.CopyFixCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                CommandParameter="{Binding}"
+                                                Visibility="{Binding Fix, Converter={x:Static vm:StringNotEmptyToVisibility.Instance}}"/>
+                                        <Button Content="ACCEPT" Style="{StaticResource Btn.Pixel}" MinWidth="96" Margin="0,6,0,0"
+                                                ToolTip="Record that this state is intended, with a reason"
+                                                Command="{Binding DataContext.AcceptRiskCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                CommandParameter="{Binding}"
+                                                Visibility="{Binding IsOutstanding, Converter={x:Static vm:BoolToVisibility.Instance}}"/>
+                                        <Button Content="UN-ACCEPT" Style="{StaticResource Btn.Pixel}" MinWidth="96" Margin="0,6,0,0"
+                                                Command="{Binding DataContext.UnacceptRiskCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                CommandParameter="{Binding}"
+                                                Visibility="{Binding AcceptedRisk, Converter={x:Static vm:BoolToVisibility.Instance}}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </TabItem>
+        </TabControl>
+    </Grid>
 </UserControl>

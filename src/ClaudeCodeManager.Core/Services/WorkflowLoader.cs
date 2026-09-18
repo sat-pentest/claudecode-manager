@@ -152,7 +152,13 @@ public static class WorkflowLoader
                     pos += obj.Length;
                 }
                 if (entry.Phases.Count > 0)
+                {
                     entry.Phases[entry.Phases.Count - 1].IsLast = true;
+                    // Stamped on every phase rather than looked up through the ItemsControl at
+                    // bind time: the sweep converter needs it per item, and a plain property is
+                    // the one form that survives both the pipeline view and design-time.
+                    foreach (var ph in entry.Phases) ph.Count = entry.Phases.Count;
+                }
             }
         }
     }

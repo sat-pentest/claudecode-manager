@@ -58,6 +58,77 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- ─── ORCHESTRATION FLOW DIAGRAM ────────────────────────────────
+             Flows are drawn as a left→right node graph: ENTRY ▸ step ▸ step.
+             A node that is reachable holds full opacity with a rust border and a live
+             packet running down its outgoing rail; an unreachable one recedes and its
+             rail goes dashed-red with an ✕ — so a PARTIAL flow shows *which* hop is
+             broken without having to read the step list. -->
+
+        <!-- The node outline is a Rectangle rather than Border.BorderBrush because a node the
+             request can never reach is drawn dashed, and a Border cannot dash its own edge. -->
+        <Style x:Key="FlowNodeOutline" TargetType="Rectangle">
+            <Setter Property="RadiusX" Value="2"/>
+            <Setter Property="RadiusY" Value="2"/>
+            <Setter Property="StrokeThickness" Value="1"/>
+            <Setter Property="Stroke">
+                <Setter.Value>
+                    <MultiBinding Converter="{x:Static vm:FlowChainConverter.NodeStroke}">
+                        <Binding Path="Owner.ChainProgress"/>
+                        <Binding Path="Owner.ChainAlpha"/>
+                        <Binding Path="Index"/>
+                        <Binding Path="HopCount"/>
+                        <Binding Path="IsReachable"/>
+                    </MultiBinding>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="StrokeDashArray">
+                <Setter.Value>
+                    <MultiBinding Converter="{x:Static vm:FlowChainConverter.NodeDash}">
+                        <Binding Path="Owner.ChainProgress"/>
+                        <Binding Path="Owner.ChainAlpha"/>
+                        <Binding Path="Index"/>
+                        <Binding Path="HopCount"/>
+                        <Binding Path="IsReachable"/>
+                    </MultiBinding>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <MultiBinding Converter="{x:Static vm:FlowChainConverter.NodeGlow}">
+                        <Binding Path="Owner.ChainProgress"/>
+                        <Binding Path="Owner.ChainAlpha"/>
+                        <Binding Path="Index"/>
+                        <Binding Path="HopCount"/>
+                        <Binding Path="IsReachable"/>
+                    </MultiBinding>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Kind pill — same colour mapping the flow list used, so SKILL/AGENT/MCP stay
+             recognisable now that they sit inside a node instead of a row. -->
+        <Style x:Key="FlowKindPill" TargetType="Border">
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="MinWidth" Value="52"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="Background" Value="{StaticResource B.RustDim}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Kind}" Value="SKILL">
+                    <Setter Property="Background" Value="{StaticResource B.Ember}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Kind}" Value="AGENT">
+                    <Setter Property="Background" Value="{StaticResource B.Success}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Kind}" Value="MCP">
+                    <Setter Property="Background" Value="{StaticResource B.Warn}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Kind}" Value="EXTERNAL">
+                    <Setter Property="Background" Value="{StaticResource B.TextMuted}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24" Background="{StaticResource B.BG.Primary}">
@@ -72,6 +143,517 @@
                 </StackPanel>
                 <Button HorizontalAlignment="Right" Style="{StaticResource Btn.Pixel}" Content="REFRESH" Command="{Binding RefreshCommand}"/>
             </Grid>
+
+            <!-- ═══════════════════════════════════════════════════════
+                 ORCHESTRATION FLOWS — first, because this is the view of the
+                 harness people actually come here to read; the layer inventories
+                 below are the parts list behind it.
+
+                 Drawn as a tree: one HARNESS root, a spine, and a branch per flow that
+                 runs left→right through its hops. Clicking a branch runs a request down
+                 it; every other branch rests. Only one animates at a time so the eye has
+                 somewhere to land.
+                 ═══════════════════════════════════════════════════════ -->
+            <Border BorderBrush="{StaticResource B.Border}" BorderThickness="1" Background="{StaticResource B.BG.Panel}" Padding="20,16" Margin="0,0,0,14">
+                <StackPanel>
+                    <!-- Header row: SectionHeader Button (fills width, toggles collapse)
+                         + floating EDIT FLOWS Button layered on top (higher ZIndex so click hits it, not the toggle). -->
+                    <Grid Margin="0,0,0,12">
+                        <Button Style="{StaticResource SectionHeader}" Command="{Binding ToggleFlowsCommand}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="▧ ORCHESTRATION FLOWS" Style="{StaticResource T.Pixel.Section}" FontSize="10" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"/>
+                                    <TextBlock Text=" ▌ 브랜치를 클릭하면 해당 플로우가 실행됩니다" Style="{StaticResource T.Muted}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="10" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" Margin="0,0,4,0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="▼"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsFlowsCollapsed}" Value="True">
+                                                    <Setter Property="Text" Value="▶"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                        </Button>
+                        <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal"
+                                    Margin="0,0,26,0" Panel.ZIndex="1">
+                            <ToggleButton Style="{StaticResource Btn.PixelToggle}"
+                                          Content="ALL LIT"
+                                          Margin="0,0,8,0"
+                                          IsChecked="{Binding IsStaticHighlight, Mode=TwoWay}"
+                                          ToolTip="모든 플로우를 밝게 고정합니다. 다시 누르면 애니메이션으로 돌아갑니다."/>
+                            <Button Style="{StaticResource Btn.Pixel}"
+                                    Content="EDIT FLOWS"
+                                    Command="{Binding EditFlowsCommand}"
+                                    ToolTip="Open ~/.claude/harness-flows.json in an in-app editor"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- ═══ TREE STAGE ═══ -->
+                    <Border BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1" Padding="16,13,16,15"
+                            Visibility="{Binding IsFlowsCollapsed, Converter={x:Static vm:InverseBoolToVisibility.Instance}}">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="{StaticResource C.BG.Sunken}" Offset="0"/>
+                                <GradientStop Color="{StaticResource C.BG.Primary}" Offset="0.5"/>
+                                <GradientStop Color="{StaticResource C.BG.Sunken}" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <StackPanel>
+                            <TextBlock Text="EXECUTION TREE" FontFamily="{StaticResource Font.Pixel}" FontSize="7"
+                                       Foreground="{StaticResource B.TextDim}" Margin="0,0,0,12"/>
+
+                            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>   <!-- root -->
+                                        <ColumnDefinition Width="44"/>     <!-- spine -->
+                                        <ColumnDefinition Width="Auto"/>   <!-- branches -->
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- ─── ROOT ─── the harness itself; every branch hangs off it -->
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Grid Width="150" MinHeight="72">
+                                            <Rectangle RadiusX="2" RadiusY="2" Fill="{StaticResource B.BG.Panel}"/>
+                                            <Rectangle RadiusX="2" RadiusY="2" StrokeThickness="1" Stroke="{StaticResource B.Rust}"
+                                                       Effect="{StaticResource Glow.Soft}"/>
+                                            <StackPanel Margin="12,10" VerticalAlignment="Center">
+                                                <Border Padding="6,3" MinWidth="52" HorizontalAlignment="Left" Background="{StaticResource B.Rust}">
+                                                    <TextBlock Text="ROOT" FontFamily="{StaticResource Font.Pixel}" FontSize="7" FontWeight="Bold"
+                                                               Foreground="{StaticResource B.BG.Primary}" HorizontalAlignment="Center"/>
+                                                </Border>
+                                                <TextBlock Text="HARNESS" FontFamily="{StaticResource Font.Mono}" FontSize="14" FontWeight="SemiBold"
+                                                           Foreground="{StaticResource B.Text}" Margin="0,8,0,0"/>
+                                                <TextBlock Style="{StaticResource T.Muted}" FontSize="11" Margin="0,2,0,0">
+                                                    <Run Text="{Binding Flows.Count, Mode=OneWay}"/><Run Text=" flows"/>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </Grid>
+                                        <!-- stub out to the spine, which starts at column 1's left edge -->
+                                        <Border Height="1" Width="14" VerticalAlignment="Center" Background="{StaticResource B.RustDim}"/>
+                                    </StackPanel>
+
+                                    <!-- ─── BRANCHES ─── one row per flow; the spine lives in each row so it
+                                         stretches with that row's height and stays continuous down the tree. -->
+                                    <ItemsControl Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding Flows}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="44"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <!-- Spine cell. The elbow has to land on the rail band, 48px below the
+                                                         row top. An earlier version used a fixed 48px Grid row for that, but
+                                                         a fixed row combined with RowSpan and a star row is not honoured when
+                                                         the tree is measured with unconstrained height (inside the scroll
+                                                         viewer) — the band stretched and every elbow drifted 30px low, worse
+                                                         on the tall fan-out row. Positioning off the top by margin instead
+                                                         makes the 48 exact regardless of how tall the row grows. -->
+                                                    <Grid Grid.Column="0">
+                                                        <!-- spine above the elbow (absent on the first branch) -->
+                                                        <Border x:Name="SpineTop" Width="1" Height="48" HorizontalAlignment="Left" VerticalAlignment="Top"
+                                                                Background="{StaticResource B.RustDim}"
+                                                                Visibility="{Binding IsFirstInTree, Converter={x:Static vm:InverseBoolToVisibility.Instance}}"/>
+                                                        <!-- spine below the elbow, down to the row bottom so it meets the next row (absent on the last) -->
+                                                        <Border x:Name="SpineBottom" Width="1" Margin="0,48,0,0" HorizontalAlignment="Left" VerticalAlignment="Stretch"
+                                                                Background="{StaticResource B.RustDim}"
+                                                                Visibility="{Binding IsLastInTree, Converter={x:Static vm:InverseBoolToVisibility.Instance}}"/>
+                                                        <!-- elbow out to the branch node -->
+                                                        <Border x:Name="Elbow" Height="1" Margin="0,48,0,0" VerticalAlignment="Top" HorizontalAlignment="Stretch"
+                                                                Background="{StaticResource B.RustDim}"/>
+                                                    </Grid>
+
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,14">
+
+                                                        <!-- ─── BRANCH NODE ─── clickable; also the flow's entry point -->
+                                                        <Button Command="{Binding DataContext.SelectFlowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"
+                                                                Cursor="Hand" ToolTip="{Binding Description}" VerticalAlignment="Top">
+                                                            <Button.Template>
+                                                                <ControlTemplate TargetType="Button">
+                                                                    <Grid Width="214" MinHeight="96">
+                                                                        <Rectangle x:Name="Fill" RadiusX="2" RadiusY="2" Fill="{StaticResource B.BG.Panel}"/>
+                                                                        <Rectangle x:Name="Outline" RadiusX="2" RadiusY="2" StrokeThickness="1"
+                                                                                   Stroke="{StaticResource B.BorderSoft}"/>
+                                                                        <StackPanel Margin="12,10,12,10">
+                                                                            <Grid>
+                                                                                <Grid.ColumnDefinitions>
+                                                                                    <ColumnDefinition Width="Auto"/>
+                                                                                    <ColumnDefinition Width="*"/>
+                                                                                </Grid.ColumnDefinitions>
+                                                                                <!-- Selection reads as a state pill in the same slot the kind pill occupies on
+                                                                                     step nodes, so the two node types line up. A floating accent bar was tried
+                                                                                     first and read as a stray mark against the outline. -->
+                                                                                <Border x:Name="RunPill" Grid.Column="0" Padding="6,3" VerticalAlignment="Center"
+                                                                                        Background="{StaticResource B.BorderSoft}">
+                                                                                    <StackPanel Orientation="Horizontal">
+                                                                                        <TextBlock x:Name="RunGlyph" Text="▶" FontFamily="{StaticResource Font.Mono}" FontSize="8"
+                                                                                                   Foreground="{StaticResource B.TextDim}" VerticalAlignment="Center"/>
+                                                                                        <TextBlock x:Name="RunLabel" Text="RUNNING" FontFamily="{StaticResource Font.Pixel}" FontSize="7"
+                                                                                                   Foreground="{StaticResource B.BG.Primary}" VerticalAlignment="Center"
+                                                                                                   Margin="6,0,0,0" Visibility="Collapsed"/>
+                                                                                    </StackPanel>
+                                                                                </Border>
+                                                                                <Border Grid.Column="1" Padding="7,3" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                                                    <Border.Style>
+                                                                                        <Style TargetType="Border">
+                                                                                            <Setter Property="Background" Value="{StaticResource B.RustDim}"/>
+                                                                                            <Style.Triggers>
+                                                                                                <DataTrigger Binding="{Binding AllStepsActive}" Value="True">
+                                                                                                    <Setter Property="Background" Value="{StaticResource B.Success}"/>
+                                                                                                </DataTrigger>
+                                                                                            </Style.Triggers>
+                                                                                        </Style>
+                                                                                    </Border.Style>
+                                                                                    <TextBlock Text="{Binding StateBadge}" FontFamily="{StaticResource Font.Pixel}" FontSize="7"
+                                                                                               Foreground="{StaticResource B.BG.Primary}"/>
+                                                                                </Border>
+                                                                            </Grid>
+                                                                            <TextBlock Text="{Binding Name}" FontFamily="{StaticResource Font.Mono}" FontSize="13" FontWeight="SemiBold"
+                                                                                       Foreground="{StaticResource B.Text}" Margin="0,7,0,0" TextTrimming="CharacterEllipsis"/>
+                                                                            <TextBlock Text="{Binding TriggerHint}" Style="{StaticResource T.Muted}" FontSize="11"
+                                                                                       TextWrapping="Wrap" MaxHeight="46" Margin="0,3,0,0"/>
+                                                                        </StackPanel>
+                                                                    </Grid>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                            <Setter TargetName="Fill" Property="Fill" Value="{StaticResource B.BG.Hover}"/>
+                                                                            <Setter TargetName="Outline" Property="Stroke" Value="{StaticResource B.Rust}"/>
+                                                                        </Trigger>
+                                                                        <!-- Brightness: on for the picked branch, and for every branch in lit mode. -->
+                                                                        <DataTrigger Binding="{Binding IsLit}" Value="True">
+                                                                            <Setter TargetName="Outline" Property="Stroke" Value="{StaticResource B.Ember}"/>
+                                                                            <Setter TargetName="Outline" Property="Effect" Value="{StaticResource Glow.Soft}"/>
+                                                                            <Setter TargetName="Fill" Property="Fill" Value="{StaticResource B.BG.Hover}"/>
+                                                                        </DataTrigger>
+                                                                        <!-- Which branch is picked — still worth marking in lit mode, where the
+                                                                             RUNNING pill below would be untrue because nothing is walking. -->
+                                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                            <Setter TargetName="RunGlyph" Property="Foreground" Value="{StaticResource B.Ember}"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                                                            <Setter TargetName="RunPill" Property="Background" Value="{StaticResource B.Ember}"/>
+                                                                            <Setter TargetName="RunGlyph" Property="Foreground" Value="{StaticResource B.BG.Primary}"/>
+                                                                            <Setter TargetName="RunLabel" Property="Visibility" Value="Visible"/>
+                                                                        </DataTrigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </Button.Template>
+                                                        </Button>
+
+                                                        <!-- Hop 0: branch node → first step. Index -1 puts it at the head of the chain. -->
+                                                        <Grid Width="92" MinHeight="96" VerticalAlignment="Top">
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="38"/>
+                                                                <RowDefinition Height="20"/>
+                                                                <RowDefinition Height="*"/>
+                                                            </Grid.RowDefinitions>
+                                                            <TextBlock Grid.Row="0" Text="fires" FontFamily="{StaticResource Font.Pixel}" FontSize="7"
+                                                                       Foreground="{StaticResource B.TextMuted}" TextAlignment="Center" TextWrapping="Wrap"
+                                                                       HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="2,0,2,5"/>
+                                                            <Canvas Grid.Row="1" Width="92" Height="10" HorizontalAlignment="Left" VerticalAlignment="Center" SnapsToDevicePixels="True" UseLayoutRounding="True">
+                                                                <Line Canvas.Left="0" Canvas.Top="5" X1="0" X2="86" Y1="0" Y2="0"
+                                                                      StrokeThickness="1" Stroke="{StaticResource B.RustDim}" Opacity="0.35"/>
+                                                                <Line Canvas.Left="0" Canvas.Top="5" X1="0" Y1="0" Y2="0" StrokeThickness="2"
+                                                                      StrokeEndLineCap="Flat" Effect="{StaticResource Glow.Soft}">
+                                                                    <Line.X2>
+                                                                        <MultiBinding Converter="{x:Static vm:FlowChainConverter.RailLength}">
+                                                                            <Binding Path="ChainProgress"/>
+                                                                            <Binding Path="ChainAlpha"/>
+                                                                            <Binding Path="EntryIndex"/>
+                                                                            <Binding Path="HopCount"/>
+                                                                            <Binding Path="FirstStepReachable"/>
+                                                                        </MultiBinding>
+                                                                    </Line.X2>
+                                                                    <Line.Stroke>
+                                                                        <MultiBinding Converter="{x:Static vm:FlowChainConverter.RailBrush}">
+                                                                            <Binding Path="ChainProgress"/>
+                                                                            <Binding Path="ChainAlpha"/>
+                                                                            <Binding Path="EntryIndex"/>
+                                                                            <Binding Path="HopCount"/>
+                                                                            <Binding Path="FirstStepReachable"/>
+                                                                        </MultiBinding>
+                                                                    </Line.Stroke>
+                                                                </Line>
+                                                                <Path Canvas.Left="86" Canvas.Top="1" Data="M0,0 L6,4 L0,8 Z">
+                                                                    <Path.Fill>
+                                                                        <MultiBinding Converter="{x:Static vm:FlowChainConverter.ArrowBrush}">
+                                                                            <Binding Path="ChainProgress"/>
+                                                                            <Binding Path="ChainAlpha"/>
+                                                                            <Binding Path="EntryIndex"/>
+                                                                            <Binding Path="HopCount"/>
+                                                                            <Binding Path="FirstStepReachable"/>
+                                                                        </MultiBinding>
+                                                                    </Path.Fill>
+                                                                </Path>
+                                                                <Border Width="16" Height="4" Canvas.Top="3" Effect="{StaticResource Glow.Ember}">
+                                                                    <Border.Background>
+                                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                                            <GradientStop Color="#00F26A2E" Offset="0"/>
+                                                                            <GradientStop Color="{StaticResource C.Ember}" Offset="0.75"/>
+                                                                            <GradientStop Color="{StaticResource C.Text}" Offset="1"/>
+                                                                        </LinearGradientBrush>
+                                                                    </Border.Background>
+                                                                    <Border.RenderTransform>
+                                                                        <TranslateTransform>
+                                                                            <TranslateTransform.X>
+                                                                                <MultiBinding Converter="{x:Static vm:FlowChainConverter.PacketLeft}">
+                                                                                    <Binding Path="ChainProgress"/>
+                                                                                    <Binding Path="ChainAlpha"/>
+                                                                                    <Binding Path="EntryIndex"/>
+                                                                                    <Binding Path="HopCount"/>
+                                                                                    <Binding Path="FirstStepReachable"/>
+                                                                                </MultiBinding>
+                                                                            </TranslateTransform.X>
+                                                                        </TranslateTransform>
+                                                                    </Border.RenderTransform>
+                                                                    <Border.Opacity>
+                                                                        <MultiBinding Converter="{x:Static vm:FlowChainConverter.PacketOpacity}">
+                                                                            <Binding Path="ChainProgress"/>
+                                                                            <Binding Path="ChainAlpha"/>
+                                                                            <Binding Path="EntryIndex"/>
+                                                                            <Binding Path="HopCount"/>
+                                                                            <Binding Path="FirstStepReachable"/>
+                                                                        </MultiBinding>
+                                                                    </Border.Opacity>
+                                                                    <Border.Visibility>
+                                                                        <MultiBinding Converter="{x:Static vm:FlowChainConverter.PacketVisibility}">
+                                                                            <Binding Path="ChainProgress"/>
+                                                                            <Binding Path="ChainAlpha"/>
+                                                                            <Binding Path="EntryIndex"/>
+                                                                            <Binding Path="HopCount"/>
+                                                                            <Binding Path="FirstStepReachable"/>
+                                                                        </MultiBinding>
+                                                                    </Border.Visibility>
+                                                                </Border>
+                                                                <TextBlock Canvas.Left="39" Canvas.Top="-4" Text="✕" FontSize="11" FontWeight="Bold"
+                                                                           Foreground="{StaticResource B.Danger}">
+                                                                    <TextBlock.Visibility>
+                                                                        <MultiBinding Converter="{x:Static vm:FlowChainConverter.BreakVisibility}">
+                                                                            <Binding Path="ChainProgress"/>
+                                                                            <Binding Path="ChainAlpha"/>
+                                                                            <Binding Path="EntryIndex"/>
+                                                                            <Binding Path="HopCount"/>
+                                                                            <Binding Path="FirstStepReachable"/>
+                                                                        </MultiBinding>
+                                                                    </TextBlock.Visibility>
+                                                                </TextBlock>
+                                                            </Canvas>
+                                                        </Grid>
+
+                                                        <!-- Step nodes + the rail that leaves each one -->
+                                                        <ItemsControl ItemsSource="{Binding Steps}">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <StackPanel Orientation="Horizontal"/>
+                                                                </ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <StackPanel Orientation="Horizontal">
+
+                                                                        <!-- ─── NODE ─── -->
+                                                                        <Grid Width="198" MinHeight="96" VerticalAlignment="Top" ToolTip="{Binding Detail}">
+                                                                            <Grid.Opacity>
+                                                                                <MultiBinding Converter="{x:Static vm:FlowChainConverter.NodeOpacity}">
+                                                                                    <Binding Path="Owner.ChainProgress"/>
+                                                                                    <Binding Path="Owner.ChainAlpha"/>
+                                                                                    <Binding Path="Index"/>
+                                                                                    <Binding Path="HopCount"/>
+                                                                                    <Binding Path="IsReachable"/>
+                                                                                </MultiBinding>
+                                                                            </Grid.Opacity>
+                                                                            <Rectangle RadiusX="2" RadiusY="2" Fill="{StaticResource B.BG.Panel}"/>
+                                                                            <Rectangle Style="{StaticResource FlowNodeOutline}"/>
+                                                                            <StackPanel Margin="12,10">
+                                                                                <Grid>
+                                                                                    <Grid.ColumnDefinitions>
+                                                                                        <ColumnDefinition Width="Auto"/>
+                                                                                        <ColumnDefinition Width="Auto"/>
+                                                                                        <ColumnDefinition Width="*"/>
+                                                                                    </Grid.ColumnDefinitions>
+                                                                                    <Border Grid.Column="0" Style="{StaticResource FlowKindPill}">
+                                                                                        <TextBlock Text="{Binding Kind}" FontFamily="{StaticResource Font.Pixel}" FontSize="7" FontWeight="Bold"
+                                                                                                   Foreground="{StaticResource B.BG.Primary}" HorizontalAlignment="Center"/>
+                                                                                    </Border>
+                                                                                    <TextBlock Grid.Column="1" Text="{Binding ParallelBadge}" FontFamily="{StaticResource Font.Pixel}" FontSize="7"
+                                                                                               Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                                                                    <Ellipse Grid.Column="2" Width="8" Height="8" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                                                             Effect="{StaticResource Glow.Soft}" svc:PulseBehavior.IsActive="{Binding IsActive}">
+                                                                                        <Ellipse.Style>
+                                                                                            <Style TargetType="Ellipse">
+                                                                                                <Setter Property="Fill" Value="{StaticResource B.TextDim}"/>
+                                                                                                <Style.Triggers>
+                                                                                                    <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                                                                        <Setter Property="Fill" Value="{StaticResource B.Success}"/>
+                                                                                                    </DataTrigger>
+                                                                                                </Style.Triggers>
+                                                                                            </Style>
+                                                                                        </Ellipse.Style>
+                                                                                    </Ellipse>
+                                                                                </Grid>
+                                                                                <TextBlock Text="{Binding Name}" FontFamily="{StaticResource Font.Mono}" FontSize="13" FontWeight="SemiBold"
+                                                                                           Foreground="{StaticResource B.Text}" Margin="0,8,0,0" TextTrimming="CharacterEllipsis"/>
+                                                                                <TextBlock Text="{Binding Detail}" Style="{StaticResource T.Muted}" FontSize="11" TextWrapping="Wrap"
+                                                                                           MaxHeight="48" Margin="0,3,0,0"/>
+
+                                                                                <!-- Fan-out worker stack — copies light one after another as they're dispatched -->
+                                                                                <ItemsControl ItemsSource="{Binding Instances}" Margin="0,9,0,0"
+                                                                                              Visibility="{Binding IsFanOut, Converter={x:Static vm:BoolToVisibility.Instance}}">
+                                                                                    <ItemsControl.ItemTemplate>
+                                                                                        <DataTemplate>
+                                                                                            <Border CornerRadius="2" Padding="7,4" Margin="0,0,0,4"
+                                                                                                    Background="{StaticResource B.BG.Sunken}" BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1">
+                                                                                                <Border.Opacity>
+                                                                                                    <MultiBinding Converter="{x:Static vm:FlowChainConverter.WorkerOpacity}">
+                                                                                                        <Binding Path="Owner.Owner.ChainProgress"/>
+                                                                                                        <Binding Path="Owner.Owner.ChainAlpha"/>
+                                                                                                        <Binding Path="Owner.Index"/>
+                                                                                                        <Binding Path="Owner.HopCount"/>
+                                                                                                        <Binding Path="Owner.IsReachable"/>
+                                                                                                        <Binding Path="Index"/>
+                                                                                                    </MultiBinding>
+                                                                                                </Border.Opacity>
+                                                                                                <StackPanel Orientation="Horizontal">
+                                                                                                    <Rectangle Width="5" Height="5" Margin="0,0,7,0" VerticalAlignment="Center" Fill="{StaticResource B.Success}"/>
+                                                                                                    <TextBlock Text="{Binding Label}" FontFamily="{StaticResource Font.Pixel}" FontSize="7"
+                                                                                                               Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center"/>
+                                                                                                    <TextBlock Text="worker" Style="{StaticResource T.Muted}" FontSize="10" VerticalAlignment="Center" Margin="7,0,0,0"/>
+                                                                                                </StackPanel>
+                                                                                            </Border>
+                                                                                        </DataTemplate>
+                                                                                    </ItemsControl.ItemTemplate>
+                                                                                </ItemsControl>
+                                                                            </StackPanel>
+                                                                        </Grid>
+
+                                                                        <!-- ─── CONNECTOR ─── hidden on the last step (empty Arrow).
+                                                                             Bound with NextReachable: a rail's fate belongs to the node
+                                                                             it leads to, not the one it leaves. -->
+                                                                        <Grid Width="92" MinHeight="96" VerticalAlignment="Top"
+                                                                              Visibility="{Binding Arrow, Converter={x:Static vm:StringNotEmptyToVisibility.Instance}}">
+                                                                            <Grid.RowDefinitions>
+                                                                                <RowDefinition Height="38"/>
+                                                                                <RowDefinition Height="20"/>
+                                                                                <RowDefinition Height="*"/>
+                                                                            </Grid.RowDefinitions>
+                                                                            <TextBlock Grid.Row="0" Text="{Binding ArrowLabel}" FontFamily="{StaticResource Font.Pixel}" FontSize="7"
+                                                                                       Foreground="{StaticResource B.TextMuted}" TextAlignment="Center" TextWrapping="Wrap"
+                                                                                       HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="2,0,2,5"/>
+                                                                            <Canvas Grid.Row="1" Width="92" Height="10" HorizontalAlignment="Left" VerticalAlignment="Center" SnapsToDevicePixels="True" UseLayoutRounding="True">
+                                                                                <Line Canvas.Left="0" Canvas.Top="5" X1="0" X2="86" Y1="0" Y2="0"
+                                                                                      StrokeThickness="1" Stroke="{StaticResource B.RustDim}" Opacity="0.35"/>
+                                                                                <Line Canvas.Left="0" Canvas.Top="5" X1="0" Y1="0" Y2="0" StrokeThickness="2"
+                                                                                      StrokeEndLineCap="Flat" Effect="{StaticResource Glow.Soft}">
+                                                                                    <Line.X2>
+                                                                                        <MultiBinding Converter="{x:Static vm:FlowChainConverter.RailLength}">
+                                                                                            <Binding Path="Owner.ChainProgress"/>
+                                                                                            <Binding Path="Owner.ChainAlpha"/>
+                                                                                            <Binding Path="Index"/>
+                                                                                            <Binding Path="HopCount"/>
+                                                                                            <Binding Path="NextReachable"/>
+                                                                                        </MultiBinding>
+                                                                                    </Line.X2>
+                                                                                    <Line.Stroke>
+                                                                                        <MultiBinding Converter="{x:Static vm:FlowChainConverter.RailBrush}">
+                                                                                            <Binding Path="Owner.ChainProgress"/>
+                                                                                            <Binding Path="Owner.ChainAlpha"/>
+                                                                                            <Binding Path="Index"/>
+                                                                                            <Binding Path="HopCount"/>
+                                                                                            <Binding Path="NextReachable"/>
+                                                                                        </MultiBinding>
+                                                                                    </Line.Stroke>
+                                                                                </Line>
+                                                                                <Path Canvas.Left="86" Canvas.Top="1" Data="M0,0 L6,4 L0,8 Z">
+                                                                                    <Path.Fill>
+                                                                                        <MultiBinding Converter="{x:Static vm:FlowChainConverter.ArrowBrush}">
+                                                                                            <Binding Path="Owner.ChainProgress"/>
+                                                                                            <Binding Path="Owner.ChainAlpha"/>
+                                                                                            <Binding Path="Index"/>
+                                                                                            <Binding Path="HopCount"/>
+                                                                                            <Binding Path="NextReachable"/>
+                                                                                        </MultiBinding>
+                                                                                    </Path.Fill>
+                                                                                </Path>
+                                                                                <Border Width="16" Height="4" Canvas.Top="3" Effect="{StaticResource Glow.Ember}">
+                                                                                    <Border.Background>
+                                                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                                                            <GradientStop Color="#00F26A2E" Offset="0"/>
+                                                                                            <GradientStop Color="{StaticResource C.Ember}" Offset="0.75"/>
+                                                                                            <GradientStop Color="{StaticResource C.Text}" Offset="1"/>
+                                                                                        </LinearGradientBrush>
+                                                                                    </Border.Background>
+                                                                                    <Border.RenderTransform>
+                                                                                        <TranslateTransform>
+                                                                                            <TranslateTransform.X>
+                                                                                                <MultiBinding Converter="{x:Static vm:FlowChainConverter.PacketLeft}">
+                                                                                                    <Binding Path="Owner.ChainProgress"/>
+                                                                                                    <Binding Path="Owner.ChainAlpha"/>
+                                                                                                    <Binding Path="Index"/>
+                                                                                                    <Binding Path="HopCount"/>
+                                                                                                    <Binding Path="NextReachable"/>
+                                                                                                </MultiBinding>
+                                                                                            </TranslateTransform.X>
+                                                                                        </TranslateTransform>
+                                                                                    </Border.RenderTransform>
+                                                                                    <Border.Opacity>
+                                                                                        <MultiBinding Converter="{x:Static vm:FlowChainConverter.PacketOpacity}">
+                                                                                            <Binding Path="Owner.ChainProgress"/>
+                                                                                            <Binding Path="Owner.ChainAlpha"/>
+                                                                                            <Binding Path="Index"/>
+                                                                                            <Binding Path="HopCount"/>
+                                                                                            <Binding Path="NextReachable"/>
+                                                                                        </MultiBinding>
+                                                                                    </Border.Opacity>
+                                                                                    <Border.Visibility>
+                                                                                        <MultiBinding Converter="{x:Static vm:FlowChainConverter.PacketVisibility}">
+                                                                                            <Binding Path="Owner.ChainProgress"/>
+                                                                                            <Binding Path="Owner.ChainAlpha"/>
+                                                                                            <Binding Path="Index"/>
+                                                                                            <Binding Path="HopCount"/>
+                                                                                            <Binding Path="NextReachable"/>
+                                                                                        </MultiBinding>
+                                                                                    </Border.Visibility>
+                                                                                </Border>
+                                                                                <!-- Where the request runs out of road on a dead hop -->
+                                                                                <TextBlock Canvas.Left="39" Canvas.Top="-4" Text="✕" FontSize="11" FontWeight="Bold"
+                                                                                           Foreground="{StaticResource B.Danger}">
+                                                                                    <TextBlock.Visibility>
+                                                                                        <MultiBinding Converter="{x:Static vm:FlowChainConverter.BreakVisibility}">
+                                                                                            <Binding Path="Owner.ChainProgress"/>
+                                                                                            <Binding Path="Owner.ChainAlpha"/>
+                                                                                            <Binding Path="Index"/>
+                                                                                            <Binding Path="HopCount"/>
+                                                                                            <Binding Path="NextReachable"/>
+                                                                                        </MultiBinding>
+                                                                                    </TextBlock.Visibility>
+                                                                                </TextBlock>
+                                                                            </Canvas>
+                                                                        </Grid>
+                                                                    </StackPanel>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Grid>
+                            </ScrollViewer>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
 
             <!-- ═══════════════════════════════════════════════════════
                  LAYER 1 · RUNTIME
@@ -386,166 +968,6 @@
                                         <TextBlock Text="{Binding Subtitle}" Style="{StaticResource T.Muted}" FontSize="11" Margin="15,3,0,0"/>
                                     </StackPanel>
                                 </Button>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-            </Border>
-
-            <!-- ═══════════════════════════════════════════════════════
-                 ORCHESTRATION FLOWS
-                 ═══════════════════════════════════════════════════════ -->
-            <Border BorderBrush="{StaticResource B.Border}" BorderThickness="1" Background="{StaticResource B.BG.Panel}" Padding="20,16">
-                <StackPanel>
-                    <!-- Header row: SectionHeader Button (fills width, toggles collapse)
-                         + floating EDIT FLOWS Button layered on top (higher ZIndex so click hits it, not the toggle). -->
-                    <Grid Margin="0,0,0,12">
-                        <Button Style="{StaticResource SectionHeader}" Command="{Binding ToggleFlowsCommand}">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="▧ ORCHESTRATION FLOWS" Style="{StaticResource T.Pixel.Section}" FontSize="10" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"/>
-                                    <TextBlock Text=" ▌ 작업 유형별 하네스 · 트리거·구성요소·상태" Style="{StaticResource T.Muted}" VerticalAlignment="Center" Margin="8,0,0,0"/>
-                                </StackPanel>
-                                <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="10" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" Margin="0,0,4,0">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Text" Value="▼"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsFlowsCollapsed}" Value="True">
-                                                    <Setter Property="Text" Value="▶"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </Grid>
-                        </Button>
-                        <!-- EDIT FLOWS button — sits above the section-header button, right of the label, left of chevron.
-                             Panel.ZIndex ensures its clicks aren't intercepted by the outer toggle. -->
-                        <Button HorizontalAlignment="Right" VerticalAlignment="Center"
-                                Margin="0,0,26,0"
-                                Panel.ZIndex="1"
-                                Style="{StaticResource Btn.Pixel}"
-                                Content="EDIT FLOWS"
-                                Command="{Binding EditFlowsCommand}"
-                                ToolTip="Open ~/.claude/harness-flows.json in an in-app editor"/>
-                    </Grid>
-
-                    <ItemsControl ItemsSource="{Binding Flows}"
-                                  Visibility="{Binding IsFlowsCollapsed, Converter={x:Static vm:InverseBoolToVisibility.Instance}}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1" Padding="16,14" Margin="0,0,0,12" Background="{StaticResource B.BG.Sunken}">
-                                    <StackPanel>
-                                        <!-- Flow header -->
-                                        <Grid Margin="0,0,0,4">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="▸" Foreground="{StaticResource B.Ember}" FontFamily="{StaticResource Font.CRT}" FontSize="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                                    <TextBlock Text="{Binding Name}" FontFamily="{StaticResource Font.Mono}" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource B.Text}"/>
-                                                </StackPanel>
-                                                <TextBlock Text="{Binding Description}" Style="{StaticResource T.Muted}" FontSize="12" Margin="30,4,0,0" TextWrapping="Wrap"/>
-                                            </StackPanel>
-                                            <Border Grid.Column="1" Padding="8,3" VerticalAlignment="Top">
-                                                <Border.Style>
-                                                    <Style TargetType="Border">
-                                                        <Setter Property="Background" Value="{StaticResource B.RustDim}"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding AllStepsActive}" Value="True">
-                                                                <Setter Property="Background" Value="{StaticResource B.Success}"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Border.Style>
-                                                <TextBlock Text="{Binding StateBadge}" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.BG.Primary}" VerticalAlignment="Center"/>
-                                            </Border>
-                                        </Grid>
-
-                                        <!-- Trigger row (visually separated from description) -->
-                                        <Border Padding="10,6" Margin="30,4,0,10" Background="{StaticResource B.BG.Panel}" BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="0,0,0,1">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="◈ TRIGGER" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Rust}" VerticalAlignment="Center"/>
-                                                <TextBlock Text="{Binding TriggerHint}" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" Margin="10,0,0,0" TextTrimming="CharacterEllipsis"/>
-                                            </StackPanel>
-                                        </Border>
-
-                                        <!-- Flow steps chain: each step as its own bordered card + colored kind pill + vertical connector arrow between -->
-                                        <ItemsControl ItemsSource="{Binding Steps}" Margin="24,0,0,0">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <StackPanel>
-                                                        <!-- Step card -->
-                                                        <Border Background="{StaticResource B.BG.Panel}" BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1" Padding="12,9">
-                                                            <Grid>
-                                                                <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition Width="Auto"/>
-                                                                    <ColumnDefinition Width="Auto"/>
-                                                                    <ColumnDefinition Width="Auto"/>
-                                                                    <ColumnDefinition Width="*"/>
-                                                                </Grid.ColumnDefinitions>
-                                                                <!-- Status dot -->
-                                                                <Ellipse Grid.Column="0" Width="9" Height="9" Margin="0,0,12,0" VerticalAlignment="Center" Effect="{StaticResource Glow.Soft}"
-                                                                         svc:PulseBehavior.IsActive="{Binding IsActive}">
-                                                                    <Ellipse.Style>
-                                                                        <Style TargetType="Ellipse">
-                                                                            <Setter Property="Fill" Value="{StaticResource B.TextDim}"/>
-                                                                            <Style.Triggers>
-                                                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                                                    <Setter Property="Fill" Value="{StaticResource B.Success}"/>
-                                                                                </DataTrigger>
-                                                                            </Style.Triggers>
-                                                                        </Style>
-                                                                    </Ellipse.Style>
-                                                                </Ellipse>
-                                                                <!-- Kind pill — colored per Kind -->
-                                                                <Border Grid.Column="1" Padding="8,4" Margin="0,0,14,0" VerticalAlignment="Center" MinWidth="58" HorizontalAlignment="Left">
-                                                                    <Border.Style>
-                                                                        <Style TargetType="Border">
-                                                                            <Setter Property="Background" Value="{StaticResource B.RustDim}"/>
-                                                                            <Style.Triggers>
-                                                                                <DataTrigger Binding="{Binding Kind}" Value="SKILL">
-                                                                                    <Setter Property="Background" Value="{StaticResource B.Ember}"/>
-                                                                                </DataTrigger>
-                                                                                <DataTrigger Binding="{Binding Kind}" Value="AGENT">
-                                                                                    <Setter Property="Background" Value="{StaticResource B.Success}"/>
-                                                                                </DataTrigger>
-                                                                                <DataTrigger Binding="{Binding Kind}" Value="MCP">
-                                                                                    <Setter Property="Background" Value="{StaticResource B.Warn}"/>
-                                                                                </DataTrigger>
-                                                                                <DataTrigger Binding="{Binding Kind}" Value="EXTERNAL">
-                                                                                    <Setter Property="Background" Value="{StaticResource B.TextMuted}"/>
-                                                                                </DataTrigger>
-                                                                            </Style.Triggers>
-                                                                        </Style>
-                                                                    </Border.Style>
-                                                                    <TextBlock Text="{Binding Kind}" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.BG.Primary}" FontWeight="Bold" HorizontalAlignment="Center"/>
-                                                                </Border>
-                                                                <TextBlock Grid.Column="2" Text="{Binding Name}" FontFamily="{StaticResource Font.Mono}" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource B.Text}" VerticalAlignment="Center" Margin="0,0,14,0"/>
-                                                                <TextBlock Grid.Column="3" Text="{Binding Detail}" Style="{StaticResource T.Muted}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                                                            </Grid>
-                                                        </Border>
-
-                                                        <!-- Vertical connector + arrow label (hidden when Arrow is empty = last step) -->
-                                                        <Grid Margin="0,0,0,0" Visibility="{Binding Arrow, Converter={x:Static vm:StringNotEmptyToVisibility.Instance}}">
-                                                            <StackPanel Orientation="Horizontal" Margin="18,0,0,0">
-                                                                <Border Width="2" Height="20" Background="{StaticResource B.RustDim}" VerticalAlignment="Top"/>
-                                                                <TextBlock Text="{Binding Arrow}" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                                                            </StackPanel>
-                                                        </Grid>
-                                                    </StackPanel>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </StackPanel>
-                                </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

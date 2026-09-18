@@ -17,6 +17,9 @@ public sealed class HarnessFlowStepDef
     public string Name { get; set; } = "";
     public string Detail { get; set; } = "";
     public string Arrow { get; set; } = "";
+    /// <summary>How many copies of this step run concurrently. >1 renders the node as a
+    /// fan-out stack (worker #1..#N) in HARNESS instead of a single box. Default 1.</summary>
+    public int Parallel { get; set; } = 1;
 }
 
 public sealed class HarnessFlowDef
@@ -121,6 +124,8 @@ public static class HarnessFlowsLoader
                             Name = s.TryGetProperty("name", out var sn) ? (sn.GetString() ?? "") : "",
                             Detail = s.TryGetProperty("detail", out var sd) ? (sd.GetString() ?? "") : "",
                             Arrow = s.TryGetProperty("arrow", out var sa) ? (sa.GetString() ?? "") : "",
+                            // Absent / non-numeric / <1 all collapse to a single node.
+                            Parallel = s.TryGetProperty("parallel", out var sp) && sp.TryGetInt32(out var pn) && pn > 1 ? pn : 1,
                         });
                     }
                 }

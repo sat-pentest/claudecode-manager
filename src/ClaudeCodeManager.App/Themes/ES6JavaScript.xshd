@@ -67,9 +67,13 @@
         <!-- Line comments -->
         <Span color="Comment" begin="//"/>
 
-        <!-- Block comments -->
+        <!-- Block comments — negative lookbehind prevents match inside path-like patterns.
+             `/*` only opens a comment when preceded by whitespace, line start, or a
+             JS-statement-terminator character. Inside strings/paths (foo/*.js, pages/*)
+             it stays as literal content. Template literals are still handled by the
+             span above which has higher priority. -->
         <Span color="Comment" multiline="true">
-            <Begin>/\*</Begin>
+            <Begin>(?&lt;=^|\s|[;{}(\[,=])/\*</Begin>
             <End>\*/</End>
         </Span>
 

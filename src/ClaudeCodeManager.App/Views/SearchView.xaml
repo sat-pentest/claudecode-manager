@@ -21,8 +21,12 @@
                             <KeyBinding Key="Enter" Command="{Binding RunCommand}"/>
                         </TextBox.InputBindings>
                     </TextBox>
-                    <CheckBox Content="regex" IsChecked="{Binding IsRegex}" Margin="14,0,0,0" VerticalAlignment="Center"/>
-                    <CheckBox Content="case" IsChecked="{Binding CaseSensitive}" Margin="14,0,0,0" VerticalAlignment="Center"/>
+                    <CheckBox Content="ranked" IsChecked="{Binding IsRanked}" Margin="14,0,0,0" VerticalAlignment="Center"
+                              ToolTip="BM25 relevance over whole documents. Supports &quot;exact phrase&quot;, prefix*, +required, -excluded."/>
+                    <CheckBox Content="regex" IsChecked="{Binding IsRegex}" Margin="14,0,0,0" VerticalAlignment="Center"
+                              IsEnabled="{Binding LiteralOptionsEnabled}"/>
+                    <CheckBox Content="case" IsChecked="{Binding CaseSensitive}" Margin="14,0,0,0" VerticalAlignment="Center"
+                              IsEnabled="{Binding LiteralOptionsEnabled}"/>
                     <Button Content="SEARCH" Style="{StaticResource Btn.Pixel.Primary}" Command="{Binding RunCommand}" Margin="16,0,0,0"/>
                 </StackPanel>
                 <TextBlock Grid.Column="1" Text="{Binding Stats}" Style="{StaticResource T.Mono}" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center"/>
@@ -88,6 +92,14 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel>
                             <StackPanel Orientation="Horizontal">
+                                <Border Padding="6,3" Margin="0,0,10,0" VerticalAlignment="Center"
+                                        Background="{StaticResource B.BG.Sunken}"
+                                        BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1"
+                                        Visibility="{Binding IsRanked, Converter={x:Static vm:BoolToVisibility.Instance}}"
+                                        ToolTip="BM25 relevance score">
+                                    <TextBlock Text="{Binding ScoreText}" FontFamily="{StaticResource Font.Pixel}" FontSize="8"
+                                               Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"/>
+                                </Border>
                                 <TextBlock Text="{Binding File}" Style="{StaticResource T.Mono}" FontSize="12" Foreground="{StaticResource B.TextMuted}"/>
                                 <Border Padding="5,3,5,3" Margin="10,0,0,0" VerticalAlignment="Center"
                                         Background="{StaticResource B.RustDim}"

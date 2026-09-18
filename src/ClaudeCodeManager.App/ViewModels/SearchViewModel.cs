@@ -29,6 +29,19 @@ public partial class SearchViewModel : ModuleBase
     [ObservableProperty] private string _query = "";
     [ObservableProperty] private bool _isRegex;
     [ObservableProperty] private bool _caseSensitive;
+
+    /// <summary>
+    /// Rank whole documents by relevance instead of listing every matching line.
+    ///
+    /// Default on: for "where did I write about X" the literal list buries the answer among
+    /// incidental mentions, because every line scores the same. Literal mode stays one click away
+    /// and is still the right tool when the exact string is what matters.
+    /// </summary>
+    [ObservableProperty] private bool _isRanked = true;
+
+    /// <summary>regex and case only mean anything to the literal scan.</summary>
+    public bool LiteralOptionsEnabled => !IsRanked;
+    partial void OnIsRankedChanged(bool value) => OnPropertyChanged(nameof(LiteralOptionsEnabled));
     [ObservableProperty] private string _stats = "";
     public ObservableCollection<SearchHit> Hits { get; } = new();
     [ObservableProperty] private SearchHit? _selected;
@@ -54,17 +67,28 @@ public partial class SearchViewModel : ModuleBase
     {
         _allHits.Clear();
         var sw = Stopwatch.StartNew();
-        int count = 0;
-        foreach (var h in SearchService.Search(Query, IsRegex, CaseSensitive))
+
+        if (IsRanked)
         {
-            _allHits.Add(h);
-            count++;
-            if (count > 2000) break;
+            _allHits.AddRange(RankedSearchService.Search(Query, 300));
         }
+        else
+        {
+            int count = 0;
+            foreach (var h in SearchService.Search(Query, IsRegex, CaseSensitive))
+            {
+                _allHits.Add(h);
+                count++;
+                if (count > 2000) break;
+            }
+        }
+
         sw.Stop();
         RecomputeCounts();
         ApplyFilter();
-        Stats = $"{_allHits.Count} hits in {sw.ElapsedMilliseconds}ms";
+        Stats = IsRanked
+            ? $"{_allHits.Count} docs ranked in {sw.ElapsedMilliseconds}ms"
+            : $"{_allHits.Count} hits in {sw.ElapsedMilliseconds}ms";
         Status = Stats;
     }
 
@@ -84,6 +108,8 @@ public partial class SearchViewModel : ModuleBase
         IEnumerable<SearchHit> src = ActiveFilter == SearchHitCategory.All
             ? _allHits
             : _allHits.Where(h => h.Category == ActiveFilter);
+        // _allHits is already in score order for ranked runs and file order otherwise; filtering
+        // preserves both, so nothing re-sorts here.
         int shown = 0;
         foreach (var h in src)
         {

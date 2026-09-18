@@ -13,7 +13,9 @@ public partial class DiagnosticsView : UserControl
     {
         if (sender is ListBoxItem { DataContext: Diagnostic d } && DataContext is DiagnosticsViewModel vm)
         {
-            vm.OpenFileCommand.Execute(d);
+            // Jump to the owning module and focus the entry (Explorer fallback lives
+            // inside NavigateToFile for paths no module claims).
+            vm.RevealInModuleCommand.Execute(d);
         }
     }
 }

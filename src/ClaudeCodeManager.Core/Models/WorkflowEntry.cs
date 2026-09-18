@@ -16,6 +16,7 @@ public sealed class WorkflowPhase
     public string Detail { get; set; } = "";
     public List<string> Tools { get; set; } = new();  // optional: pills shown under detail
     public bool IsLast { get; set; }             // suppresses the arrow after the final phase
+    public int Count { get; set; }               // total phases — the sweep needs the cycle length
 }
 
 /// <summary>

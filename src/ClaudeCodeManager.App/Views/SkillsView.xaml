@@ -31,6 +31,18 @@
                 <Path Style="{StaticResource Icon.Module}" Data="{Binding Glyph, Converter={x:Static vm:StringToGeometry.Instance}}"/>
                 <TextBlock Text="SKILLS" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
                 <Button Content="REFRESH" Style="{StaticResource Btn.Pixel}" Command="{Binding RefreshCommand}" Margin="16,0,0,0"/>
+                <Button Style="{StaticResource Btn.Pixel}" Command="{Binding ToggleSecurityPanelCommand}" Margin="8,0,0,0"
+                        ToolTip="Static rule scan over skill and agent definitions, with a review baseline">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="SECURITY" VerticalAlignment="Center"/>
+                        <Border Padding="5,1" Margin="8,0,0,0" VerticalAlignment="Center"
+                                Background="{StaticResource B.Danger}"
+                                Visibility="{Binding HasSecurityAttention, Converter={x:Static vm:BoolToVisibility.Instance}}">
+                            <TextBlock Text="{Binding NeedsAttentionCount}" FontFamily="{StaticResource Font.Pixel}" FontSize="7"
+                                       Foreground="{StaticResource B.Text}"/>
+                        </Border>
+                    </StackPanel>
+                </Button>
                 <TextBlock Text="{Binding Status}" Style="{StaticResource T.Muted}" FontSize="12" Margin="20,0,0,0" VerticalAlignment="Center"/>
             </StackPanel>
         </Border>
@@ -106,7 +118,15 @@
                     <Border DockPanel.Dock="Top" Background="{StaticResource B.BG.Panel}" Padding="14,8" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
                         <StackPanel Orientation="Horizontal">
                             <Button Content="TOGGLE" Style="{StaticResource Btn.Pixel.Primary}" Command="{Binding ToggleCommand}" CommandParameter="{Binding Selected}" Margin="0,0,6,0"/>
-                            <Button Content="OPEN FOLDER" Style="{StaticResource Btn.Pixel}" Command="{Binding OpenFolderCommand}" CommandParameter="{Binding Selected}"/>
+                            <Button Content="OPEN FOLDER" Style="{StaticResource Btn.Pixel}" Command="{Binding OpenFolderCommand}" CommandParameter="{Binding Selected}" Margin="0,0,6,0"/>
+                            <Button Content="DELETE" Command="{Binding DeleteCommand}" CommandParameter="{Binding Selected}"
+                                    ToolTip="스킬 폴더 전체 삭제 (SKILL.md + 번들 자료 · 스냅샷 자동 생성)">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource Btn.Pixel}">
+                                        <Setter Property="Foreground" Value="{StaticResource B.Danger}"/>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
                             <TextBlock Text="{Binding Selected.SkillFilePath}" Style="{StaticResource T.Mono}" FontSize="12" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center" Margin="14,0,0,0" TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
                     </Border>
@@ -358,5 +378,124 @@
                 </DockPanel>
             </Grid>
         </Grid>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             SECURITY overlay — 12 static rules + review baseline.
+             Overlays Row 1, so the existing two-pane layout is untouched.
+             ═══════════════════════════════════════════════════════════════ -->
+        <Border Grid.Row="1" Background="{StaticResource B.BG.Primary}"
+                Visibility="{Binding IsSecurityPanelOpen, Converter={x:Static vm:BoolToVisibility.Instance}}">
+            <DockPanel>
+                <Border DockPanel.Dock="Top" Background="{StaticResource B.BG.Panel}" Padding="16,10"
+                        BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="◢ DEFINITION SECURITY" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
+                        <Button Content="RESCAN" Style="{StaticResource Btn.Pixel}" Command="{Binding ScanSecurityCommand}" Margin="16,0,0,0"/>
+                        <Button Content="BASELINE ALL" Style="{StaticResource Btn.Pixel}" Command="{Binding MarkAllReviewedCommand}" Margin="8,0,0,0"
+                                ToolTip="Sign off every definition at its current content"/>
+                        <Button Content="CLOSE" Style="{StaticResource Btn.Pixel}" Command="{Binding ToggleSecurityPanelCommand}" Margin="8,0,0,0"/>
+                        <TextBlock Text="{Binding SecurityStatus}" Style="{StaticResource T.Muted}" FontSize="12" Margin="20,0,0,0"
+                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock DockPanel.Dock="Bottom" Margin="16,8,16,12" TextWrapping="Wrap" FontSize="11"
+                           Style="{StaticResource T.Muted}" Foreground="{StaticResource B.TextMuted}"
+                           Text="Rules describe capability, not intent — a pentest skill legitimately mentions sudo, piped installers and metadata endpoints. Sign a definition off once and it stays settled until its content changes, so what remains on this list is what is genuinely new or altered."/>
+
+                <ListBox ItemsSource="{Binding SecurityResults}" SelectedItem="{Binding SelectedSecurity}"
+                         Background="{StaticResource B.BG.Sunken}" BorderThickness="0"
+                         HorizontalContentAlignment="Stretch"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="96"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="{Binding StateText}" FontFamily="{StaticResource Font.Pixel}" FontSize="8"
+                                           VerticalAlignment="Top" Margin="0,2,0,0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{StaticResource B.Success}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding StateText}" Value="NEW">
+                                                    <Setter Property="Foreground" Value="{StaticResource B.Warn}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding StateText}" Value="CHANGED">
+                                                    <Setter Property="Foreground" Value="{StaticResource B.Danger}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+
+                                <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Name}" Style="{StaticResource T.Body}" FontSize="14"/>
+                                        <TextBlock Text="{Binding ShortHash}" Style="{StaticResource T.Mono}" FontSize="10" Margin="10,2,0,0"
+                                                   Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding SummaryText}" Style="{StaticResource T.Muted}" FontSize="11" Margin="0,3,0,0"/>
+
+                                    <ItemsControl ItemsSource="{Binding Findings}" Margin="0,5,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Margin="0,0,0,4" Padding="8,5" Background="{StaticResource B.BG.Panel}"
+                                                        BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1">
+                                                    <StackPanel>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="{Binding SeverityText}" FontFamily="{StaticResource Font.Pixel}" FontSize="7"
+                                                                       VerticalAlignment="Center">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Setter Property="Foreground" Value="{StaticResource B.TextMuted}"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding SeverityText}" Value="CRITICAL">
+                                                                                <Setter Property="Foreground" Value="{StaticResource B.Danger}"/>
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding SeverityText}" Value="WARNING">
+                                                                                <Setter Property="Foreground" Value="{StaticResource B.Warn}"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                            <TextBlock Text="{Binding Rule}" Style="{StaticResource T.Mono}" FontSize="11" Margin="10,0,0,0"/>
+                                                            <TextBlock Text="{Binding LocationText}" Style="{StaticResource T.Muted}" FontSize="10" Margin="10,1,0,0"/>
+                                                        </StackPanel>
+                                                        <TextBlock Text="{Binding Description}" Style="{StaticResource T.Muted}" FontSize="11" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="{Binding Snippet}" Style="{StaticResource T.Mono}" FontSize="10" Margin="0,3,0,0"
+                                                                   Foreground="{StaticResource B.TextDim}" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2" VerticalAlignment="Top">
+                                    <Button Content="SIGN OFF" Style="{StaticResource Btn.Pixel}" MinWidth="98"
+                                            Command="{Binding DataContext.MarkReviewedCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                            CommandParameter="{Binding}"
+                                            Visibility="{Binding NeedsAttention, Converter={x:Static vm:BoolToVisibility.Instance}}"/>
+                                    <Button Content="RE-OPEN" Style="{StaticResource Btn.Pixel}" MinWidth="98"
+                                            Command="{Binding DataContext.UnreviewSkillCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                            CommandParameter="{Binding}"
+                                            Visibility="{Binding NeedsAttention, Converter={x:Static vm:InverseBoolToVisibility.Instance}}"/>
+                                    <Button Content="OPEN" Style="{StaticResource Btn.Pixel}" MinWidth="98" Margin="0,5,0,0"
+                                            Command="{Binding DataContext.OpenSecurityTargetCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                            CommandParameter="{Binding}"/>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
     </Grid>
 </UserControl>

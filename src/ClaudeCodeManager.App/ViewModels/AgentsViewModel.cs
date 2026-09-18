@@ -105,6 +105,28 @@ public partial class AgentsViewModel : ModuleBase
     }
 
     [RelayCommand]
+    private void Delete(AgentDefinition? a)
+    {
+        if (a is null) return;
+        var ok = Views.ConfirmDialog.Show(null,
+            "Delete agent",
+            $"{Path.GetFileName(a.FilePath)} 을(를) 삭제합니다.\n\n스냅샷 자동 생성됨. SNAPSHOTS에서 복구 가능.\n계속?",
+            Views.ConfirmKind.Danger);
+        if (!ok) return;
+        _main.Snapshots.CreateSnapshot($"delete agent · {a.Name}");
+        try
+        {
+            AgentLoader.Delete(a);
+            OnActivated();
+            Status = $"deleted · {a.Name}";
+        }
+        catch (System.Exception ex)
+        {
+            Status = "delete failed: " + ex.Message;
+        }
+    }
+
+    [RelayCommand]
     private void OpenFolder(AgentDefinition? a)
     {
         if (a is null) return;

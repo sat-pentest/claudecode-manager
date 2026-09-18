@@ -71,6 +71,12 @@
         <DataTemplate DataType="{x:Type vm:SessionsViewModel}">
             <views:SessionsView/>
         </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:CostViewModel}">
+            <views:CostView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ScheduleViewModel}">
+            <views:ScheduleView/>
+        </DataTemplate>
         <DataTemplate DataType="{x:Type vm:SnapshotsViewModel}">
             <views:SnapshotsView/>
         </DataTemplate>
@@ -110,8 +116,8 @@
                                         <GradientStop Color="Transparent" Offset="0"/>
                                         <GradientStop Color="#40000000" Offset="0.25"/>
                                         <GradientStop Color="Black" Offset="0.5"/>
-                                        <GradientStop Color="#40000000" Offset="0.75"/>
-                                        <GradientStop Color="Transparent" Offset="1"/>
+                                        <GradientStop Color="#40000000" Offset="0.68"/>
+                                        <GradientStop Color="Transparent" Offset="0.88"/>
                                     </LinearGradientBrush>
                                 </Border.OpacityMask>
                                 <Ellipse x:Name="ScanEllipse"
@@ -123,27 +129,68 @@
                                     <Ellipse.Fill>
                                         <RadialGradientBrush GradientOrigin="0.5,0.5" Center="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
                                             <GradientStop Color="{StaticResource C.Ember}" Offset="0"/>
-                                            <GradientStop Color="#40F26A2E" Offset="0.55"/>
+                                            <GradientStop Color="#4DF26A2E" Offset="0.55"/>
                                             <GradientStop Color="Transparent" Offset="1"/>
                                         </RadialGradientBrush>
                                     </Ellipse.Fill>
                                     <Ellipse.Effect>
-                                        <BlurEffect Radius="26"/>
+                                        <BlurEffect Radius="25"/>
                                     </Ellipse.Effect>
                                     <Ellipse.RenderTransform>
                                         <TranslateTransform x:Name="ScanTranslate" X="-160"/>
                                     </Ellipse.RenderTransform>
                                 </Ellipse>
                             </Border>
-                            <TextBlock x:Name="TitleText" Text="CLAUDECODE" Style="{StaticResource T.Pixel.Title}" FontSize="15" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TitleText" Text="CLAUDECODE" Style="{StaticResource T.Pixel.Title}" FontSize="15" VerticalAlignment="Center">
+                                <TextBlock.Effect>
+                                    <DropShadowEffect x:Name="TitleGlow" Color="{StaticResource C.Ember}"
+                                                      BlurRadius="14" ShadowDepth="0" Opacity="0.75"/>
+                                </TextBlock.Effect>
+                            </TextBlock>
                             <Grid.Triggers>
                                 <EventTrigger RoutedEvent="Loaded">
                                     <BeginStoryboard>
-                                        <Storyboard RepeatBehavior="Forever">
+                                        <Storyboard>
+                                            <!-- sweep: 스캔 글로우가 글자를 훑고 지나감 (원래 속도 유지) -->
                                             <DoubleAnimation Storyboard.TargetName="ScanTranslate"
                                                              Storyboard.TargetProperty="X"
                                                              From="-160" To="220"
-                                                             Duration="0:0:4.5">
+                                                             Duration="0:0:4.5"
+                                                             RepeatBehavior="Forever">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <SineEase EasingMode="EaseInOut"/>
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+
+                                            <!-- ember 미세 명멸 -->
+                                            <DoubleAnimation Storyboard.TargetName="ScanEllipse"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             From="0.5" To="0.68"
+                                                             Duration="0:0:2.8"
+                                                             AutoReverse="True"
+                                                             RepeatBehavior="Forever">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <SineEase EasingMode="EaseInOut"/>
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+
+                                            <!-- 글자 글로우 미세 호흡 -->
+                                            <DoubleAnimation Storyboard.TargetName="TitleGlow"
+                                                             Storyboard.TargetProperty="BlurRadius"
+                                                             From="12" To="17"
+                                                             Duration="0:0:2.8"
+                                                             AutoReverse="True"
+                                                             RepeatBehavior="Forever">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <SineEase EasingMode="EaseInOut"/>
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                            <DoubleAnimation Storyboard.TargetName="TitleGlow"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             From="0.68" To="0.86"
+                                                             Duration="0:0:2.8"
+                                                             AutoReverse="True"
+                                                             RepeatBehavior="Forever">
                                                 <DoubleAnimation.EasingFunction>
                                                     <SineEase EasingMode="EaseInOut"/>
                                                 </DoubleAnimation.EasingFunction>
@@ -215,7 +262,8 @@
                 <DockPanel LastChildFill="True">
                     <TextBlock DockPanel.Dock="Top" Text="◢ MODULES" Style="{StaticResource T.Pixel.Section}" FontSize="9" Margin="20,18,0,12"/>
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <ItemsControl ItemsSource="{Binding Modules}">
+                    <Grid>
+                    <ItemsControl x:Name="NavItems" ItemsSource="{Binding Modules}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <ToggleButton Style="{StaticResource Btn.Nav}"
@@ -257,6 +305,28 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+
+                    <!--
+                        The travelling selection rail. It lives inside the scrolled content and
+                        after the ItemsControl, so it scrolls with the rows and paints over them;
+                        MainWindow.xaml.cs drives its offset. Hit testing is off so the rows keep
+                        receiving clicks through it.
+                    -->
+                    <Border x:Name="NavRail" Width="4" Height="0"
+                            HorizontalAlignment="Left" VerticalAlignment="Top"
+                            Background="{StaticResource B.Rust}"
+                            Effect="{StaticResource Glow.Rust}"
+                            IsHitTestVisible="False"
+                            Opacity="0"
+                            RenderTransformOrigin="0.5,0.5">
+                        <Border.RenderTransform>
+                            <TransformGroup>
+                                <ScaleTransform x:Name="NavRailScale" ScaleY="1"/>
+                                <TranslateTransform x:Name="NavRailOffset" Y="0"/>
+                            </TransformGroup>
+                        </Border.RenderTransform>
+                    </Border>
+                    </Grid>
                     </ScrollViewer>
                 </DockPanel>
             </Border>

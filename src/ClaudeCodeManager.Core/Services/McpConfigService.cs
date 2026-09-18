@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -61,7 +62,21 @@ public static class McpConfigService
     ///   - ~/.claude/settings.json → enabledMcpjsonServers (enable list)
     ///   - ~/.claude/mcp-needs-auth-cache.json           (OAuth-required claude.ai connectors)
     /// </summary>
+    private static readonly SignatureCache<McpConfigSummary> ScanCacheSlot = new();
+
+    /// <summary>Memoized over the three config files it reads. Called on every DASHBOARD,
+    /// HARNESS and MCP activation, plus by the host security scanner.</summary>
     public static McpConfigSummary Scan()
+        => ScanCacheSlot.Get(
+            () => FileSignature.Of(GlobalMcpJson, GlobalClaudeJson, ClaudePaths.SettingsJson),
+            ScanUncached);
+
+    /// <summary>Drops the memoized scan. Needed because ToggleEnabledAsync writes settings.json
+    /// through a path that may land inside the same filesystem timestamp tick as the read that
+    /// produced the current signature.</summary>
+    public static void InvalidateScanCache() => ScanCacheSlot.Invalidate();
+
+    public static McpConfigSummary ScanUncached()
     {
         var summary = new McpConfigSummary();
         var seen = new Dictionary<string, McpServerEntry>(StringComparer.OrdinalIgnoreCase);
@@ -219,7 +234,41 @@ public static class McpConfigService
     /// for SSE/HTTP it does a TCP connect with a short timeout; for OAuth connectors it
     /// returns OAuth (real reachability requires the claude.ai token flow).
     /// </summary>
+    /// <summary>
+    /// Probe results, keyed by what the probe actually depends on. A probe costs a `where.exe`
+    /// spawn per stdio server (800 ms cap) or a TCP connect per SSE/HTTP server (1500 ms cap) —
+    /// and an endpoint that is *down* always pays the full timeout. HARNESS re-probed everything
+    /// on every activation, so bouncing in and out of that menu piled up work and made each visit
+    /// slower than the last (measured: 668 ms -> 3722 ms -> 4077 ms).
+    ///
+    /// The TTL is short on purpose: this is liveness, and a stale "ONLINE" dot is worse than a
+    /// slightly delayed one. 15 s covers menu bouncing without hiding a server that just died.
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, (DateTime At, McpConnectionStatus Status)> ProbeResults = new();
+    private static readonly TimeSpan ProbeTtl = TimeSpan.FromSeconds(15);
+
+    private static string ProbeKey(McpServerEntry e)
+        => string.Join("", e.Name, e.Transport, e.Url ?? "", e.Command ?? "",
+                       string.Join(" ", e.Args), e.Scope, e.EnabledInSettings, e.NeedsAuth);
+
+    /// <summary>Forget cached liveness so the next probe really goes out to the network.</summary>
+    public static void InvalidateProbeCache() => ProbeResults.Clear();
+
     public static async Task<McpConnectionStatus> ProbeAsync(McpServerEntry entry, CancellationToken ct = default)
+    {
+        var key = ProbeKey(entry);
+        if (ProbeResults.TryGetValue(key, out var hit) && DateTime.UtcNow - hit.At < ProbeTtl)
+            return hit.Status;
+
+        var status = await ProbeUncachedAsync(entry, ct);
+        // Never cache a cancelled probe: it says nothing about the server, only that the user
+        // navigated away mid-flight.
+        if (!ct.IsCancellationRequested)
+            ProbeResults[key] = (DateTime.UtcNow, status);
+        return status;
+    }
+
+    private static async Task<McpConnectionStatus> ProbeUncachedAsync(McpServerEntry entry, CancellationToken ct = default)
     {
         if (entry.NeedsAuth) return McpConnectionStatus.OAuth;
 
@@ -309,8 +358,10 @@ public static class McpConfigService
             if (proc is null) return false;
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             cts.CancelAfter(TimeSpan.FromMilliseconds(800));
+            // Kill the whole tree, not just `where` itself: the old form left the child alive when
+            // the outer token tripped, so navigating away mid-probe leaked a process per server.
             try { await proc.WaitForExitAsync(cts.Token); }
-            catch { try { proc.Kill(); } catch { } return false; }
+            catch { try { proc.Kill(entireProcessTree: true); } catch { } return false; }
             return proc.ExitCode == 0;
         }
         catch { return false; }
@@ -324,6 +375,11 @@ public static class McpConfigService
     /// </summary>
     public static async Task<bool> ToggleEnabledAsync(string serverName)
     {
+        // settings.json is about to change; drop both caches so the next Scan/Probe is truthful
+        // even if the write lands inside the same filesystem timestamp tick as the last read.
+        ScanCacheSlot.Invalidate();
+        ProbeResults.Clear();
+
         var bundle = SettingsService.Load(ClaudePaths.SettingsJson);
         var arr = bundle.Root["enabledMcpjsonServers"] as JsonArray;
         if (arr is null)

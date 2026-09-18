@@ -104,7 +104,15 @@
                     <Border DockPanel.Dock="Top" Background="{StaticResource B.BG.Panel}" Padding="14,8" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
                         <StackPanel Orientation="Horizontal">
                             <Button Content="TOGGLE" Style="{StaticResource Btn.Pixel.Primary}" Command="{Binding ToggleCommand}" CommandParameter="{Binding Selected}" Margin="0,0,6,0"/>
-                            <Button Content="OPEN FILE" Style="{StaticResource Btn.Pixel}" Command="{Binding OpenFolderCommand}" CommandParameter="{Binding Selected}"/>
+                            <Button Content="OPEN FILE" Style="{StaticResource Btn.Pixel}" Command="{Binding OpenFolderCommand}" CommandParameter="{Binding Selected}" Margin="0,0,6,0"/>
+                            <Button Content="DELETE" Command="{Binding DeleteCommand}" CommandParameter="{Binding Selected}"
+                                    ToolTip="에이전트 정의 파일 삭제 (스냅샷 자동 생성)">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource Btn.Pixel}">
+                                        <Setter Property="Foreground" Value="{StaticResource B.Danger}"/>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
                             <TextBlock Text="{Binding Selected.FilePath}" Style="{StaticResource T.Mono}" FontSize="12" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center" Margin="14,0,0,0" TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
                     </Border>

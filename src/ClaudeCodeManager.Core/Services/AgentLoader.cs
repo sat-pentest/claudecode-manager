@@ -73,4 +73,10 @@ public static class AgentLoader
             agent.Disabled = true;
         }
     }
+
+    /// <summary>Delete the agent definition file (.md or .md.disabled).</summary>
+    public static void Delete(AgentDefinition agent)
+    {
+        if (File.Exists(agent.FilePath)) File.Delete(agent.FilePath);
+    }
 }

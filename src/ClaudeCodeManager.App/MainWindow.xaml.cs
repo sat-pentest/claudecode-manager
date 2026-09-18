@@ -1,5 +1,11 @@
+using System;
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
+using ClaudeCodeManager.App.Services;
 using ClaudeCodeManager.App.ViewModels;
 
 namespace ClaudeCodeManager.App;
@@ -11,9 +17,130 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        // Module pollers stand down while the shell is hidden to tray or minimised.
+        AppVisibility.Current.Attach(this);
+
+        // DataContext is assigned in XAML, so it is already in place by the time the constructor
+        // body runs and DataContextChanged will never fire for it. Subscribing only to that event
+        // left the rail listening to nothing: it was positioned once at load and then sat on the
+        // first module for the rest of the session. Hook what is already here, and keep the event
+        // for the case where the context is later replaced.
+        HookNavRail();
+        DataContextChanged += (_, _) => HookNavRail();
+
+        // Deliberately not LayoutUpdated: that event fires for any layout pass anywhere in the
+        // window, so with the pipeline sweep running it would call back sixty times a second to
+        // recompute a position that has not moved. These three cover every case that actually
+        // changes where the rail belongs.
+        NavItems.Loaded += (_, _) => PlaceNavRail(animate: false);
+        NavItems.SizeChanged += (_, _) => PlaceNavRail(animate: false);
+        NavItems.ItemContainerGenerator.StatusChanged += (_, _) =>
+        {
+            if (NavItems.ItemContainerGenerator.Status == GeneratorStatus.ContainersGenerated)
+                PlaceNavRail(animate: false);
+        };
     }
 
     private MainViewModel? Vm => DataContext as MainViewModel;
+
+    // ─── Selection rail ──────────────────────────────────────────────────
+    //
+    // One rail travels between rows rather than each row fading its own marker in and out. The
+    // difference matters: two independent fades leave the eye to work out what moved where, while a
+    // single object in motion is tracked automatically. The rail lives inside the scrolled content,
+    // so scrolling needs no handling of its own.
+
+    /// <summary>Last geometry applied, so repeat calls no-op when nothing actually moved.</summary>
+    private double _railY = double.NaN, _railHeight = double.NaN;
+
+    private MainViewModel? _hookedVm;
+
+    private void HookNavRail()
+    {
+        if (Vm is null || ReferenceEquals(Vm, _hookedVm)) return;   // DataContext can be set twice
+        if (_hookedVm is not null) _hookedVm.PropertyChanged -= OnVmPropertyChanged;
+        _hookedVm = Vm;
+        _hookedVm.PropertyChanged += OnVmPropertyChanged;
+        PlaceNavRail(animate: false);
+    }
+
+    private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(MainViewModel.Current)) return;
+
+        // The row may not be realised yet when the module list is still being built. Retrying once
+        // at Loaded priority lets layout finish first; PlaceNavRail is a no-op if it already ran.
+        if (!PlaceNavRail(animate: true))
+            Dispatcher.BeginInvoke(new Action(() => PlaceNavRail(animate: true)),
+                System.Windows.Threading.DispatcherPriority.Loaded);
+    }
+
+    /// <summary>
+    /// Move the rail onto the current module's row.
+    /// </summary>
+    /// <param name="animate">
+    /// True only for a real selection change. Load, resize and container generation also call this,
+    /// and those must snap: animating a layout correction makes the rail drift across the panel
+    /// instead of simply being where it belongs.
+    /// </param>
+    /// <returns>True once the rail sits on a realised row; false while the row does not exist yet.</returns>
+    private bool PlaceNavRail(bool animate)
+    {
+        var current = Vm?.Current;
+        if (current is null) return false;
+
+        if (NavItems.ItemContainerGenerator.ContainerFromItem(current) is not FrameworkElement row
+            || row.ActualHeight <= 0)
+            return false;
+
+        double y;
+        try { y = row.TransformToAncestor(NavItems).Transform(default).Y; }
+        catch (InvalidOperationException) { return false; }   // not in the same visual tree yet
+
+        var height = row.ActualHeight;
+        if (Math.Abs(y - _railY) < 0.5 && Math.Abs(height - _railHeight) < 0.5) return true;
+
+        var firstPlacement = double.IsNaN(_railY);
+        _railY = y;
+        _railHeight = height;
+
+        NavRail.Height = height;
+        if (NavRail.Opacity < 1) NavRail.Opacity = 1;
+
+        if (!animate || firstPlacement)
+        {
+            NavRailOffset.BeginAnimation(TranslateTransform.YProperty, null);
+            NavRailScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+            NavRailOffset.Y = y;
+            NavRailScale.ScaleY = 1;
+            return true;
+        }
+
+        var slide = new DoubleAnimation
+        {
+            To = y,
+            Duration = TimeSpan.FromMilliseconds(240),
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+            FillBehavior = FillBehavior.HoldEnd,
+        };
+
+        // A touch of stretch along the direction of travel, scaled by distance and capped. It reads
+        // as momentum on a long jump across the rail and stays invisible on a neighbouring one,
+        // which is the point — a fixed stretch on every move looks like a tic.
+        var distance = Math.Abs(y - NavRailOffset.Y);
+        var stretch = 1 + Math.Min(0.22, distance / (height * 14));
+
+        var squash = new DoubleAnimationUsingKeyFrames { FillBehavior = FillBehavior.HoldEnd };
+        squash.KeyFrames.Add(new EasingDoubleKeyFrame(stretch, KeyTime.FromPercent(0.45),
+            new CubicEase { EasingMode = EasingMode.EaseOut }));
+        squash.KeyFrames.Add(new EasingDoubleKeyFrame(1.0, KeyTime.FromPercent(1.0),
+            new CubicEase { EasingMode = EasingMode.EaseInOut }));
+        squash.Duration = TimeSpan.FromMilliseconds(240);
+
+        NavRailOffset.BeginAnimation(TranslateTransform.YProperty, slide);
+        NavRailScale.BeginAnimation(ScaleTransform.ScaleYProperty, squash);
+        return true;
+    }
 
     protected override void OnClosing(CancelEventArgs e)
     {

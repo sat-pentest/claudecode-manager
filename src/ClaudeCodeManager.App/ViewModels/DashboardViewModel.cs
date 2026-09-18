@@ -18,6 +18,8 @@ public partial class DashboardViewModel : ModuleBase
     private readonly MainViewModel _main;
 
     [ObservableProperty] private int _totalMemoryEntries;
+    [ObservableProperty] private int _activeMemoryEntries;
+    [ObservableProperty] private int _disabledMemoryEntries;
     [ObservableProperty] private int _totalProjects;
     [ObservableProperty] private int _totalSkills;
     [ObservableProperty] private int _activeSkills;
@@ -71,6 +73,10 @@ public partial class DashboardViewModel : ModuleBase
         var projects = MemoryIndexer.DiscoverProjects();
         TotalProjects = projects.Count;
         TotalMemoryEntries = projects.Sum(p => p.Entries.Count);
+        // Memory has the same enabled/disabled notion the other assets do: a disabled entry is
+        // renamed .md.disabled and its MEMORY.md line commented out, so Claude Code loads neither.
+        DisabledMemoryEntries = projects.Sum(p => p.Entries.Count(e => e.Disabled));
+        ActiveMemoryEntries = TotalMemoryEntries - DisabledMemoryEntries;
 
         var skills = SkillLoader.LoadAll();
         TotalSkills = skills.Count;

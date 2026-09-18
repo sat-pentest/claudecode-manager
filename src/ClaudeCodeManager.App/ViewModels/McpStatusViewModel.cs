@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -97,12 +97,18 @@ public partial class McpStatusViewModel : ModuleBase
 
     public McpStatusViewModel(MainViewModel main) { _main = main; }
 
-    public override void OnActivated() => Refresh();
+    public override void OnActivated() => Load();
 
     partial void OnSearchQueryChanged(string value) => ApplyFilter();
 
     [RelayCommand]
     private void Refresh()
+    {
+        McpConfigService.InvalidateProbeCache();
+        Load();
+    }
+
+    private void Load()
     {
         var summary = McpConfigService.Scan();
         Servers.Clear();

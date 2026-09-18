@@ -22,6 +22,17 @@ public partial class WorkflowsLiveView : UserControl
         }
     }
 
+    /// <summary>Open this result's JSON in its own window. Stops the click from also reaching the
+    /// card, which would collapse the very panel the user just asked to enlarge.</summary>
+    private void OnFullJsonClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not FrameworkElement fe) return;
+        if (fe.DataContext is not WorkflowResultSummary item) return;
+        e.Handled = true;
+        if (string.IsNullOrWhiteSpace(item.FullJson)) return;
+        new JsonViewerWindow(item) { Owner = Window.GetWindow(this) }.Show();
+    }
+
     /// <summary>Open the agent's raw jsonl log in Explorer (select the file).</summary>
     private void OnOpenAgentLog(object sender, RoutedEventArgs e)
     {

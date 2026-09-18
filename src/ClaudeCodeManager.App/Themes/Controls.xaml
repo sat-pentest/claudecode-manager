@@ -259,6 +259,50 @@
         </Setter>
     </Style>
 
+        <!-- Pixel toggle — same shell as Btn.Pixel, but it stays lit while engaged so the mode is
+             readable without having to interpret the diagram. -->
+        <Style x:Key="Btn.PixelToggle" TargetType="ToggleButton">
+            <Setter Property="FontFamily" Value="{StaticResource Font.Pixel}"/>
+            <Setter Property="FontSize" Value="9"/>
+            <Setter Property="Foreground" Value="{StaticResource B.Text}"/>
+            <Setter Property="Background" Value="{StaticResource B.BG.Panel}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource B.Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="14,9"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="TextOptions.TextRenderingMode" Value="Aliased"/>
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" SnapsToDevicePixels="True">
+                            <StackPanel Orientation="Horizontal" Margin="{TemplateBinding Padding}">
+                                <Ellipse x:Name="Led" Width="7" Height="7" Margin="0,0,8,0" VerticalAlignment="Center"
+                                         Fill="{StaticResource B.TextDim}"/>
+                                <ContentPresenter VerticalAlignment="Center"
+                                                  TextOptions.TextRenderingMode="Aliased" TextOptions.TextFormattingMode="Display"/>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" TargetName="Bd" Value="{StaticResource B.BG.Hover}"/>
+                                <Setter Property="BorderBrush" TargetName="Bd" Value="{StaticResource B.Ember}"/>
+                                <Setter Property="Effect" TargetName="Bd" Value="{StaticResource Glow.Soft}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Background" TargetName="Bd" Value="{StaticResource B.RustDim}"/>
+                                <Setter Property="BorderBrush" TargetName="Bd" Value="{StaticResource B.Ember}"/>
+                                <Setter Property="Effect" TargetName="Bd" Value="{StaticResource Glow.Soft}"/>
+                                <Setter Property="Fill" TargetName="Led" Value="{StaticResource B.Ember}"/>
+                                <Setter Property="Foreground" Value="{StaticResource B.Ember}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
     <Style x:Key="Btn.Pixel.Primary" TargetType="Button" BasedOn="{StaticResource Btn.Pixel}">
         <Setter Property="Background" Value="{StaticResource B.RustDim}"/>
         <Setter Property="BorderBrush" Value="{StaticResource B.Rust}"/>
@@ -269,6 +313,45 @@
     <Style x:Key="Btn.Pixel.Danger" TargetType="Button" BasedOn="{StaticResource Btn.Pixel}">
         <Setter Property="BorderBrush" Value="{StaticResource B.Danger}"/>
         <Setter Property="Foreground" Value="{StaticResource B.Danger}"/>
+    </Style>
+
+    <!-- Inline row-delete "✕": semi-transparent so it never competes with the row content,
+         goes full-opacity danger on hover. Shared by MEMORY entries and SETTINGS permissions. -->
+    <Style x:Key="Btn.RowDelete" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="{StaticResource B.BorderSoft}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Foreground" Value="{StaticResource B.TextMuted}"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontFamily" Value="{StaticResource Font.Mono}"/>
+        <Setter Property="Padding" Value="6,1"/>
+        <Setter Property="MinWidth" Value="20"/>
+        <Setter Property="MinHeight" Value="18"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Opacity" Value="0.55"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}" CornerRadius="2">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Opacity" Value="1"/>
+                <Setter Property="Foreground" Value="{StaticResource B.Danger}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource B.Danger}"/>
+                <Setter Property="Background" Value="{StaticResource B.BG.Panel}"/>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Opacity" Value="0.85"/>
+                <Setter Property="Background" Value="{StaticResource B.BG.Sunken}"/>
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <!-- Nav rail button -->
@@ -286,23 +369,49 @@
         <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
         <Setter Property="Template">
             <Setter.Value>
+                <!--
+                    The row itself carries no selection mark. A single rail (NavRail in
+                    MainWindow.xaml) travels between rows instead, so the eye follows one moving
+                    object rather than reading two independent fades. Anything painted here as well
+                    would compete with it, which is why there is no wash and no per-row indicator -
+                    only the hover state and the label colour.
+                -->
                 <ControlTemplate TargetType="ToggleButton">
                     <Grid>
-                        <Border x:Name="Indicator" Width="3" HorizontalAlignment="Left" Background="Transparent"/>
-                        <Border x:Name="Bd" Background="{TemplateBinding Background}" Margin="3,0,0,0">
-                            <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Left" Margin="{TemplateBinding Padding}" TextOptions.TextRenderingMode="Aliased" TextOptions.TextFormattingMode="Display"/>
-                        </Border>
+                        <Border x:Name="HoverBg" Opacity="0" Margin="4,0,0,0"
+                                Background="{StaticResource B.BG.Hover}"/>
+
+                        <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Left"
+                                          Margin="{TemplateBinding Padding}"
+                                          TextOptions.TextRenderingMode="Aliased"
+                                          TextOptions.TextFormattingMode="Display"/>
                     </Grid>
+
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" TargetName="Bd" Value="{StaticResource B.BG.Hover}"/>
                             <Setter Property="Foreground" Value="{StaticResource B.Text}"/>
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="HoverBg"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="1" Duration="0:0:0.12"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="HoverBg"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="0" Duration="0:0:0.18"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
                         </Trigger>
+
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter Property="Background" TargetName="Indicator" Value="{StaticResource B.Rust}"/>
-                            <Setter Property="Background" TargetName="Bd" Value="{StaticResource B.BG.Panel}"/>
                             <Setter Property="Foreground" Value="{StaticResource B.Ember}"/>
-                            <Setter Property="Effect" TargetName="Indicator" Value="{StaticResource Glow.Rust}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

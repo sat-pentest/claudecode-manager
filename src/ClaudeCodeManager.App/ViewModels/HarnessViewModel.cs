@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -43,11 +43,60 @@ public partial class HarnessFlow : ObservableObject
     [ObservableProperty] private bool _allStepsActive;
     [ObservableProperty] private string _stateBadge = "";
 
-    /// <summary>Recompute AllStepsActive/StateBadge from current Steps' IsActive.</summary>
+    /// <summary>Hops in the chain walk: entry→step0 is hop 0, so there are exactly Steps.Count.</summary>
+    public int HopCount => Math.Max(1, Steps.Count);
+
+    /// <summary>The entry connector is hop 0, which the converter addresses as index -1.</summary>
+    public int EntryIndex => -1;
+
+    /// <summary>Whether the entry hop completes — i.e. the first step is actually available.</summary>
+    [ObservableProperty] private bool _firstStepReachable = true;
+
+    // ── Per-flow animation state ──
+    // The walk lives on the flow rather than on the global ticker so only the branch the user
+    // picked animates; every other branch sits at rest (progress 0 = nothing lit, ghost rails only).
+    [ObservableProperty] private double _chainProgress;
+    [ObservableProperty] private double _chainAlpha;
+
+    /// <summary>Which branch a click picked. Survives the lit/animated mode switch.</summary>
+    [ObservableProperty] private bool _isSelected;
+
+    /// <summary>Brightness, which is not the same thing as selection: in lit mode every branch node
+    /// is bright, but only one is still the picked one.</summary>
+    [ObservableProperty] private bool _isLit;
+
+    /// <summary>Selected *and* actually walking — drives the RUNNING pill, which would be a lie in
+    /// lit mode where nothing moves.</summary>
+    [ObservableProperty] private bool _isRunning;
+
+    // ── Tree placement — the spine is drawn per row, so each row needs to know if it caps an end ──
+    [ObservableProperty] private bool _isFirstInTree;
+    [ObservableProperty] private bool _isLastInTree;
+
+    /// <summary>Recompute AllStepsActive/StateBadge and the per-step chain state from Steps' IsActive.</summary>
     public void Recompute()
     {
         AllStepsActive = Steps.Count > 0 && Steps.All(s => s.IsActive);
         StateBadge = AllStepsActive ? "READY" : "PARTIAL";
+
+        // A step is reachable only if it and everything upstream is active — one dead hop
+        // blocks the rest of the chain, which is what the diagram then shows.
+        var reachable = true;
+        for (var i = 0; i < Steps.Count; i++)
+        {
+            reachable &= Steps[i].IsActive;
+            Steps[i].Owner = this;
+            Steps[i].Index = i;
+            Steps[i].HopCount = HopCount;
+            Steps[i].IsReachable = reachable;
+        }
+        // Each connector is drawn inside the step it leaves, but its fate belongs to the step it
+        // leads to — so carry the next step's reachability back onto this one.
+        for (var i = 0; i < Steps.Count; i++)
+            Steps[i].NextReachable = i + 1 < Steps.Count ? Steps[i + 1].IsReachable : true;
+
+        FirstStepReachable = Steps.Count == 0 || Steps[0].IsReachable;
+        OnPropertyChanged(nameof(HopCount));
     }
 
     /// <summary>Subscribe to each step's IsActive change so aggregate state (READY/PARTIAL)
@@ -72,7 +121,69 @@ public partial class HarnessFlowStep : ObservableObject
     [ObservableProperty] private string _name = "";
     [ObservableProperty] private string _detail = "";
     [ObservableProperty] private bool _isActive;
-    [ObservableProperty] private string _arrow = "";    // "↓" / "↓×N" / "↔" / "→"
+    [ObservableProperty] private string _arrow = "";    // "↓ uses" / "↓ fan-out" / "↔ compare with"
+
+    /// <summary>Concurrent copies of this step. >1 draws the node as a fan-out worker stack.</summary>
+    [ObservableProperty] private int _parallel = 1;
+
+    // ── Chain-walk state, filled in by HarnessFlow.Recompute() ──
+    /// <summary>Position in the flow. The request arrives here at chain position Index+1.</summary>
+    [ObservableProperty] private int _index;
+    /// <summary>Total hops in the owning flow, so the converter can scale the shared clock.</summary>
+    [ObservableProperty] private int _hopCount = 1;
+    /// <summary>This step and everything upstream is active — the request can actually get here.</summary>
+    [ObservableProperty] private bool _isReachable = true;
+    /// <summary>The step this one's outgoing rail leads to is reachable.</summary>
+    [ObservableProperty] private bool _nextReachable = true;
+
+    /// <summary>The flow this step belongs to. Diagram elements read the running animation off it,
+    /// so a step never has to walk the visual tree to find its branch's clock.</summary>
+    public HarnessFlow Owner { get; set; } = null!;
+
+    /// <summary>
+    /// The arrow text with its glyph stripped. The stored form carries a vertical glyph ("↓ uses")
+    /// from when flows were drawn as a top-down list; the diagram runs left→right and paints its own
+    /// arrowhead, so only the caption ("uses") belongs on the rail.
+    /// </summary>
+    public string ArrowLabel => Arrow.TrimStart('↓', '↑', '→', '←', '↔', ' ').Trim();
+
+    public bool IsFanOut => Parallel > 1;
+
+    /// <summary>Worker rows for the fan-out stack, capped at 3 — beyond that the ×N badge carries
+    /// the real count and more rows would just make every node card taller.</summary>
+    public List<FlowWorker> Instances
+    {
+        get
+        {
+            var n = Math.Min(Parallel, 3);
+            var list = new List<FlowWorker>(n);
+            for (var i = 0; i < n; i++) list.Add(new FlowWorker { Index = i, Label = $"#{i + 1}", Owner = this });
+            return list;
+        }
+    }
+
+    public string ParallelBadge => IsFanOut ? $"×{Parallel}" : "";
+
+    partial void OnArrowChanged(string value) => OnPropertyChanged(nameof(ArrowLabel));
+
+    partial void OnParallelChanged(int value)
+    {
+        OnPropertyChanged(nameof(IsFanOut));
+        OnPropertyChanged(nameof(Instances));
+        OnPropertyChanged(nameof(ParallelBadge));
+    }
+}
+
+/// <summary>
+/// One row of a fan-out node's worker stack. Holds a back-reference to its step so the diagram's
+/// chain converter can read the step's timing off the worker itself, instead of every worker row
+/// having to walk the visual tree to find its parent.
+/// </summary>
+public sealed class FlowWorker
+{
+    public int Index { get; init; }
+    public string Label { get; init; } = "";
+    public HarnessFlowStep Owner { get; init; } = null!;
 }
 
 // ─── ViewModel ─────────────────────────────────────────────────────────────
@@ -137,14 +248,126 @@ public partial class HarnessViewModel : ModuleBase
         if (saved) Refresh();
     }
 
-    public HarnessViewModel(MainViewModel main) { _main = main; }
+    /// <summary>The branch whose animation is running. Everything else rests.</summary>
+    [ObservableProperty] private HarnessFlow? _selectedFlow;
 
-    public override void OnActivated() => Refresh();
+    /// <summary>
+    /// Static-highlight mode: every branch is drawn fully lit and nothing moves. Useful for reading
+    /// the whole harness at once, or for a screenshot, where the walk just gets in the way.
+    /// Toggling back hands the diagram to the animation again.
+    /// </summary>
+    [ObservableProperty] private bool _isStaticHighlight;
+
+    partial void OnIsStaticHighlightChanged(bool value) => ApplyHighlightMode();
+
+    /// <summary>
+    /// Push the current mode onto the flows. Lit mode parks every branch at the end of its walk
+    /// (progress 1) — which the diagram already renders as "all hops drawn, all nodes lit, no packet
+    /// in flight", so no separate static styling is needed. Animated mode empties every branch and
+    /// lets the ticker refill the selected one.
+    /// </summary>
+    private void ApplyHighlightMode()
+    {
+        foreach (var f in Flows)
+        {
+            if (IsStaticHighlight)
+            {
+                f.ChainProgress = 1;
+                f.ChainAlpha = 1;
+            }
+            else
+            {
+                var live = ReferenceEquals(f, SelectedFlow);
+                f.ChainProgress = live ? f.ChainProgress : 0;
+                f.ChainAlpha = live ? f.ChainAlpha : 0;
+            }
+        }
+        RefreshFlowVisualState();
+        if (!IsStaticHighlight) Services.FlowTicker.Current.Restart();
+    }
+
+    /// <summary>
+    /// Split brightness from selection. The step nodes already take their brightness from the
+    /// chain state, but a branch node has no chain position of its own, so it needs telling —
+    /// otherwise lit mode brightens every box in a row except the first one.
+    /// </summary>
+    private void RefreshFlowVisualState()
+    {
+        foreach (var f in Flows)
+        {
+            f.IsLit = IsStaticHighlight || f.IsSelected;
+            f.IsRunning = f.IsSelected && !IsStaticHighlight;
+        }
+    }
+
+    public HarnessViewModel(MainViewModel main)
+    {
+        _main = main;
+
+        // One clock, but its output is routed to a single flow — clicking a branch is what decides
+        // which one. Flows left unselected keep progress 0, which renders as the resting diagram.
+        Services.FlowTicker.Current.PropertyChanged += (_, _) =>
+        {
+            if (IsStaticHighlight) return;   // lit mode holds its own values; the clock must not overwrite them
+            var f = SelectedFlow;
+            if (f is null) return;
+            f.ChainProgress = Services.FlowTicker.Current.ChainProgress;
+            f.ChainAlpha = Services.FlowTicker.Current.ChainAlpha;
+        };
+    }
+
+    /// <summary>Pick a branch of the tree: it starts running from its entry node, the previous one
+    /// falls back to rest.</summary>
+    [RelayCommand]
+    private void SelectFlow(HarnessFlow? flow)
+    {
+        if (flow is null) return;
+        foreach (var f in Flows) f.IsSelected = ReferenceEquals(f, flow);
+        SelectedFlow = flow;
+        RefreshFlowVisualState();
+
+        // In lit mode a click only moves the marker — everything stays bright, and the pick takes
+        // effect when the animation is switched back on.
+        if (IsStaticHighlight) return;
+
+        foreach (var f in Flows)
+        {
+            if (f.IsSelected) continue;
+            f.ChainProgress = 0;
+            f.ChainAlpha = 0;
+        }
+        Services.FlowTicker.Current.Restart();   // answer the click with a run from the top
+    }
+
+    public override void OnActivated() => Load();
+
+    /// <summary>
+    /// Stop probing the moment the user leaves. The probes are fire-and-forget, so without this
+    /// they outlive the module: leaving HARNESS left a `where.exe` per stdio server and a TCP
+    /// connect per SSE server running, and those contended with whatever module was activated
+    /// next. Measured before this: activating MEMORY right after HARNESS cost 2972 ms, against
+    /// ~2 ms for the same module in isolation.
+    /// </summary>
+    public override void OnDeactivated()
+    {
+        _probeCts?.Cancel();
+        _probeCts?.Dispose();
+        _probeCts = null;
+    }
 
     private CancellationTokenSource? _probeCts;
 
+    /// <summary>Refresh button: re-reads config AND re-tests every MCP for real. Activation alone
+    /// reuses probe results for their TTL, so bouncing through this menu no longer re-spawns a
+    /// `where.exe` per server or re-waits the full timeout on a server that is down.</summary>
     [RelayCommand]
     private void Refresh()
+    {
+        McpConfigService.InvalidateProbeCache();
+        Load();
+    }
+
+    private void Load()
     {
         // ── LAYER 1: MCP servers ────────────────────────────────────────
         McpNodes.Clear();
@@ -190,6 +413,7 @@ public partial class HarnessViewModel : ModuleBase
         // Kick off async probes for enabled/project MCPs so the dot reflects
         // actual reachability, matching what the MCP module shows.
         _probeCts?.Cancel();
+        _probeCts?.Dispose();
         _probeCts = new CancellationTokenSource();
         _ = ProbeMcpNodesAsync(_probeCts.Token);
 
@@ -275,9 +499,22 @@ public partial class HarnessViewModel : ModuleBase
         WorkflowEnabled = workflows.Count(w => !w.Disabled);
 
         // ── FLOWS: predefined orchestration patterns ────────────────────
+        var previouslySelected = SelectedFlow?.Name;
         BuildFlows(skills, agents, mcpSummary);
         // Wire step→flow listeners so async MCP probes update aggregate state live
         foreach (var f in Flows) f.AttachStepListeners();
+
+        // Tree placement: the spine is drawn per row, so the ends have to be marked.
+        for (var i = 0; i < Flows.Count; i++)
+        {
+            Flows[i].IsFirstInTree = i == 0;
+            Flows[i].IsLastInTree = i == Flows.Count - 1;
+        }
+        // Keep the user's branch across a refresh; otherwise start on the first one so the
+        // diagram is alive on arrival rather than sitting inert until something is clicked.
+        var restore = Flows.FirstOrDefault(f => f.Name == previouslySelected) ?? Flows.FirstOrDefault();
+        SelectFlow(restore);
+        ApplyHighlightMode();   // flows were rebuilt, so re-assert lit mode if it is engaged
 
         Status = $"L1: {McpTotal} MCPs, {SessionCount} sessions · L2: {SkillTotal} skills, {AgentTotal} agents · L3: {WorkflowTotal} workflows · {Flows.Count} flows";
     }
@@ -318,6 +555,7 @@ public partial class HarnessViewModel : ModuleBase
                         Name = s.Name,
                         Detail = s.Detail,
                         Arrow = s.Arrow,
+                        Parallel = s.Parallel,
                         IsActive = active
                     });
                 }
@@ -346,7 +584,7 @@ public partial class HarnessViewModel : ModuleBase
             Steps = new List<HarnessFlowStep>
             {
                 new() { Kind = "SKILL", Name = "mobile-static-recon", Detail = "orchestrator, Manifest·소스·리소스·SDK 5-패스", IsActive = SkillActive("mobile-static-recon"), Arrow = "↓ fan-out" },
-                new() { Kind = "AGENT", Name = "apk-native-analyzer", Detail = "per-.so 격리 워커, JSON 원자재 반환 (×N 병렬)", IsActive = AgentActive("apk-native-analyzer"), Arrow = "↓ then" },
+                new() { Kind = "AGENT", Name = "apk-native-analyzer", Detail = "per-.so 격리 워커, JSON 원자재 반환", Parallel = 3, IsActive = AgentActive("apk-native-analyzer"), Arrow = "↓ then" },
                 new() { Kind = "SKILL", Name = "frida-bypass",         Detail = "동적 우회 릴레이 (필요 시)",                       IsActive = SkillActive("frida-bypass"),         Arrow = "" }
             }
         });

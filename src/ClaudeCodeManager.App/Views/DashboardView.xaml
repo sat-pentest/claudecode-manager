@@ -50,6 +50,9 @@
                         <TextBlock Text="MEMORY" Style="{StaticResource T.Pixel.Section}" FontSize="9"/>
                         <TextBlock Text="{Binding TotalMemoryEntries}" Style="{StaticResource T.CRT.Stat}" Margin="0,6,0,0"/>
                         <TextBlock Style="{StaticResource T.Muted}">
+                            <Run Text="{Binding ActiveMemoryEntries, Mode=OneWay}" Foreground="{StaticResource B.Success}"/><Run Text=" 활성 · "/><Run Text="{Binding DisabledMemoryEntries, Mode=OneWay}"/><Run Text=" 비활성"/>
+                        </TextBlock>
+                        <TextBlock Style="{StaticResource T.Muted}" FontSize="11" Margin="0,1,0,0">
                             <Run Text="across "/><Run Text="{Binding TotalProjects, Mode=OneWay}"/><Run Text=" projects"/>
                         </TextBlock>
                     </StackPanel>

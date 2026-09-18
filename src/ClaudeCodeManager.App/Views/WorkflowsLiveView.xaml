@@ -179,6 +179,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="STATUS" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center" Margin="0,0,14,0"/>
@@ -192,11 +193,60 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <ProgressBar Grid.Column="0" Minimum="0" Maximum="100" Value="{Binding SelectedRun.ProgressPct, Mode=OneWay}"
-                                             Height="14" VerticalAlignment="Center"
-                                             Background="{StaticResource B.BG.Sunken}"
-                                             Foreground="{StaticResource B.Ember}"
-                                             BorderThickness="0"/>
+                                <!-- Progress bar with a sweep that only runs while the run is ACTIVE, so a
+                                     stalled run is visibly still rather than merely labelled STALE. -->
+                                <Grid Grid.Column="0" Height="14" VerticalAlignment="Center" ClipToBounds="True">
+                                    <ProgressBar x:Name="ProgressTrack" Minimum="0" Maximum="100" Value="{Binding SelectedRun.ProgressPct, Mode=OneWay}"
+                                                 Background="{StaticResource B.BG.Sunken}"
+                                                 Foreground="{StaticResource B.Ember}"
+                                                 BorderThickness="0"/>
+                                    <!-- Clipper sized to the *filled* portion, so the sweep finishes at the
+                                         progress edge rather than continuing across unearned track.
+                                         Sized off the ProgressBar by name, not RelativeSource: an ancestor
+                                         lookup resolved to a wider outer Grid, which made the clipper overhang
+                                         the bar and the sweep appear to die at an arbitrary point. -->
+                                    <Border x:Name="SweepClip" HorizontalAlignment="Left" ClipToBounds="True" IsHitTestVisible="False">
+                                        <Border.Width>
+                                            <MultiBinding Converter="{x:Static vm:FilledWidthConverter.Instance}">
+                                                <Binding Path="SelectedRun.ProgressPct" Mode="OneWay"/>
+                                                <Binding Path="ActualWidth" ElementName="ProgressTrack"/>
+                                            </MultiBinding>
+                                        </Border.Width>
+                                        <!-- The clipper stays laid out at all times. Collapsing it drove its
+                                             ActualWidth to 0, and the sweep's travel is measured from that —
+                                             so the band had nowhere to go and stalled near the left edge.
+                                             Hiding the band itself keeps the geometry intact. -->
+                                        <Border x:Name="ProgressSweep" Width="70" HorizontalAlignment="Left">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SelectedRun.Status}" Value="ACTIVE">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <Border.Background>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                    <GradientStop Color="#00F26A2E" Offset="0"/>
+                                                    <GradientStop Color="#66FFD9C0" Offset="0.5"/>
+                                                    <GradientStop Color="#00F26A2E" Offset="1"/>
+                                                </LinearGradientBrush>
+                                            </Border.Background>
+                                            <Border.RenderTransform>
+                                                <TranslateTransform>
+                                                    <TranslateTransform.X>
+                                                        <MultiBinding Converter="{x:Static vm:SweepPositionConverter.Instance}">
+                                                            <Binding Path="ChainProgress" Source="{x:Static svc:FlowTicker.Current}"/>
+                                                            <Binding Path="ActualWidth" ElementName="SweepClip"/>
+                                                        </MultiBinding>
+                                                    </TranslateTransform.X>
+                                                </TranslateTransform>
+                                            </Border.RenderTransform>
+                                        </Border>
+                                    </Border>
+                                </Grid>
                                 <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
                                     <Run Text="{Binding SelectedRun.AgentsCompleted, Mode=OneWay}" Foreground="{StaticResource B.Ember}" FontFamily="Consolas" FontSize="14"/>
                                     <Run Text=" / "/>
@@ -214,6 +264,84 @@
                                 <Run Text="{Binding SelectedRun.IdleMinutes, Mode=OneWay}" Foreground="{StaticResource B.TextMuted}"/>
                                 <Run Text="m" Foreground="{StaticResource B.TextMuted}"/>
                             </TextBlock>
+
+                            <!-- What the still-outstanding agent was asked to do. Without this the pane
+                                 only ever showed finished work, so a running phase read as dead air.
+                                 Given its own banded row rather than a label+value pair: the pixel label
+                                 and the mono body sit on different baselines, so as a plain row the two
+                                 never lined up, and it read as just another dim metadata line. -->
+                            <!-- Left accent instead of a full outline: a boxed border here competed with the
+                                 result cards below and read louder than the run status itself. The dot and
+                                 pill already carry the state colour, so the edge only has to hint at it. -->
+                            <Border Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="4" Margin="0,14,0,0"
+                                    Background="{StaticResource B.BG.Sunken}"
+                                    BorderThickness="2,0,0,0" Padding="12,9"
+                                    Visibility="{Binding SelectedRun.HasCurrentTask, Converter={x:Static vm:BoolToVisibility.Instance}}">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="BorderBrush" Value="{StaticResource B.TextDim}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SelectedRun.Status}" Value="ACTIVE">
+                                                <Setter Property="BorderBrush" Value="{StaticResource B.Ember}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding SelectedRun.Status}" Value="RECENT">
+                                                <Setter Property="BorderBrush" Value="{StaticResource B.Warn}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,13,0">
+                                        <!-- Colour carries the state; the pulse is reserved for ACTIVE alone,
+                                             so a stalled run reads as parked rather than merely labelled. -->
+                                        <Ellipse Width="8" Height="8" Margin="0,0,9,0" VerticalAlignment="Center"
+                                                 Effect="{StaticResource Glow.Soft}">
+                                            <Ellipse.Style>
+                                                <Style TargetType="Ellipse">
+                                                    <Setter Property="Fill" Value="{StaticResource B.TextDim}"/>
+                                                    <Setter Property="svc:PulseBehavior.IsActive" Value="False"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SelectedRun.Status}" Value="ACTIVE">
+                                                            <Setter Property="Fill" Value="{StaticResource B.Ember}"/>
+                                                            <Setter Property="svc:PulseBehavior.IsActive" Value="True"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding SelectedRun.Status}" Value="RECENT">
+                                                            <Setter Property="Fill" Value="{StaticResource B.Warn}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Ellipse.Style>
+                                        </Ellipse>
+                                        <!-- Pixel font at 7px turns N into something that reads as M; 9px is the
+                                             size the other badges in this pane already use. -->
+                                        <Border Padding="8,4" VerticalAlignment="Center">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="{StaticResource B.TextDim}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SelectedRun.Status}" Value="ACTIVE">
+                                                            <Setter Property="Background" Value="{StaticResource B.Ember}"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding SelectedRun.Status}" Value="RECENT">
+                                                            <Setter Property="Background" Value="{StaticResource B.Warn}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="NOW" FontFamily="{StaticResource Font.Pixel}" FontSize="9"
+                                                       Foreground="{StaticResource B.BG.Primary}"
+                                                       TextOptions.TextRenderingMode="Aliased" TextOptions.TextFormattingMode="Display"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{Binding SelectedRun.CurrentTask, Mode=OneWay}"
+                                               FontFamily="{StaticResource Font.Mono}" FontSize="13" TextWrapping="Wrap"
+                                               Foreground="{StaticResource B.Text}" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
                         </Grid>
                     </Border>
 
@@ -283,13 +411,15 @@
                                         <!-- Header row (always visible) -->
                                         <Grid Margin="10,8">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
+                                                <!-- Fixed, not Auto: the badge text varies from "?" to "4H·7M·3L", and an
+                                                     Auto column made every card start its headline at a different x. -->
+                                                <ColumnDefinition Width="98"/>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
 
-                                            <Border Grid.Column="0" Padding="8,4,8,5" Margin="0,0,10,0" VerticalAlignment="Top" MinWidth="56">
+                                            <Border Grid.Column="0" Padding="8,4,8,5" Margin="0,0,10,0" VerticalAlignment="Top">
                                                 <Border.Style>
                                                     <Style TargetType="Border">
                                                         <Setter Property="Background" Value="{StaticResource B.RustDim}"/>
@@ -318,7 +448,8 @@
                                                     </Style>
                                                 </Border.Style>
                                                 <TextBlock Text="{Binding SeverityBadge}" FontFamily="{StaticResource Font.Pixel}" FontSize="9"
-                                                           Foreground="{StaticResource B.BG.Primary}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                           Foreground="{StaticResource B.BG.Primary}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
                                                             <Setter Property="Foreground" Value="{StaticResource B.BG.Primary}"/>
@@ -359,8 +490,8 @@
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
                                                             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                                                <TextBlock Text="›" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Rust}" Margin="0,0,6,0"/>
-                                                                <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.TextMuted}" TextWrapping="Wrap"/>
+                                                                <TextBlock Text="›" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.Rust}" Margin="0,0,6,0"/>
+                                                                <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.TextMuted}" TextWrapping="Wrap"/>
                                                             </StackPanel>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
@@ -414,13 +545,30 @@
                                                 </Grid>
 
                                                 <!-- Full JSON -->
-                                                <TextBlock Text="FULL JSON" Style="{StaticResource T.Pixel.Section}" FontSize="8" Margin="0,4,0,4"/>
-                                                <Border Background="{StaticResource B.BG.Sunken}" BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1" Padding="10,8" MaxHeight="360">
+                                                <TextBlock Text="FULL JSON" Style="{StaticResource T.Pixel.Section}" FontSize="9" Margin="0,4,0,5"/>
+                                                <!-- The inline panel is capped and shares the card; clicking hands the
+                                                     whole result to a standalone reader with zoom and wrap. -->
+                                                <Border Background="{StaticResource B.BG.Sunken}" BorderThickness="1" Padding="12,10" MaxHeight="440"
+                                                        Cursor="Hand" MouseLeftButtonUp="OnFullJsonClick"
+                                                        ToolTip="클릭하면 별도 창에서 확대·축소·자동 줄바꿈으로 볼 수 있습니다">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="BorderBrush" Value="{StaticResource B.BorderSoft}"/>
+                                                            <Style.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter Property="BorderBrush" Value="{StaticResource B.Ember}"/>
+                                                                </Trigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
                                                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                                                        <TextBox Text="{Binding FullJson, Mode=OneWay}" IsReadOnly="True"
-                                                                 Background="Transparent" Foreground="{StaticResource B.Text}"
-                                                                 BorderThickness="0" FontFamily="{StaticResource Font.Mono}" FontSize="11"
-                                                                 TextWrapping="NoWrap"/>
+                                                        <!-- TextBlock, not TextBox: a read-only TextBox still swallows the
+                                                             click for caret placement, so the panel would never open.
+                                                             Colour comes from the attached highlighter, which fills Inlines. -->
+                                                        <TextBlock svc:JsonHighlighter.Json="{Binding FullJson, Mode=OneWay}"
+                                                                   Foreground="{StaticResource B.Text}"
+                                                                   FontFamily="{StaticResource Font.Mono}" FontSize="14"
+                                                                   TextWrapping="NoWrap"/>
                                                     </ScrollViewer>
                                                 </Border>
                                             </StackPanel>

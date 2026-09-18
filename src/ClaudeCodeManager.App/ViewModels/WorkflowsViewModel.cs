@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
-using System.Windows.Threading;
+using ClaudeCodeManager.App.Services;
 using ClaudeCodeManager.App.Views;
 using ClaudeCodeManager.Core.Models;
 using ClaudeCodeManager.Core.Services;
@@ -49,15 +49,35 @@ public partial class WorkflowsViewModel : ModuleBase
     [RelayCommand] private void ToggleLiveHeader() => IsLiveHeaderCollapsed = !IsLiveHeaderCollapsed;
     [RelayCommand] private void ToggleLiveResults() => IsLiveResultsCollapsed = !IsLiveResultsCollapsed;
 
-    private readonly DispatcherTimer _liveTimer;
+    private readonly SmartPollTimer _liveTimer;
+    private readonly SmartPollTimer _clockTimer;
+
+    /// <summary>Disk-derived fingerprint of the last scan. Drives the poll backoff and lets an
+    /// unchanged scan skip the collection rebuild entirely.</summary>
+    private string? _lastLiveSignature;
 
     public EngagementSafetyViewModel Safety { get; } = new();
 
     public WorkflowsViewModel(MainViewModel main)
     {
         _main = main;
-        _liveTimer = new DispatcherTimer { Interval = System.TimeSpan.FromSeconds(5) };
-        _liveTimer.Tick += (_, _) => RefreshLiveRuns();
+        // Disk scan. Backs off to 15s while the run set is unchanged and drops to nothing at all
+        // while the shell is hidden to tray -- this is the one that touches the filesystem.
+        _liveTimer = new SmartPollTimer(System.TimeSpan.FromSeconds(5), RefreshLiveRuns, maxBackoffMultiplier: 3);
+
+        // ACTIVE→RECENT→STALE is a function of elapsed time, so nothing on the entry fires when it
+        // changes. Re-raising those members every second keeps the status dot, the left accent and
+        // the progress sweep in step with the STATUS text; the 5s scan stays as-is because it is the
+        // one that touches disk.
+        // Pure UI clock -- no disk, no notion of "new data", so no backoff. It still stands down
+        // while hidden: re-raising property notifications for an off-screen window buys nothing.
+        _clockTimer = new SmartPollTimer(System.TimeSpan.FromSeconds(1), () =>
+        {
+            foreach (var r in ActiveRuns) r.NotifyClockDerived();
+            var active = ActiveRuns.Count(r => r.Status == "ACTIVE");
+            if (HasActiveRun != active > 0) HasActiveRun = active > 0;
+            return true;
+        }, maxBackoffMultiplier: 1);
     }
 
     partial void OnActiveTabIndexChanged(int value)
@@ -66,12 +86,19 @@ public partial class WorkflowsViewModel : ModuleBase
         // LIVE tab's ACTIVE indicator can appear even while the user is on INSTALLED.
         // On explicit switch to LIVE, force an immediate refresh so the detail view
         // isn't waiting for the next tick.
-        if (value == 1) RefreshLiveRuns();
+        if (value == 1) _liveTimer.PollNow();
     }
 
-    partial void OnIncludeIdleRunsChanged(bool value) => RefreshLiveRuns();
+    partial void OnIncludeIdleRunsChanged(bool value)
+    {
+        // The filter changes which runs qualify, so the previous fingerprint no longer describes
+        // what should be on screen. Drop it to force a rebuild.
+        _lastLiveSignature = null;
+        _liveTimer.PollNow();
+    }
 
-    private void RefreshLiveRuns()
+    /// <returns>True when this scan saw something the previous one did not.</returns>
+    private bool RefreshLiveRuns()
     {
         var currentId = SelectedRun?.RunId;
 
@@ -84,6 +111,23 @@ public partial class WorkflowsViewModel : ModuleBase
                 SelectedRun.RecentResults.Where(r => r.IsExpanded).Select(r => r.AgentIdFull));
 
         var runs = WorkflowLiveService.Scan(IncludeIdleRuns);
+
+        // Fingerprint only the fields the scan reads off disk. Status/IdleSeconds are derived from
+        // the clock, so including them would report a change on every single tick and defeat the
+        // backoff. An identical fingerprint means rebuilding the collection would hand the view an
+        // equivalent set of objects, so keep the existing instances -- that alone preserves the
+        // selection and the expanded result cards, with no save/restore dance.
+        var signature = string.Join("|", runs.Select(r =>
+            $"{r.RunId}:{r.AgentsStarted}:{r.AgentsCompleted}:{r.LastActivity.Ticks}:{r.RecentResults.Count}"));
+        var changed = signature != _lastLiveSignature;
+        _lastLiveSignature = signature;
+
+        if (!changed)
+        {
+            UpdateLiveStatus();
+            return false;
+        }
+
         ActiveRuns.Clear();
         foreach (var r in runs) ActiveRuns.Add(r);
         SelectedRun = currentId is null
@@ -100,13 +144,21 @@ public partial class WorkflowsViewModel : ModuleBase
             }
         }
 
-        var active = ActiveRuns.Count(r => r.Status == "ACTIVE" || r.Status == "RECENT");
-        LiveStatus = $"{ActiveRuns.Count} runs · {active} active · refresh 5s";
+        UpdateLiveStatus();
         HasActiveRun = ActiveRuns.Any(r => r.Status == "ACTIVE");
+        return true;
+    }
+
+    private void UpdateLiveStatus()
+    {
+        var active = ActiveRuns.Count(r => r.Status == "ACTIVE" || r.Status == "RECENT");
+        var cadence = $"{_liveTimer.CurrentInterval.TotalSeconds:0}s";
+        if (_liveTimer.IsBackedOff) cadence += " (idle)";
+        LiveStatus = $"{ActiveRuns.Count} runs · {active} active · refresh {cadence}";
     }
 
     [RelayCommand]
-    private void RefreshLive() => RefreshLiveRuns();
+    private void RefreshLive() => _liveTimer.PollNow();
 
     [RelayCommand]
     private void OpenRunFolder(WorkflowRunEntry? r)
@@ -166,6 +218,7 @@ Session: {r.SessionId}";
     public override void OnDeactivated()
     {
         _liveTimer.Stop();
+        _clockTimer.Stop();
         Safety.StopPolling();
     }
 
@@ -183,7 +236,8 @@ Session: {r.SessionId}";
         // Kick off live-runs scan immediately so the LIVE tab's ACTIVE indicator
         // pulses even before user clicks the LIVE sub-tab.
         RefreshLiveRuns();
-        _liveTimer.Start();
+        _liveTimer.Start();   // no-op while the shell is hidden; resumes on the way back
+        _clockTimer.Start();
 
         // Safety layer polling — runs while module is active so tab-header dot
         // reflects armed/kill-switch state even before user opens SAFETY tab.

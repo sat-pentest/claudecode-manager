@@ -1,0 +1,242 @@
+<UserControl x:Class="ClaudeCodeManager.App.Views.ScheduleView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ClaudeCodeManager.App.ViewModels"
+             xmlns:svc="clr-namespace:ClaudeCodeManager.App.Services"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             d:DataContext="{d:DesignInstance vm:ScheduleViewModel}"
+             mc:Ignorable="d">
+
+    <Grid Background="{StaticResource B.BG.Primary}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- TOP BAR -->
+        <Border Background="{StaticResource B.BG.Panel}" Padding="16,10"
+                BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+                <Path Style="{StaticResource Icon.Module}" Data="{Binding Glyph, Converter={x:Static vm:StringToGeometry.Instance}}"/>
+                <TextBlock Text="SCHEDULE" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
+                <Button Content="NEW" Style="{StaticResource Btn.Pixel.Primary}" Command="{Binding NewCommand}" Margin="16,0,0,0"/>
+                <Button Content="REFRESH" Style="{StaticResource Btn.Pixel}" Command="{Binding RefreshCommand}" Margin="8,0,0,0"/>
+                <Button Content="OPEN FOLDER" Style="{StaticResource Btn.Pixel}" Command="{Binding OpenFolderCommand}" Margin="8,0,0,0"
+                        ToolTip="프롬프트·런처·로그가 저장된 폴더"/>
+                <Button Content="TASK SCHEDULER" Style="{StaticResource Btn.Pixel}" Command="{Binding OpenTaskSchedulerCommand}" Margin="8,0,0,0"
+                        ToolTip="Windows 작업 스케줄러 콘솔"/>
+                <TextBlock Text="{Binding Status}" Style="{StaticResource T.Muted}" FontSize="12" Margin="20,0,0,0"
+                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
+        </Border>
+
+        <!-- CLI 경로 / 경고 -->
+        <Border Grid.Row="1" Background="{StaticResource B.BG.Panel}" Padding="16,8"
+                BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
+            <StackPanel>
+                <TextBlock Style="{StaticResource T.Muted}" FontSize="11" TextWrapping="Wrap">
+                    <Run Text="예약 작업은 Windows 작업 스케줄러의 "/><Run Text="\ClaudeCodeManager\" FontFamily="{StaticResource Font.Mono}" Foreground="{StaticResource B.Ember}"/><Run Text=" 폴더에만 만들어지고, 이 화면은 그 폴더만 조회·수정합니다. 다른 예약 작업은 건드리지 않습니다."/>
+                </TextBlock>
+                <TextBlock Text="{Binding ClaudePathText}" Style="{StaticResource T.Mono}" FontSize="10" Margin="0,4,0,0"
+                           Foreground="{StaticResource B.TextMuted}"/>
+                <Border Margin="0,6,0,0" Padding="8,5" Background="{StaticResource B.BG.Sunken}"
+                        BorderBrush="{StaticResource B.Danger}" BorderThickness="1"
+                        Visibility="{Binding ClaudeAvailable, Converter={x:Static vm:InverseBoolToVisibility.Instance}}">
+                    <TextBlock Text="claude CLI를 찾을 수 없어 예약을 만들 수 없습니다. npm 전역 설치(%APPDATA%\npm\claude.cmd)를 확인하세요."
+                               Style="{StaticResource T.Muted}" FontSize="11" Foreground="{StaticResource B.Danger}" TextWrapping="Wrap"/>
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="380" MinWidth="300"/>
+                <ColumnDefinition Width="*" MinWidth="420"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT: 목록 -->
+            <DockPanel Background="{StaticResource B.BG.Panel}">
+                <TextBlock DockPanel.Dock="Top" Text="◢ SCHEDULED RUNS" Style="{StaticResource T.Pixel.Section}" Margin="16,14,0,8"/>
+
+                <TextBlock DockPanel.Dock="Top" Margin="16,4,16,10" TextWrapping="Wrap"
+                           Style="{StaticResource T.Muted}" FontSize="11"
+                           Text="아직 등록된 예약이 없습니다. NEW 로 만드세요."
+                           Visibility="{Binding Runs.Count, Converter={x:Static vm:InverseIntPositiveToVisibility.Instance}}"/>
+
+                <ListBox ItemsSource="{Binding Runs}" SelectedItem="{Binding Selected}" Margin="8,0,8,8"
+                         Background="{StaticResource B.BG.Sunken}" BorderThickness="0"
+                         HorizontalContentAlignment="Stretch"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="14"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Ellipse Width="8" Height="8" VerticalAlignment="Top" Margin="0,6,0,0"
+                                         svc:PulseBehavior.IsActive="{Binding IsRunning}">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Fill" Value="{StaticResource B.Success}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                                                    <Setter Property="Fill" Value="{StaticResource B.TextMuted}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding LastRunFailed}" Value="True">
+                                                    <Setter Property="Fill" Value="{StaticResource B.Danger}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+
+                                <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource T.Body}" FontSize="13" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding Spec.ScheduleText}" Style="{StaticResource T.Muted}" FontSize="11" Margin="0,2,0,0"/>
+                                    <TextBlock Style="{StaticResource T.Muted}" FontSize="10" Margin="0,2,0,0" Foreground="{StaticResource B.TextMuted}">
+                                        <Run Text="다음 "/><Run Text="{Binding NextRunText, Mode=OneWay}"/><Run Text="  ·  "/><Run Text="{Binding ResultText, Mode=OneWay}"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+
+            <!-- RIGHT: 상세 / 편집 -->
+            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="16,14,16,24">
+
+                    <!-- 액션 -->
+                    <StackPanel Orientation="Horizontal" Visibility="{Binding IsEditing, Converter={x:Static vm:InverseBoolToVisibility.Instance}}">
+                        <Button Content="EDIT" Style="{StaticResource Btn.Pixel}" Command="{Binding EditCommand}"
+                                IsEnabled="{Binding HasSelection}"/>
+                        <Button Content="RUN NOW" Style="{StaticResource Btn.Pixel}" Command="{Binding RunNowCommand}" Margin="8,0,0,0"
+                                IsEnabled="{Binding HasSelection}"/>
+                        <Button Content="ENABLE / DISABLE" Style="{StaticResource Btn.Pixel}" Command="{Binding ToggleEnabledCommand}" Margin="8,0,0,0"
+                                IsEnabled="{Binding HasSelection}"/>
+                        <Button Content="LOG" Style="{StaticResource Btn.Pixel}" Command="{Binding ToggleLogCommand}" Margin="8,0,0,0"
+                                IsEnabled="{Binding HasSelection}"/>
+                        <Button Content="DELETE" Style="{StaticResource Btn.Pixel}" Command="{Binding DeleteCommand}" Margin="8,0,0,0"
+                                Foreground="{StaticResource B.Danger}" IsEnabled="{Binding HasSelection}"/>
+                    </StackPanel>
+
+                    <!-- 편집 폼 -->
+                    <StackPanel Visibility="{Binding IsEditing, Converter={x:Static vm:BoolToVisibility.Instance}}">
+                        <TextBlock Text="◢ 예약 편집" Style="{StaticResource T.Pixel.Section}" Margin="0,0,0,10"/>
+
+                        <TextBlock Text="이름 (영문/숫자/하이픈)" Style="{StaticResource T.Muted}" FontSize="11"/>
+                        <TextBox Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,10"/>
+
+                        <TextBlock Text="주기" Style="{StaticResource T.Muted}" FontSize="11"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,10">
+                            <ComboBox SelectedIndex="{Binding KindIndex}" Width="130">
+                                <ComboBoxItem Content="매일"/>
+                                <ComboBoxItem Content="매주"/>
+                                <ComboBoxItem Content="N시간마다"/>
+                            </ComboBox>
+
+                            <TextBox Text="{Binding EditTime, UpdateSourceTrigger=PropertyChanged}" Width="90" Margin="10,0,0,0"
+                                     ToolTip="HH:mm"
+                                     Visibility="{Binding UsesTimeOfDay, Converter={x:Static vm:BoolToVisibility.Instance}}"/>
+
+                            <StackPanel Orientation="Horizontal" Margin="10,0,0,0"
+                                        Visibility="{Binding IsHourly, Converter={x:Static vm:BoolToVisibility.Instance}}">
+                                <TextBox Text="{Binding EditEveryHours, UpdateSourceTrigger=PropertyChanged}" Width="56"/>
+                                <TextBlock Text="시간마다" Style="{StaticResource T.Muted}" FontSize="12" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <ItemsControl ItemsSource="{Binding Days}" Margin="0,0,0,10"
+                                      Visibility="{Binding IsWeekly, Converter={x:Static vm:BoolToVisibility.Instance}}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox Content="{Binding Label}" IsChecked="{Binding IsChecked}" Margin="0,0,14,0"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="작업 디렉터리" Style="{StaticResource T.Muted}" FontSize="11"/>
+                        <TextBox Text="{Binding EditWorkingDir, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,10"
+                                 FontFamily="{StaticResource Font.Mono}" FontSize="12"/>
+
+                        <TextBlock Text="프롬프트 (claude -p 로 전달)" Style="{StaticResource T.Muted}" FontSize="11"/>
+                        <TextBox Text="{Binding EditPrompt, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,10"
+                                 AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120" MaxHeight="240"
+                                 VerticalScrollBarVisibility="Auto"
+                                 FontFamily="{StaticResource Font.Mono}" FontSize="12"/>
+
+                        <Border Padding="10,7" Background="{StaticResource B.BG.Sunken}"
+                                BorderBrush="{StaticResource B.Warn}" BorderThickness="1" Margin="0,0,0,10">
+                            <TextBlock Style="{StaticResource T.Muted}" FontSize="11" Foreground="{StaticResource B.Warn}" TextWrapping="Wrap"
+                                       Text="무인 실행입니다. 사람이 지켜보지 않는 상태로 돌아가므로, 프롬프트가 스코프 밖 자산을 지시하지 않는지 확인하세요."/>
+                        </Border>
+
+                        <TextBlock Text="생성될 런처" Style="{StaticResource T.Muted}" FontSize="11"
+                                   Visibility="{Binding ScriptPreview, Converter={x:Static vm:StringNotEmptyToVisibility.Instance}}"/>
+                        <Border Margin="0,3,0,10" Padding="10,8" Background="{StaticResource B.BG.Sunken}"
+                                BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1"
+                                Visibility="{Binding ScriptPreview, Converter={x:Static vm:StringNotEmptyToVisibility.Instance}}">
+                            <TextBlock Text="{Binding ScriptPreview}" Style="{StaticResource T.Mono}" FontSize="10"
+                                       Foreground="{StaticResource B.TextDim}" TextWrapping="Wrap"/>
+                        </Border>
+
+                        <Border Padding="10,7" Background="{StaticResource B.BG.Sunken}"
+                                BorderBrush="{StaticResource B.Danger}" BorderThickness="1" Margin="0,0,0,10"
+                                Visibility="{Binding HasError, Converter={x:Static vm:BoolToVisibility.Instance}}">
+                            <TextBlock Text="{Binding EditError}" Style="{StaticResource T.Muted}" FontSize="12"
+                                       Foreground="{StaticResource B.Danger}" TextWrapping="Wrap"/>
+                        </Border>
+
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="SAVE" Style="{StaticResource Btn.Pixel.Primary}" Command="{Binding SaveCommand}"
+                                    IsEnabled="{Binding ClaudeAvailable}"/>
+                            <Button Content="CANCEL" Style="{StaticResource Btn.Pixel}" Command="{Binding CancelEditCommand}" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- 상세 (비편집) -->
+                    <StackPanel Margin="0,14,0,0"
+                                Visibility="{Binding IsEditing, Converter={x:Static vm:InverseBoolToVisibility.Instance}}">
+                        <StackPanel Visibility="{Binding HasSelection, Converter={x:Static vm:BoolToVisibility.Instance}}">
+                            <TextBlock Text="{Binding Selected.Name}" Style="{StaticResource T.Body}" FontSize="16"/>
+                            <TextBlock Style="{StaticResource T.Muted}" FontSize="12" Margin="0,5,0,0">
+                                <Run Text="{Binding Selected.Spec.ScheduleText, Mode=OneWay}"/><Run Text="   ·   다음 "/><Run Text="{Binding Selected.NextRunText, Mode=OneWay}"/><Run Text="   ·   마지막 "/><Run Text="{Binding Selected.LastRunText, Mode=OneWay}"/><Run Text="   ·   "/><Run Text="{Binding Selected.ResultText, Mode=OneWay}"/>
+                            </TextBlock>
+                            <TextBlock Text="{Binding Selected.Spec.WorkingDir}" Style="{StaticResource T.Mono}" FontSize="11" Margin="0,6,0,0"
+                                       Foreground="{StaticResource B.TextMuted}"/>
+
+                            <TextBlock Text="프롬프트" Style="{StaticResource T.Pixel.Section}" Margin="0,16,0,6"/>
+                            <Border Padding="10,8" Background="{StaticResource B.BG.Sunken}"
+                                    BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1">
+                                <TextBlock Text="{Binding Selected.Spec.Prompt}" Style="{StaticResource T.Mono}" FontSize="12" TextWrapping="Wrap"/>
+                            </Border>
+
+                            <!-- 로그 -->
+                            <StackPanel Visibility="{Binding IsLogOpen, Converter={x:Static vm:BoolToVisibility.Instance}}">
+                                <StackPanel Orientation="Horizontal" Margin="0,16,0,6">
+                                    <TextBlock Text="실행 로그" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
+                                    <Button Content="RELOAD" Style="{StaticResource Btn.Pixel}" Command="{Binding RefreshLogCommand}" Margin="12,0,0,0"/>
+                                </StackPanel>
+                                <Border Padding="10,8" Background="{StaticResource B.BG.Sunken}"
+                                        BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1" MaxHeight="360">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <TextBlock Text="{Binding LogText}" Style="{StaticResource T.Mono}" FontSize="11"
+                                                   Foreground="{StaticResource B.TextDim}" TextWrapping="Wrap"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

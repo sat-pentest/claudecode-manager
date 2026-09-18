@@ -17,6 +17,12 @@ public sealed class SearchHit
     public string Preview { get; set; } = "";
     public SearchHitStatus Status { get; set; } = SearchHitStatus.Active;
     public SearchHitCategory Category { get; set; } = SearchHitCategory.Other;
+
+    /// <summary>BM25 relevance. Zero for literal and regex hits, which are unranked by nature.</summary>
+    public double Score { get; set; }
+
+    public bool IsRanked => Score > 0;
+    public string ScoreText => Score > 0 ? Score.ToString("0.0") : "";
 }
 
 public static class SearchService
@@ -27,6 +33,9 @@ public static class SearchService
     // CLAUDE.<name>.md (with any name that has no dots inside) — inactive profile
     private static readonly Regex ClaudeProfileRegex = new(
         @"^CLAUDE\.[^.]+\.md$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    /// <summary>Which module owns this file. Shared with the ranked index.</summary>
+    public static SearchHitCategory CategoryOf(string filePath) => DetermineCategory(filePath);
 
     private static SearchHitCategory DetermineCategory(string filePath)
     {
@@ -64,6 +73,9 @@ public static class SearchService
         }
         return SearchHitCategory.Other;
     }
+
+    /// <summary>Active / inactive / disabled. Shared with the ranked index.</summary>
+    public static SearchHitStatus StatusOf(string filePath) => DetermineStatus(filePath);
 
     private static SearchHitStatus DetermineStatus(string filePath)
     {
@@ -121,6 +133,9 @@ public static class SearchService
             }
         }
     }
+
+    /// <summary>The managed file set, so literal and ranked search never disagree about scope.</summary>
+    public static IEnumerable<string> EnumerateManagedFiles() => EnumerateFiles();
 
     private static IEnumerable<string> EnumerateFiles()
     {

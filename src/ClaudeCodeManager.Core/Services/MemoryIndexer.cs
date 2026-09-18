@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -26,7 +26,37 @@ public static class MemoryIndexer
         $@"<!--\s*{DisabledMarker}:\s*(?<inner>.+?)\s*-->",
         RegexOptions.Compiled);
 
+    private static readonly SignatureCache<List<MemoryProject>> ProjectCache = new();
+
+    /// <summary>
+    /// Fingerprint scoped to the <c>memory</c> subdirectories only — deliberately NOT the whole
+    /// projects tree. That tree also holds session transcripts, which Claude Code appends to
+    /// continuously (measured here: 803 files / 885 MB); fingerprinting those would move the
+    /// signature on every turn and the cache would never hit.
+    /// </summary>
+    private static string MemorySignature()
+    {
+        if (!Directory.Exists(ClaudePaths.ProjectsRoot)) return "missing";
+        var roots = new List<string>();
+        try
+        {
+            foreach (var d in Directory.EnumerateDirectories(ClaudePaths.ProjectsRoot))
+            {
+                var m = Path.Combine(d, "memory");
+                if (Directory.Exists(m)) roots.Add(m);
+            }
+        }
+        catch { return "error:" + Guid.NewGuid().ToString("N"); }
+        roots.Sort(StringComparer.OrdinalIgnoreCase);
+        return roots.Count + "|" + FileSignature.OfTrees(roots);
+    }
+
+    /// <summary>Memoized; rebuilds only when a memory directory actually changes.
+    /// Called on every DASHBOARD, MEMORY and HARNESS activation.</summary>
     public static List<MemoryProject> DiscoverProjects()
+        => ProjectCache.Get(MemorySignature, DiscoverProjectsUncached);
+
+    public static List<MemoryProject> DiscoverProjectsUncached()
     {
         var projects = new List<MemoryProject>();
         if (!Directory.Exists(ClaudePaths.ProjectsRoot)) return projects;

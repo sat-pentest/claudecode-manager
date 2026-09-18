@@ -54,6 +54,14 @@ public partial class MemoryViewModel : ModuleBase
     [ObservableProperty] private string _typeFilter = "ALL";
     [ObservableProperty] private bool _overLengthOnly;                // filter entries whose MEMORY.md index line > 150 chars
 
+    // Enabled/disabled filter — a disabled entry is the .md.disabled form (or its
+    // MEMORY.md line is HTML-commented). Composable with TYPE + search + >150ch.
+    public static IReadOnlyList<string> StatusFilterOptions { get; } = new[]
+    {
+        "ALL", "ACTIVE", "DISABLED"
+    };
+    [ObservableProperty] private string _statusFilter = "ALL";
+
     [RelayCommand]
     private void ToggleIndex() => IsIndexCollapsed = !IsIndexCollapsed;
 
@@ -132,6 +140,7 @@ public partial class MemoryViewModel : ModuleBase
     partial void OnSearchTextChanged(string value) => ApplyEntryFilter();
     partial void OnTypeFilterChanged(string value) => ApplyEntryFilter();
     partial void OnOverLengthOnlyChanged(bool value) => ApplyEntryFilter();
+    partial void OnStatusFilterChanged(string value) => ApplyEntryFilter();
 
     private static readonly HashSet<string> StandardTypes = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -142,6 +151,7 @@ public partial class MemoryViewModel : ModuleBase
     {
         var q = (SearchText ?? "").Trim();
         var typeFilter = TypeFilter ?? "ALL";
+        var statusFilter = StatusFilter ?? "ALL";
         Entries.Clear();
 
         IEnumerable<MemoryEntry> src = _allEntries;
@@ -152,13 +162,18 @@ public partial class MemoryViewModel : ModuleBase
         if (typeFilter != "ALL")
             src = src.Where(e => MatchesType(e, typeFilter));
 
+        if (statusFilter == "ACTIVE")
+            src = src.Where(e => !e.Disabled);
+        else if (statusFilter == "DISABLED")
+            src = src.Where(e => e.Disabled);
+
         if (OverLengthOnly)
             src = src.Where(IsIndexLineOverLength);
 
         int hitCount = 0;
         foreach (var e in src) { Entries.Add(e); hitCount++; }
 
-        var hasFilter = !string.IsNullOrEmpty(q) || typeFilter != "ALL" || OverLengthOnly;
+        var hasFilter = !string.IsNullOrEmpty(q) || typeFilter != "ALL" || statusFilter != "ALL" || OverLengthOnly;
         SearchStats = hasFilter ? $"{hitCount} / {_allEntries.Count} matches" : "";
     }
 
@@ -193,6 +208,7 @@ public partial class MemoryViewModel : ModuleBase
     {
         SearchText = "";
         TypeFilter = "ALL";
+        StatusFilter = "ALL";
         OverLengthOnly = false;
     }
 
@@ -396,5 +412,59 @@ public partial class MemoryViewModel : ModuleBase
         var curFile = entry.FilePath;
         OnActivated();
         SelectedEntry = _allEntries.FirstOrDefault(e => e.FilePath == curFile);
+    }
+
+    /// <summary>
+    /// Delete a memory entry file after confirmation. Also removes any matching
+    /// line in MEMORY.md index. A pre-delete snapshot is created so it's recoverable.
+    /// </summary>
+    [RelayCommand]
+    private void DeleteEntry(MemoryEntry? entry)
+    {
+        if (entry is null || SelectedProject is null) return;
+
+        var result = System.Windows.MessageBox.Show(
+            $"이 memory entry를 삭제하시겠습니까?\n\n{entry.FileName}\n\n" +
+            "· 원본 .md 파일 삭제\n" +
+            "· MEMORY.md 인덱스에서 매칭 라인 자동 제거\n" +
+            "· pre-delete 스냅샷 자동 생성 (복구 가능)",
+            "MEMORY entry 삭제",
+            System.Windows.MessageBoxButton.OKCancel,
+            System.Windows.MessageBoxImage.Warning,
+            System.Windows.MessageBoxResult.Cancel);
+        if (result != System.Windows.MessageBoxResult.OK) return;
+
+        _main.Snapshots.CreateSnapshot($"pre-delete · {entry.FileName}");
+
+        var filePath = entry.FilePath;
+        try
+        {
+            // 1) Try to remove matching index line first (best-effort)
+            var indexFile = SelectedProject.IndexFile;
+            if (System.IO.File.Exists(indexFile))
+            {
+                var stem = System.IO.Path.GetFileNameWithoutExtension(entry.FileName);
+                var lines = System.IO.File.ReadAllLines(indexFile);
+                var kept = lines.Where(l => !l.Contains(entry.FileName, System.StringComparison.OrdinalIgnoreCase)
+                                            && !(l.TrimStart().StartsWith("<!--") && l.Contains(entry.FileName, System.StringComparison.OrdinalIgnoreCase)))
+                                .ToArray();
+                if (kept.Length != lines.Length)
+                    System.IO.File.WriteAllLines(indexFile, kept);
+            }
+
+            // 2) Delete the .md file
+            if (System.IO.File.Exists(filePath))
+                System.IO.File.Delete(filePath);
+
+            Status = $"deleted · {entry.DisplayName}";
+        }
+        catch (System.Exception ex)
+        {
+            Status = "delete error: " + ex.Message;
+            return;
+        }
+
+        OnActivated();
+        SelectedEntry = null;
     }
 }

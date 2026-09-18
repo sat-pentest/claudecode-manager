@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -30,7 +30,14 @@ public static class SkillLoader
         return result;
     }
 
+    private static readonly SignatureCache<List<Skill>> SkillCache = new();
+
+    /// <summary>Memoized; every skill file is read and frontmatter-parsed otherwise, on every
+    /// DASHBOARD / SKILLS / HARNESS activation and on every Linter run.</summary>
     public static List<Skill> LoadAll()
+        => SkillCache.Get(() => FileSignature.OfTree(ClaudePaths.SkillsRoot), LoadAllUncached);
+
+    public static List<Skill> LoadAllUncached()
     {
         var skills = new List<Skill>();
         if (!Directory.Exists(ClaudePaths.SkillsRoot)) return skills;
@@ -81,5 +88,17 @@ public static class SkillLoader
             skill.Disabled = true;
             skill.SkillFilePath = disabled;
         }
+    }
+
+    /// <summary>
+    /// Delete the entire skill folder. A skill is a directory (SKILL.md + any
+    /// bundled references/scripts), so removing just the .md would leave an orphan dir.
+    /// </summary>
+    public static void Delete(Skill skill)
+    {
+        if (Directory.Exists(skill.FolderPath))
+            Directory.Delete(skill.FolderPath, recursive: true);
+        else if (File.Exists(skill.SkillFilePath))
+            File.Delete(skill.SkillFilePath);
     }
 }

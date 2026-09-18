@@ -36,6 +36,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         Modules.Add(new WorkflowsViewModel(this));
         Modules.Add(new McpStatusViewModel(this));
         Modules.Add(new SessionsViewModel(this));
+        Modules.Add(new CostViewModel(this));
+        Modules.Add(new ScheduleViewModel(this));
         Modules.Add(new SettingsViewModel(this));
         Modules.Add(new SearchViewModel(this));
         Modules.Add(new SnapshotsViewModel(this));

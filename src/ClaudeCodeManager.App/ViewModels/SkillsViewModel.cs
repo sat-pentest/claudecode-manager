@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using ClaudeCodeManager.App.Views;
 using ClaudeCodeManager.Core.Models;
 using ClaudeCodeManager.Core.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -43,6 +45,96 @@ public partial class SkillsViewModel : ModuleBase
 
     public SkillsViewModel(MainViewModel main) { _main = main; }
 
+    // ─── SECURITY ────────────────────────────────────────────────────────
+    //
+    // Twelve static rules over every skill and agent definition, paired with a per-file review
+    // baseline. The rules describe capability, not intent, and in a security practitioner's own
+    // library a lot of that capability is the subject matter — so the list is driven by what is NEW
+    // or CHANGED since the last sign-off, not by the raw hit count. That also makes it answer the
+    // question the rules cannot: did a definition change when I did not change it.
+
+    public ObservableCollection<SkillScanResult> SecurityResults { get; } = new();
+    [ObservableProperty] private SkillScanResult? _selectedSecurity;
+    [ObservableProperty] private bool _isSecurityPanelOpen;
+    [ObservableProperty] private string _securityStatus = "";
+    [ObservableProperty] private int _needsAttentionCount;
+
+    public bool HasSecurityAttention => NeedsAttentionCount > 0;
+    partial void OnNeedsAttentionCountChanged(int value) => OnPropertyChanged(nameof(HasSecurityAttention));
+
+    [RelayCommand]
+    private void ToggleSecurityPanel()
+    {
+        IsSecurityPanelOpen = !IsSecurityPanelOpen;
+        if (IsSecurityPanelOpen) ScanSecurity();
+    }
+
+    [RelayCommand]
+    private void ScanSecurity()
+    {
+        SecurityResults.Clear();
+        var results = SkillSecurityScanner.ScanAll(Skills);
+        foreach (var r in results) SecurityResults.Add(r);
+
+        SelectedSecurity = SecurityResults.FirstOrDefault(r => r.NeedsAttention) ?? SecurityResults.FirstOrDefault();
+        NeedsAttentionCount = results.Count(r => r.NeedsAttention);
+
+        var changed = results.Count(r => r.ReviewState == SkillReviewState.Changed);
+        SecurityStatus =
+            $"{results.Count} definitions · {SkillSecurityScanner.RuleCount} rules · "
+          + $"{NeedsAttentionCount} need review" + (changed > 0 ? $" ({changed} changed since sign-off)" : "");
+    }
+
+    [RelayCommand]
+    private void MarkReviewed(SkillScanResult? r)
+    {
+        if (r is null || string.IsNullOrEmpty(r.ContentHash)) return;
+        SkillReviewStore.MarkReviewed(r.Path, r.ContentHash);
+        ScanSecurity();
+        Status = "signed off · " + r.Name;
+    }
+
+    [RelayCommand]
+    private void UnreviewSkill(SkillScanResult? r)
+    {
+        if (r is null) return;
+        SkillReviewStore.Forget(r.Path);
+        ScanSecurity();
+    }
+
+    /// <summary>
+    /// Baseline everything at once. Offered because the first run reports every definition as NEW,
+    /// and walking 17 of them one by one to establish a starting point is busywork — the value of
+    /// the baseline starts at the *next* change, not this one.
+    /// </summary>
+    [RelayCommand]
+    private void MarkAllReviewed()
+    {
+        if (!ConfirmDialog.Show(System.Windows.Application.Current?.MainWindow,
+                "BASELINE ALL",
+                $"Sign off all {SecurityResults.Count} definitions at their current content?"
+                + Environment.NewLine + Environment.NewLine
+                + "Anything edited afterwards comes back as CHANGED.",
+                ConfirmKind.Normal))
+            return;
+
+        SkillReviewStore.MarkAllReviewed(SecurityResults);
+        ScanSecurity();
+        Status = "baseline recorded for all definitions";
+    }
+
+    [RelayCommand]
+    private void OpenSecurityTarget(SkillScanResult? r)
+    {
+        if (r is null || !System.IO.File.Exists(r.Path)) return;
+        try
+        {
+            System.Diagnostics.Process.Start(
+                new System.Diagnostics.ProcessStartInfo("explorer.exe", $"/select,\"{r.Path}\"") { UseShellExecute = true });
+        }
+        catch { }
+    }
+
     public override void OnActivated()
     {
         var curPath = Selected?.SkillFilePath;
@@ -50,6 +142,9 @@ public partial class SkillsViewModel : ModuleBase
         foreach (var s in SkillLoader.LoadAll()) Skills.Add(s);
         Selected = curPath is null ? Skills.FirstOrDefault() : Skills.FirstOrDefault(s => s.SkillFilePath == curPath || s.FolderPath == System.IO.Path.GetDirectoryName(curPath));
         Status = $"{Skills.Count} skills · {Skills.Count(s => s.Disabled)} disabled";
+
+        // Cheap enough (a few dozen small files) to keep the header badge honest on every entry.
+        ScanSecurity();
     }
 
     partial void OnSelectedChanged(Skill? value)
@@ -111,6 +206,30 @@ public partial class SkillsViewModel : ModuleBase
         SkillLoader.Toggle(s);
         OnActivated();
         Status = $"{s.Name} → {(s.Disabled ? "disabled" : "enabled")}";
+    }
+
+    [RelayCommand]
+    private void Delete(Skill? s)
+    {
+        if (s is null) return;
+        var ok = Views.ConfirmDialog.Show(null,
+            "Delete skill",
+            $"{s.Name} 스킬 폴더 전체를 삭제합니다.\n{s.FolderPath}\n\n" +
+            "SKILL.md 외 번들 스크립트·레퍼런스도 함께 제거됩니다.\n" +
+            "스냅샷 자동 생성됨. SNAPSHOTS에서 복구 가능.\n계속?",
+            Views.ConfirmKind.Danger);
+        if (!ok) return;
+        _main.Snapshots.CreateSnapshot($"delete skill · {s.Name}");
+        try
+        {
+            SkillLoader.Delete(s);
+            OnActivated();
+            Status = $"deleted · {s.Name}";
+        }
+        catch (System.Exception ex)
+        {
+            Status = "delete failed: " + ex.Message;
+        }
     }
 
     [RelayCommand]
