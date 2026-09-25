@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -93,6 +93,15 @@ public partial class ClaudeMdViewModel : ModuleBase
         if (SelectedTarget is null && Targets.Count > 0) SelectedTarget = Targets[0];
     }
 
+    /// <summary>Only CLAUDE.md and its profile siblings — see <see cref="ModuleBase.DependsOn"/>.</summary>
+    public override bool DependsOn(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return false;
+        var fileName = System.IO.Path.GetFileName(path);
+        return fileName.StartsWith("CLAUDE", System.StringComparison.OrdinalIgnoreCase)
+            && fileName.EndsWith(".md", System.StringComparison.OrdinalIgnoreCase);
+    }
+
     public void SelectByPath(string path)
     {
         DiscoverTargets();
@@ -183,7 +192,7 @@ public partial class ClaudeMdViewModel : ModuleBase
     {
         var path = EditingFilePath;
         if (string.IsNullOrEmpty(path)) return;
-        _main.Snapshots.CreateSnapshot($"pre-save · {System.IO.Path.GetFileName(path)}");
+        await _main.Snapshots.CreateSnapshotAsync($"pre-save · {System.IO.Path.GetFileName(path)}");
         await AtomicFileWriter.WriteAsync(path, EditorContent);
         IsDirty = false;
         Status = $"saved · {path}";
@@ -212,7 +221,7 @@ public partial class ClaudeMdViewModel : ModuleBase
     private async System.Threading.Tasks.Task ApplySplitAsync()
     {
         if (CurrentPlan is null || CurrentPlan.Parts.Count == 0 || SelectedTarget is null) return;
-        _main.Snapshots.CreateSnapshot($"pre-split · {System.IO.Path.GetFileName(SelectedTarget.Path)}");
+        await _main.Snapshots.CreateSnapshotAsync($"pre-split · {System.IO.Path.GetFileName(SelectedTarget.Path)}");
         await ClaudeMdSplitter.ApplyAsync(CurrentPlan, SelectedTarget.Path, System.IO.Path.GetDirectoryName(SelectedTarget.Path)!);
         LoadCurrent();
         Status = $"split applied · {CurrentPlan.Parts.Count} files written";
@@ -232,7 +241,7 @@ public partial class ClaudeMdViewModel : ModuleBase
         var dir = System.IO.Path.GetDirectoryName(SelectedTarget.Path);
         if (string.IsNullOrEmpty(dir)) { ProfileError = "no target directory"; return; }
 
-        _main.Snapshots.CreateSnapshot($"pre-profile-save · {name}");
+        await _main.Snapshots.CreateSnapshotAsync($"pre-profile-save · {name}");
         try
         {
             // Save current editor content directly to new profile file (works whether editing active or another profile)
@@ -259,7 +268,7 @@ public partial class ClaudeMdViewModel : ModuleBase
             "  • 그 외에는 CLAUDE.autosave-<타임스탬프>.md 로 이름을 바꿔 프로파일로 보관합니다.\n\n" +
             "추가로 git 스냅샷도 남습니다 — 필요 시 SNAPSHOTS 모듈에서 복구 가능.");
         if (!confirm) return;
-        _main.Snapshots.CreateSnapshot($"pre-activate · {profile.Name}");
+        await _main.Snapshots.CreateSnapshotAsync($"pre-activate · {profile.Name}");
         try
         {
             var result = await ClaudeMdProfileManager.ActivateAsync(profile);
@@ -280,7 +289,7 @@ public partial class ClaudeMdViewModel : ModuleBase
     }
 
     [RelayCommand]
-    private void RenameProfile(ClaudeMdProfile? profile)
+    private async System.Threading.Tasks.Task RenameProfileAsync(ClaudeMdProfile? profile)
     {
         ProfileError = "";
         if (profile is null || profile.IsActive) return;
@@ -291,7 +300,7 @@ public partial class ClaudeMdViewModel : ModuleBase
             v => ClaudeMdProfileManager.IsValidName(v, out var e) ? null : e);
         if (!ok) return;
         if (string.Equals(newName, profile.Name, System.StringComparison.Ordinal)) return;
-        _main.Snapshots.CreateSnapshot($"pre-rename-profile · {profile.Name} → {newName}");
+        await _main.Snapshots.CreateSnapshotAsync($"pre-rename-profile · {profile.Name} → {newName}");
         try
         {
             ClaudeMdProfileManager.Rename(profile, newName);
@@ -302,7 +311,7 @@ public partial class ClaudeMdViewModel : ModuleBase
     }
 
     [RelayCommand]
-    private void DeleteProfile(ClaudeMdProfile? profile)
+    private async System.Threading.Tasks.Task DeleteProfileAsync(ClaudeMdProfile? profile)
     {
         ProfileError = "";
         if (profile is null || profile.IsActive) return;
@@ -313,7 +322,7 @@ public partial class ClaudeMdViewModel : ModuleBase
             "스냅샷으로 복구는 가능하지만 파일 자체는 제거됩니다.",
             Views.ConfirmKind.Danger);
         if (!confirm) return;
-        _main.Snapshots.CreateSnapshot($"pre-delete-profile · {profile.Name}");
+        await _main.Snapshots.CreateSnapshotAsync($"pre-delete-profile · {profile.Name}");
         try
         {
             ClaudeMdProfileManager.Delete(profile);

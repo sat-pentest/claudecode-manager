@@ -35,17 +35,17 @@ public partial class SnapshotsViewModel : ModuleBase
     }
 
     [RelayCommand]
-    private void Create()
+    private async System.Threading.Tasks.Task CreateAsync()
     {
         var msg = string.IsNullOrWhiteSpace(NewMessage) ? $"manual @ {System.DateTime.Now:yyyy-MM-dd HH:mm:ss}" : NewMessage;
-        var s = _main.Snapshots.CreateSnapshot(msg);
+        var s = await _main.Snapshots.CreateSnapshotAsync(msg);
         Status = $"created · {s.ShortSha}";
         NewMessage = "";
         Refresh();
     }
 
     [RelayCommand]
-    private void Restore()
+    private async System.Threading.Tasks.Task RestoreAsync()
     {
         if (Selected is null) return;
         var confirm = Views.ConfirmDialog.Show(null,
@@ -56,7 +56,10 @@ public partial class SnapshotsViewModel : ModuleBase
             "복구 직전 현재 상태의 스냅샷이 자동으로 하나 더 남습니다.",
             Views.ConfirmKind.Danger);
         if (!confirm) return;
-        _main.Snapshots.CreateSnapshot($"pre-restore (was at {Selected.ShortSha})");
+        await _main.Snapshots.CreateSnapshotAsync($"pre-restore (was at {Selected.ShortSha})");
+        // A restore rewrites a large part of ~/.claude; without muting, every file lands as an
+        // "external change" and whichever module is open rebuilds itself mid-restore.
+        _main.Watcher.MuteDirectory(ClaudeCodeManager.Core.Paths.ClaudePaths.ClaudeRoot, System.TimeSpan.FromSeconds(20));
         _main.Snapshots.RestoreSnapshot(Selected.CommitSha);
         Status = $"restored · {Selected.ShortSha}";
         Refresh();

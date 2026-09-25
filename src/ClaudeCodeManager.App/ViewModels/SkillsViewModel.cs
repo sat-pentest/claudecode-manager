@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using ClaudeCodeManager.App.Views;
 using ClaudeCodeManager.Core.Models;
+using ClaudeCodeManager.Core.Paths;
 using ClaudeCodeManager.Core.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -147,6 +148,11 @@ public partial class SkillsViewModel : ModuleBase
         ScanSecurity();
     }
 
+    /// <summary>Only ~/.claude/skills matters here — see <see cref="ModuleBase.DependsOn"/>.</summary>
+    public override bool DependsOn(string path) =>
+        !string.IsNullOrEmpty(path) &&
+        path.StartsWith(ClaudePaths.SkillsRoot, StringComparison.OrdinalIgnoreCase);
+
     partial void OnSelectedChanged(Skill? value)
     {
         // Refresh the model choice combo when selection changes — but suppress auto-save
@@ -169,7 +175,8 @@ public partial class SkillsViewModel : ModuleBase
         var cur = string.IsNullOrWhiteSpace(Selected.Model) ? null : Selected.Model;
         if (cur == newModel) return;
 
-        _main.Snapshots.CreateSnapshot($"change model · skill {Selected.Name}");
+        await _main.Snapshots.CreateSnapshotAsync($"change model · skill {Selected.Name}");
+        _main.Watcher.MuteDirectory(ClaudePaths.SkillsRoot, TimeSpan.FromSeconds(3));
         try
         {
             var changed = await FrontmatterUpdater.SetModelAsync(Selected.SkillFilePath, newModel);
@@ -199,17 +206,18 @@ public partial class SkillsViewModel : ModuleBase
     }
 
     [RelayCommand]
-    private void Toggle(Skill? s)
+    private async Task ToggleAsync(Skill? s)
     {
         if (s is null) return;
-        _main.Snapshots.CreateSnapshot($"toggle skill · {s.Name}");
+        await _main.Snapshots.CreateSnapshotAsync($"toggle skill · {s.Name}");
+        _main.Watcher.MuteDirectory(ClaudePaths.SkillsRoot, TimeSpan.FromSeconds(3));
         SkillLoader.Toggle(s);
         OnActivated();
         Status = $"{s.Name} → {(s.Disabled ? "disabled" : "enabled")}";
     }
 
     [RelayCommand]
-    private void Delete(Skill? s)
+    private async Task DeleteAsync(Skill? s)
     {
         if (s is null) return;
         var ok = Views.ConfirmDialog.Show(null,
@@ -219,7 +227,8 @@ public partial class SkillsViewModel : ModuleBase
             "스냅샷 자동 생성됨. SNAPSHOTS에서 복구 가능.\n계속?",
             Views.ConfirmKind.Danger);
         if (!ok) return;
-        _main.Snapshots.CreateSnapshot($"delete skill · {s.Name}");
+        await _main.Snapshots.CreateSnapshotAsync($"delete skill · {s.Name}");
+        _main.Watcher.MuteDirectory(ClaudePaths.SkillsRoot, TimeSpan.FromSeconds(3));
         try
         {
             SkillLoader.Delete(s);
@@ -261,7 +270,8 @@ public partial class SkillsViewModel : ModuleBase
 
         var desc = (skill.Description ?? "").TrimEnd();
         var addition = string.IsNullOrEmpty(desc) ? $"\"{phrase}\"" : $"{desc} · \"{phrase}\"";
-        _main.Snapshots.CreateSnapshot($"add trigger · skill {skill.Name}");
+        await _main.Snapshots.CreateSnapshotAsync($"add trigger · skill {skill.Name}");
+        _main.Watcher.MuteDirectory(ClaudePaths.SkillsRoot, TimeSpan.FromSeconds(3));
         try
         {
             var changed = await FrontmatterUpdater.SetKeyAsync(skill.SkillFilePath, "description", addition);
@@ -296,7 +306,8 @@ public partial class SkillsViewModel : ModuleBase
         while (newDesc.Contains("  ")) newDesc = newDesc.Replace("  ", " ");
         newDesc = newDesc.Trim(' ', ',', '·');
 
-        _main.Snapshots.CreateSnapshot($"remove trigger · skill {skill.Name}");
+        await _main.Snapshots.CreateSnapshotAsync($"remove trigger · skill {skill.Name}");
+        _main.Watcher.MuteDirectory(ClaudePaths.SkillsRoot, TimeSpan.FromSeconds(3));
         try
         {
             var changed = await FrontmatterUpdater.SetKeyAsync(skill.SkillFilePath, "description", newDesc);

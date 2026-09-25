@@ -60,9 +60,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
         debouncer.Tick += (s, e) =>
         {
             debouncer.Stop();
-            if (pending is null) return;
-            ExternalChangeNotice = $"external change detected · {System.IO.Path.GetFileName(pending)}";
-            Current?.OnActivated();
+            var path = pending;
+            pending = null;
+            if (path is null) return;
+            // Rebuilding costs the user their selection and scroll position, so only the module
+            // that actually reads this file gets rebuilt.
+            if (Current is null || !Current.DependsOn(path)) return;
+            ExternalChangeNotice = $"external change detected · {System.IO.Path.GetFileName(path)}";
+            Current.OnActivated();
         };
     }
 
@@ -77,9 +82,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private void QuickSnapshot()
+    private async System.Threading.Tasks.Task QuickSnapshotAsync()
     {
-        var snap = Snapshots.CreateSnapshot($"manual snapshot @ {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+        var snap = await Snapshots.CreateSnapshotAsync($"manual snapshot @ {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
         ExternalChangeNotice = $"snapshot · {snap.ShortSha}";
     }
 

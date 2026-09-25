@@ -49,6 +49,11 @@ public partial class AgentsViewModel : ModuleBase
         Status = $"{Agents.Count} agents · {Agents.Count(a => a.Disabled)} disabled";
     }
 
+    /// <summary>Only ~/.claude/agents matters here — see <see cref="ModuleBase.DependsOn"/>.</summary>
+    public override bool DependsOn(string path) =>
+        !string.IsNullOrEmpty(path) &&
+        path.StartsWith(ClaudePaths.AgentsRoot, StringComparison.OrdinalIgnoreCase);
+
     partial void OnSelectedChanged(AgentDefinition? value)
     {
         _suppressModelSave = true;
@@ -69,7 +74,8 @@ public partial class AgentsViewModel : ModuleBase
         var cur = string.IsNullOrWhiteSpace(Selected.Model) ? null : Selected.Model;
         if (cur == newModel) return;
 
-        _main.Snapshots.CreateSnapshot($"change model · agent {Selected.Name}");
+        await _main.Snapshots.CreateSnapshotAsync($"change model · agent {Selected.Name}");
+        _main.Watcher.MuteDirectory(ClaudePaths.AgentsRoot, TimeSpan.FromSeconds(3));
         try
         {
             var changed = await FrontmatterUpdater.SetModelAsync(Selected.FilePath, newModel);
@@ -95,17 +101,18 @@ public partial class AgentsViewModel : ModuleBase
     }
 
     [RelayCommand]
-    private void Toggle(AgentDefinition? a)
+    private async Task ToggleAsync(AgentDefinition? a)
     {
         if (a is null) return;
-        _main.Snapshots.CreateSnapshot($"toggle agent · {a.Name}");
+        await _main.Snapshots.CreateSnapshotAsync($"toggle agent · {a.Name}");
+        _main.Watcher.MuteDirectory(ClaudePaths.AgentsRoot, TimeSpan.FromSeconds(3));
         AgentLoader.Toggle(a);
         OnActivated();
         Status = $"{a.Name} → {(a.Disabled ? "disabled" : "enabled")}";
     }
 
     [RelayCommand]
-    private void Delete(AgentDefinition? a)
+    private async Task DeleteAsync(AgentDefinition? a)
     {
         if (a is null) return;
         var ok = Views.ConfirmDialog.Show(null,
@@ -113,7 +120,8 @@ public partial class AgentsViewModel : ModuleBase
             $"{Path.GetFileName(a.FilePath)} 을(를) 삭제합니다.\n\n스냅샷 자동 생성됨. SNAPSHOTS에서 복구 가능.\n계속?",
             Views.ConfirmKind.Danger);
         if (!ok) return;
-        _main.Snapshots.CreateSnapshot($"delete agent · {a.Name}");
+        await _main.Snapshots.CreateSnapshotAsync($"delete agent · {a.Name}");
+        _main.Watcher.MuteDirectory(ClaudePaths.AgentsRoot, TimeSpan.FromSeconds(3));
         try
         {
             AgentLoader.Delete(a);

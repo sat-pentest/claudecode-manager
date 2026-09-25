@@ -222,6 +222,15 @@ Session: {r.SessionId}";
         Safety.StopPolling();
     }
 
+    /// <summary>
+    /// Only ~/.claude/workflows matters. The LIVE tab's run files live under projects/, but they
+    /// are picked up by its own 5 s poll — rebuilding the whole module for them just cost the
+    /// selection. See <see cref="ModuleBase.DependsOn"/>.
+    /// </summary>
+    public override bool DependsOn(string path) =>
+        !string.IsNullOrEmpty(path) &&
+        path.StartsWith(WorkflowLoader.WorkflowsDir, System.StringComparison.OrdinalIgnoreCase);
+
     public override void OnActivated()
     {
         var curPath = Selected?.FilePath;
@@ -270,10 +279,11 @@ Session: {r.SessionId}";
 
     /// <summary>Enable/disable by renaming with .disabled suffix. Snapshot first for rollback.</summary>
     [RelayCommand]
-    private void Toggle(WorkflowEntry? w)
+    private async System.Threading.Tasks.Task ToggleAsync(WorkflowEntry? w)
     {
         if (w is null) return;
-        _main.Snapshots.CreateSnapshot($"toggle workflow · {w.DisplayName}");
+        await _main.Snapshots.CreateSnapshotAsync($"toggle workflow · {w.DisplayName}");
+        _main.Watcher.MuteDirectory(WorkflowLoader.WorkflowsDir, System.TimeSpan.FromSeconds(3));
         try
         {
             WorkflowLoader.Toggle(w);
@@ -302,7 +312,7 @@ Session: {r.SessionId}";
     }
 
     [RelayCommand]
-    private void Delete(WorkflowEntry? w)
+    private async System.Threading.Tasks.Task DeleteAsync(WorkflowEntry? w)
     {
         if (w is null) return;
         var ok = ConfirmDialog.Show(null,
@@ -310,7 +320,8 @@ Session: {r.SessionId}";
             $"{w.FileName} 을(를) 삭제합니다.\n\n스냅샷 자동 생성됨. SNAPSHOTS에서 복구 가능.\n계속?",
             ConfirmKind.Danger);
         if (!ok) return;
-        _main.Snapshots.CreateSnapshot($"delete workflow · {w.DisplayName}");
+        await _main.Snapshots.CreateSnapshotAsync($"delete workflow · {w.DisplayName}");
+        _main.Watcher.MuteDirectory(WorkflowLoader.WorkflowsDir, System.TimeSpan.FromSeconds(3));
         try
         {
             WorkflowLoader.Delete(w);

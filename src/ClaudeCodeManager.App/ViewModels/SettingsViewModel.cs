@@ -39,6 +39,14 @@ public partial class SettingsViewModel : ModuleBase
 
     public override void OnActivated() => Load();
 
+    /// <summary>Only the three files this module edits — see <see cref="ModuleBase.DependsOn"/>.</summary>
+    public override bool DependsOn(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return false;
+        var fileName = System.IO.Path.GetFileName(path).ToLowerInvariant();
+        return fileName is "settings.json" or "settings.local.json" or "keybindings.json";
+    }
+
     public void SelectByPath(string path)
     {
         var fileName = System.IO.Path.GetFileName(path).ToLowerInvariant();
@@ -138,7 +146,8 @@ public partial class SettingsViewModel : ModuleBase
             JsonValidity = "ERROR: " + ex.Message;
             return;
         }
-        _main.Snapshots.CreateSnapshot($"pre-save · {System.IO.Path.GetFileName(_bundle.Path)}");
+        await _main.Snapshots.CreateSnapshotAsync($"pre-save · {System.IO.Path.GetFileName(_bundle.Path)}");
+        _main.Watcher.MuteDirectory(System.IO.Path.GetDirectoryName(_bundle.Path) ?? "", System.TimeSpan.FromSeconds(3));
         await SettingsService.SaveAsync(_bundle);
         Status = $"saved · {_bundle.Path}";
         Load();

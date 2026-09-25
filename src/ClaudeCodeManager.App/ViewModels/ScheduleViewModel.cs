@@ -188,7 +188,7 @@ public partial class ScheduleViewModel : ModuleBase
     }
 
     [RelayCommand]
-    private void Save()
+    private async System.Threading.Tasks.Task SaveAsync()
     {
         EditError = "";
         var spec = BuildSpec();
@@ -227,7 +227,7 @@ public partial class ScheduleViewModel : ModuleBase
             ConfirmKind.Normal);
         if (!confirmed) return;
 
-        _main.Snapshots.CreateSnapshot($"schedule · save {spec.Name}");
+        await _main.Snapshots.CreateSnapshotAsync($"schedule · save {spec.Name}");
 
         var err = ScheduledRunService.Save(spec);
         if (err is not null) { EditError = err; return; }
