@@ -110,7 +110,12 @@
                         <TextBlock Grid.Column="1" Text="older than " Style="{StaticResource T.Mono}" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center" Margin="14,0,4,0"/>
                         <TextBox Grid.Column="2" Text="{Binding PruneDays, UpdateSourceTrigger=PropertyChanged}" Width="60" VerticalAlignment="Center" HorizontalContentAlignment="Center"/>
                         <TextBlock Grid.Column="3" Text=" days" Style="{StaticResource T.Mono}" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center" Margin="4,0,0,0"/>
-                        <Button Grid.Column="4" Style="{StaticResource Btn.Pixel}" Content="PRUNE SELECTED" Command="{Binding PruneProjectCommand}" Margin="0,0,8,0"/>
+                        <Button Grid.Column="4" Style="{StaticResource Btn.Pixel}" Content="PRUNE SELECTED"
+                                Command="{Binding PruneProjectCommand}" Margin="0,0,8,0">
+                            <Button.ToolTip>
+                                <TextBlock Text="선택한 프로젝트에서 기준일보다 오래된 세션을 삭제합니다.&#10;그룹은 여러 프로젝트에 걸쳐 있어 GROUPS 모드에서는 사용할 수 없습니다."/>
+                            </Button.ToolTip>
+                        </Button>
                         <Button Grid.Column="5" Style="{StaticResource Btn.Pixel.Danger}" Content="PRUNE ALL PROJECTS" Command="{Binding PruneAllCommand}"/>
                     </Grid>
                 </Border>
@@ -127,12 +132,31 @@
 
             <DockPanel Background="{StaticResource B.BG.Panel}">
                 <Border DockPanel.Dock="Top" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1" Padding="14,10">
-                    <StackPanel>
-                        <TextBlock Text="◢ PROJECTS BY SIZE" Style="{StaticResource T.Pixel.Section}"/>
-                        <TextBlock Text="sorted largest first" Style="{StaticResource T.Muted}" Margin="0,2,0,0"/>
-                    </StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{Binding BucketHeader}" Style="{StaticResource T.Pixel.Section}"/>
+                            <TextBlock Text="{Binding BucketSubhead}" Style="{StaticResource T.Muted}" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <!--
+                            The same sessions, bucketed two ways. Projects is where they sit on
+                            disk; groups is how the operator actually thinks about them, which the
+                            VS Code extension already knows and this only reads.
+                        -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <RadioButton Content="PROJECTS" Style="{StaticResource Btn.PixelToggle}"
+                                         GroupName="BucketMode" Padding="9,5" FontSize="7"
+                                         IsChecked="{Binding ProjectMode, Mode=TwoWay}"/>
+                            <RadioButton Content="GROUPS" Style="{StaticResource Btn.PixelToggle}"
+                                         GroupName="BucketMode" Padding="9,5" FontSize="7" Margin="4,0,0,0"
+                                         IsChecked="{Binding GroupMode, Mode=TwoWay}"/>
+                        </StackPanel>
+                    </Grid>
                 </Border>
-                <ListBox ItemsSource="{Binding Projects}" SelectedItem="{Binding SelectedProject}" Background="Transparent" BorderThickness="0">
+                <ListBox ItemsSource="{Binding Buckets}" SelectedItem="{Binding SelectedProject}" Background="Transparent" BorderThickness="0">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Margin="0,4">
@@ -202,7 +226,7 @@
                           GridViewColumnHeader.Click="OnColumnHeaderClick">
                     <ListView.View>
                         <GridView>
-                            <GridViewColumn Header="Session" Width="420">
+                            <GridViewColumn Header="Session" Width="290">
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <Grid ToolTip="{Binding FileName}">
@@ -243,26 +267,53 @@
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
-                            <GridViewColumn Header="Size" Width="90">
+                            <GridViewColumn Header="Size" Width="76">
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding SizeText}" FontFamily="{StaticResource Font.Mono}" Foreground="{StaticResource B.Ember}" HorizontalAlignment="Right"/>
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
-                            <GridViewColumn Header="Modified" Width="160">
+                            <GridViewColumn Header="Modified" Width="126">
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding ModifiedAt, StringFormat={}{0:yyyy-MM-dd HH:mm}}" FontFamily="{StaticResource Font.Mono}" Foreground="{StaticResource B.TextMuted}"/>
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
-                            <GridViewColumn Header="Age" Width="70">
+                            <GridViewColumn Header="Age" Width="44">
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock FontFamily="{StaticResource Font.Mono}" Foreground="{StaticResource B.TextMuted}" HorizontalAlignment="Right">
                                             <Run Text="{Binding AgeDays, Mode=OneWay}"/><Run Text="d"/>
                                         </TextBlock>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <!--
+                                Which VS Code group the session was filed under. Shown in both
+                                bucket modes: in GROUPS it repeats the heading, but in PROJECTS it
+                                is the only place the grouping is visible at all.
+                            -->
+                            <GridViewColumn Header="Group" Width="150">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{StaticResource B.BG.Sunken}"
+                                                BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1"
+                                                Padding="7,2" HorizontalAlignment="Left">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasGroup}" Value="False">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding GroupName}" Style="{StaticResource T.Muted}"
+                                                       FontSize="11" TextTrimming="CharacterEllipsis"
+                                                       Foreground="{StaticResource B.TextMuted}"/>
+                                        </Border>
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>

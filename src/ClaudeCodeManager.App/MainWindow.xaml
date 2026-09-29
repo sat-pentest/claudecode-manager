@@ -83,6 +83,48 @@
         <DataTemplate DataType="{x:Type vm:DiagnosticsViewModel}">
             <views:DiagnosticsView/>
         </DataTemplate>
+
+        <!--
+            One nav row. Lifted out of the rail so both the flat list and the grouped sections use
+            the same markup; the rows themselves did not change when grouping arrived.
+        -->
+        <DataTemplate x:Key="NavRowTemplate">
+            <!--
+                A Button, not a ToggleButton. The row has no state of its own to flip: which module
+                is current is the shell's answer, and the row reads IsCurrent to display it.
+            -->
+            <Button Style="{StaticResource Btn.Nav}"
+                    Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                    CommandParameter="{Binding}"
+                    AutomationProperties.Name="{Binding Title}">
+                <StackPanel Orientation="Horizontal">
+                    <Grid Width="20" Height="20" Margin="0,0,14,0" VerticalAlignment="Center">
+                        <Path x:Name="NavIcon"
+                              Data="{Binding Glyph, Converter={x:Static vm:StringToGeometry.Instance}}"
+                              StrokeThickness="1.8"
+                              StrokeLineJoin="Round"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"
+                              Fill="Transparent"
+                              Stretch="Uniform"
+                              Width="20" Height="20">
+                            <Path.Style>
+                                <Style TargetType="Path">
+                                    <Setter Property="Stroke" Value="{StaticResource B.Rust}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                            <Setter Property="Stroke" Value="{StaticResource B.Ember}"/>
+                                            <Setter Property="Effect" Value="{StaticResource Glow.Soft}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Path.Style>
+                        </Path>
+                    </Grid>
+                    <TextBlock Text="{Binding Title}" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+        </DataTemplate>
     </Window.Resources>
 
     <Grid>
@@ -258,50 +300,123 @@
             </Grid.ColumnDefinitions>
 
             <!-- NAV RAIL -->
-            <Border Background="{StaticResource B.BG.Panel}" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,1,0">
-                <DockPanel LastChildFill="True">
-                    <TextBlock DockPanel.Dock="Top" Text="◢ MODULES" Style="{StaticResource T.Pixel.Section}" FontSize="9" Margin="20,18,0,12"/>
+            <Border Background="{StaticResource B.BG.Panel}" BorderThickness="0">
+                <DockPanel LastChildFill="True" Margin="0,11,0,0">
+                    <!--
+                        Module filter, docked at the foot of the rail. Fifteen rows across four
+                        sections is two steps to reach anything; typing is one. It sits below the
+                        list rather than above it because the list is what the eye goes to first -
+                        the box is for the times that fails. A section with no match hides
+                        entirely, and any section holding a match opens whether or not it was
+                        folded: a result the operator cannot see is the same as no result.
+                    -->
+                    <Border DockPanel.Dock="Bottom" Margin="14,10,14,12" Padding="8,5"
+                            Background="{StaticResource B.BG.Sunken}"
+                            BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="⌕" FontFamily="{StaticResource Font.CRT}" FontSize="18"
+                                       Foreground="{StaticResource B.RustDim}"
+                                       Margin="0,0,7,0" VerticalAlignment="Center"/>
+                            <Grid Grid.Column="1">
+                                <TextBox x:Name="ModuleFilterBox"
+                                         Text="{Binding ModuleFilter, UpdateSourceTrigger=PropertyChanged}"
+                                         Background="Transparent" BorderThickness="0" Padding="0"
+                                         FontSize="12" VerticalAlignment="Center"
+                                         AutomationProperties.Name="MODULE FILTER"/>
+                                <!-- Placeholder: only while the box is empty and unfocused. -->
+                                <TextBlock Text="모듈 검색…" IsHitTestVisible="False"
+                                           FontSize="12" VerticalAlignment="Center"
+                                           Foreground="{StaticResource B.TextDim}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ModuleFilter}" Value="">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <!--
+                        The gutter goes on the Grid, not on the list. The selection rail is the
+                        list's sibling here, so a margin on the list alone shifts the rows out from
+                        under the mark that is supposed to be on them.
+                    -->
                     <Grid>
-                    <ItemsControl x:Name="NavItems" ItemsSource="{Binding Modules}">
+                    <!--
+                        VerticalAlignment matters here. Inside a ScrollViewer whose content
+                        is shorter than the viewport, a stretched ItemsControl keeps the
+                        viewport height no matter how many rows it holds - so folding a
+                        section never raised SizeChanged and the selection rail stayed on a
+                        row that had just been clipped away. Sizing to content is what makes
+                        the rail notice.
+                    -->
+                    <ItemsControl x:Name="NavItems" ItemsSource="{Binding Groups}"
+                                  VerticalAlignment="Top">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <ToggleButton Style="{StaticResource Btn.Nav}"
-                                              Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                              CommandParameter="{Binding}">
-                                    <ToggleButton.IsChecked>
-                                        <MultiBinding Mode="OneWay" Converter="{x:Static views:ReferenceEqualsMultiConverter.Instance}">
-                                            <Binding/>
-                                            <Binding Path="DataContext.Current" RelativeSource="{RelativeSource AncestorType=Window}"/>
-                                        </MultiBinding>
-                                    </ToggleButton.IsChecked>
-                                    <StackPanel Orientation="Horizontal">
-                                        <Grid Width="20" Height="20" Margin="0,0,14,0" VerticalAlignment="Center">
-                                            <Path x:Name="NavIcon"
-                                                  Data="{Binding Glyph, Converter={x:Static vm:StringToGeometry.Instance}}"
-                                                  StrokeThickness="1.8"
-                                                  StrokeLineJoin="Round"
-                                                  StrokeStartLineCap="Round"
-                                                  StrokeEndLineCap="Round"
-                                                  Fill="Transparent"
-                                                  Stretch="Uniform"
-                                                  Width="20" Height="20">
-                                                <Path.Style>
-                                                    <Style TargetType="Path">
-                                                        <Setter Property="Stroke" Value="{StaticResource B.Rust}"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}}" Value="True">
-                                                                <Setter Property="Stroke" Value="{StaticResource B.Ember}"/>
-                                                                <Setter Property="Effect" Value="{StaticResource Glow.Soft}"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Path.Style>
-                                            </Path>
+                                <StackPanel Margin="0,0,0,2">
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasMatches}" Value="False">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
+                                    <!-- Section header. Clicking it folds the section away. -->
+                                    <ToggleButton Style="{StaticResource Btn.NavGroup}"
+                                                  IsChecked="{Binding IsExpanded, Mode=TwoWay}"
+                                                  ToolTip="{Binding Hint}"
+                                                  AutomationProperties.Name="{Binding Title}"
+                                                  AutomationProperties.HelpText="{Binding Hint}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <!--
+                                                No state mark. The rows vanishing is already the
+                                                clearest signal a section is shut, so a glyph on
+                                                top of it is the same fact twice; brightness
+                                                carries it instead. The rules give the section a
+                                                width, which is what fifteen flat rows lacked.
+                                            -->
+                                            <Rectangle Width="10" Height="1" VerticalAlignment="Center"
+                                                       Margin="0,1,10,0"
+                                                       Fill="{StaticResource B.Border}"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Title}" VerticalAlignment="Center"/>
+                                            <Rectangle Grid.Column="2" Height="1" VerticalAlignment="Center"
+                                                       Margin="10,1,0,0"
+                                                       Fill="{StaticResource B.Border}"/>
                                         </Grid>
-                                        <TextBlock Text="{Binding Title}" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </ToggleButton>
+                                    </ToggleButton>
+
+                                    <!--
+                                        Body. The attached property animates this border's height
+                                        between zero and the measured content height; the border
+                                        clips so the rows slide out of sight rather than overlap
+                                        the next section on the way.
+                                    -->
+                                    <Border ClipToBounds="True"
+                                            views:NavGroupAnimation.IsOpen="{Binding IsExpanded}">
+                                        <ItemsControl ItemsSource="{Binding Visible}"
+                                                      ItemTemplate="{StaticResource NavRowTemplate}"/>
+                                    </Border>
+                                </StackPanel>
+
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -331,7 +446,7 @@
                 </DockPanel>
             </Border>
 
-            <GridSplitter Grid.Column="1" Style="{StaticResource Splitter.Vertical}"/>
+            <GridSplitter Grid.Column="1" Style="{StaticResource Splitter.Shell}"/>
 
             <!-- CONTENT -->
             <ContentControl Grid.Column="2" Content="{Binding Current}" Margin="0"/>

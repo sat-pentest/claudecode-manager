@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -89,9 +90,19 @@ public partial class MainWindow : Window
         var current = Vm?.Current;
         if (current is null) return false;
 
-        if (NavItems.ItemContainerGenerator.ContainerFromItem(current) is not FrameworkElement row
-            || row.ActualHeight <= 0)
-            return false;
+        // Rows now live inside a per-section ItemsControl, so there is no single generator that
+        // knows them all; the row is found by walking the realised tree instead.
+        var row = FindNavRow(NavItems, current);
+
+        // A row in a folded section is still realised but clipped to nothing. Rather than drop the
+        // mark — which leaves "where did my selection go?" unanswered — the rail moves up onto the
+        // section header, so a shut section still says the current module is inside it.
+        if (row is null || row.ActualHeight <= 0 || !IsRowUnfolded(row))
+        {
+            var owner = Vm?.Groups.FirstOrDefault(g => g.Contains(current));
+            row = owner is null ? null : FindNavRow(NavItems, owner);
+            if (row is null || row.ActualHeight <= 0) { HideNavRail(); return false; }
+        }
 
         double y;
         try { y = row.TransformToAncestor(NavItems).Transform(default).Y; }
@@ -105,6 +116,8 @@ public partial class MainWindow : Window
         _railHeight = height;
 
         NavRail.Height = height;
+        // Clear first: a held fade-out from HideNavRail would otherwise win over the assignment.
+        NavRail.BeginAnimation(OpacityProperty, null);
         if (NavRail.Opacity < 1) NavRail.Opacity = 1;
 
         if (!animate || firstPlacement)
@@ -139,6 +152,48 @@ public partial class MainWindow : Window
 
         NavRailOffset.BeginAnimation(TranslateTransform.YProperty, slide);
         NavRailScale.BeginAnimation(ScaleTransform.ScaleYProperty, squash);
+        return true;
+    }
+
+    /// <summary>Fade the rail out and forget where it was, so it re-places cleanly on return.</summary>
+    private void HideNavRail()
+    {
+        if (NavRail.Opacity <= 0) return;
+        _railY = double.NaN;
+        _railHeight = double.NaN;
+        NavRail.BeginAnimation(OpacityProperty, new DoubleAnimation
+        {
+            To = 0,
+            Duration = TimeSpan.FromMilliseconds(120),
+            FillBehavior = FillBehavior.HoldEnd,
+        });
+    }
+
+    /// <summary>The realised row for a module, wherever in the section tree it ended up.</summary>
+    private static FrameworkElement? FindNavRow(DependencyObject root, object item)
+    {
+        var count = VisualTreeHelper.GetChildrenCount(root);
+        for (var i = 0; i < count; i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            // Rows are Buttons and section headers are ToggleButtons — both derive from ButtonBase.
+            if (child is ButtonBase b && ReferenceEquals(b.DataContext, item)) return b;
+            var hit = FindNavRow(child, item);
+            if (hit is not null) return hit;
+        }
+        return null;
+    }
+
+    /// <summary>False once any section border between the row and the rail has folded shut.</summary>
+    private static bool IsRowUnfolded(FrameworkElement row)
+    {
+        DependencyObject? node = row;
+        while (node is not null)
+        {
+            if (node is Border { Name: "" } b && b.ClipToBounds && b.ActualHeight <= 1) return false;
+            if (node is FrameworkElement { Name: "NavItems" }) break;
+            node = VisualTreeHelper.GetParent(node);
+        }
         return true;
     }
 

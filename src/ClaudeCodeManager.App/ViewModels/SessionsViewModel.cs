@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -39,6 +40,10 @@ public partial class SessionsFileVm : ObservableObject
     [ObservableProperty] private DateTime _modifiedAt;
     [ObservableProperty] private bool _isJsonl;
     [ObservableProperty] private int _ageDays;
+
+    /// <summary>Name of the VS Code group this session was filed under, empty when ungrouped.</summary>
+    [ObservableProperty] private string _groupName = "";
+    [ObservableProperty] private bool _hasGroup;
 }
 
 public partial class SessionsViewModel : ModuleBase
@@ -69,6 +74,60 @@ public partial class SessionsViewModel : ModuleBase
     [ObservableProperty] private bool _showRelativeBars;
 
     public ObservableCollection<SessionsProjectVm> Projects { get; } = new();
+
+    /// <summary>The same sessions bucketed by the groups made in the VS Code extension.</summary>
+    public ObservableCollection<SessionsProjectVm> Groups { get; } = new();
+
+    /// <summary>What the left list actually shows. Both modes produce the same row shape, so the
+    /// detail pane on the right needs no knowledge of which one is active.</summary>
+    public ObservableCollection<SessionsProjectVm> Buckets { get; } = new();
+
+    [ObservableProperty] private bool _groupMode;
+    [ObservableProperty] private string _bucketHeader = "◢ PROJECTS BY SIZE";
+    [ObservableProperty] private string _bucketSubhead = "sorted largest first";
+    /// <summary>Set when the VS Code groups could not be read, shown in place of an empty list.</summary>
+    [ObservableProperty] private string _groupProblem = "";
+    [ObservableProperty] private bool _hasGroupProblem;
+    /// <summary>Real groups only — the catch-all bucket is counted separately so the subhead does
+    /// not claim a group the operator never made.</summary>
+    private int _realGroupCount;
+    private int _ungroupedCount;
+
+    /// <summary>Mirror of <see cref="GroupMode"/> so the two radio buttons can each bind to a
+    /// property instead of pulling in a converter for one of them.</summary>
+    public bool ProjectMode
+    {
+        get => !GroupMode;
+        set { if (value) GroupMode = false; }
+    }
+
+    partial void OnGroupModeChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ProjectMode));
+        ApplyBuckets();
+        PruneProjectCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnSelectedProjectChanged(SessionsProjectVm? value)
+        => PruneProjectCommand.NotifyCanExecuteChanged();
+
+    private void ApplyBuckets()
+    {
+        var keep = SelectedProject?.Slug;
+        Buckets.Clear();
+        foreach (var b in (GroupMode ? Groups : Projects)) Buckets.Add(b);
+
+        BucketHeader = GroupMode ? "◢ VSCODE GROUPS" : "◢ PROJECTS BY SIZE";
+        BucketSubhead = GroupMode
+            ? (HasGroupProblem ? GroupProblem
+               : _ungroupedCount > 0
+                   ? $"VS Code 그룹 {_realGroupCount}개 · 미분류 {_ungroupedCount}개"
+                   : $"VS Code 그룹 {_realGroupCount}개")
+            : "sorted largest first";
+
+        SelectedProject = Buckets.FirstOrDefault(b => b.Slug == keep) ?? Buckets.FirstOrDefault();
+        ShowRelativeBars = Buckets.Count >= 2;
+    }
 
     public SessionsViewModel(MainViewModel main) { _main = main; }
 
@@ -166,12 +225,6 @@ public partial class SessionsViewModel : ModuleBase
             Projects.Add(vm);
         }
 
-        // Restore selection
-        if (previouslySelectedSlug is not null)
-            SelectedProject = Projects.FirstOrDefault(p => p.Slug == previouslySelectedSlug) ?? Projects.FirstOrDefault();
-        else
-            SelectedProject = Projects.FirstOrDefault();
-
         // Disk free space for the drive holding ~/.claude/projects/
         try
         {
@@ -188,16 +241,98 @@ public partial class SessionsViewModel : ModuleBase
         }
         catch { DiskFreeText = "—"; }
 
-        // Show relative comparison bars only when there's something to compare (2+ projects)
-        ShowRelativeBars = Projects.Count >= 2;
+        BuildGroups();
+        ApplyBuckets();
 
         Status = $"{TotalProjects} projects · {TotalSessionFiles} sessions · {TotalSize}";
+    }
+
+    /// <summary>
+    /// Fold the flat session list into the operator's VS Code groups.
+    ///
+    /// A group can span projects, so the sessions are indexed by their UUID first and then
+    /// gathered — matching by file name, which is what the extension stores. Sessions in no group
+    /// are collected into one bucket rather than dropped, otherwise switching to this view would
+    /// silently hide most of the list.
+    /// </summary>
+    private void BuildGroups()
+    {
+        Groups.Clear();
+        GroupProblem = "";
+        HasGroupProblem = false;
+        _realGroupCount = 0;
+        _ungroupedCount = 0;
+
+        var layout = VsCodeSessionGroupService.Load();
+        if (layout.Problem is { Length: > 0 } problem)
+        {
+            GroupProblem = problem;
+            HasGroupProblem = true;
+            return;
+        }
+
+        var byId = new Dictionary<string, SessionsFileVm>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in Projects)
+            foreach (var s in p.Sessions)
+            {
+                // Cleared first: a session moved out of a group in VS Code must lose its badge.
+                s.GroupName = "";
+                s.HasGroup = false;
+                byId[Path.GetFileNameWithoutExtension(s.FileName)] = s;
+            }
+
+        var claimed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var built = new List<SessionsProjectVm>();
+
+        foreach (var g in layout.Groups)
+        {
+            var vm = new SessionsProjectVm { Slug = g.Name, Path = "" };
+            foreach (var id in g.SessionIds)
+            {
+                if (!byId.TryGetValue(id, out var s)) continue;   // grouped elsewhere, or pruned
+                s.GroupName = g.Name;
+                s.HasGroup = true;
+                vm.Sessions.Add(s);
+                claimed.Add(id);
+            }
+            if (vm.Sessions.Count == 0) continue;
+            built.Add(Summarise(vm));
+        }
+
+        var loose = new SessionsProjectVm { Slug = "(그룹 없음)", Path = "" };
+        foreach (var kv in byId)
+            if (!claimed.Contains(kv.Key)) loose.Sessions.Add(kv.Value);
+        if (loose.Sessions.Count > 0) built.Add(Summarise(loose));
+
+        _ungroupedCount = loose.Sessions.Count;
+        _realGroupCount = built.Count - (loose.Sessions.Count > 0 ? 1 : 0);
+
+        var max = built.Count > 0 ? built.Max(b => b.Bytes) : 0;
+        foreach (var b in built.OrderByDescending(b => b.Bytes))
+        {
+            b.BarPct = max > 0 ? 100.0 * b.Bytes / max : 0;
+            Groups.Add(b);
+        }
+    }
+
+    private static SessionsProjectVm Summarise(SessionsProjectVm vm)
+    {
+        var ordered = vm.Sessions.OrderByDescending(s => s.ModifiedAt).ToList();
+        vm.Sessions.Clear();
+        foreach (var s in ordered) vm.Sessions.Add(s);
+        vm.Bytes = vm.Sessions.Sum(s => s.Bytes);
+        vm.SizeText = SessionStorageService.FormatBytes(vm.Bytes);
+        vm.SessionCount = vm.Sessions.Count;
+        vm.Oldest = vm.Sessions.Count > 0 ? vm.Sessions.Min(s => s.ModifiedAt).ToString("yyyy-MM-dd") : "—";
+        vm.Newest = vm.Sessions.Count > 0 ? vm.Sessions.Max(s => s.ModifiedAt).ToString("yyyy-MM-dd HH:mm") : "—";
+        return vm;
     }
 
     [RelayCommand]
     private void OpenProjectInExplorer()
     {
-        if (SelectedProject is null) return;
+        // A group bucket has no folder of its own — its sessions live across several projects.
+        if (SelectedProject is null || string.IsNullOrEmpty(SelectedProject.Path)) return;
         try
         {
             Process.Start(new ProcessStartInfo("explorer.exe", $"\"{SelectedProject.Path}\"") { UseShellExecute = true });
@@ -245,39 +380,45 @@ public partial class SessionsViewModel : ModuleBase
             msg, ConfirmKind.Danger);
         if (!confirm) return;
 
-        int okCount = 0;
-        int failCount = 0;
-        long freed = 0;
-        foreach (var f in files)
-        {
-            var b = SessionStorageService.DeleteSessionFile(f.Path);
-            if (b >= 0) { okCount++; freed += b; }
-            else failCount++;
-        }
-
-        Status = failCount == 0
-            ? $"deleted {okCount} file(s) · freed {SessionStorageService.FormatBytes(freed)}"
-            : $"deleted {okCount}, failed {failCount} · freed {SessionStorageService.FormatBytes(freed)}";
+        var r = SessionStorageService.DeleteSessionFiles(files.Select(f => f.Path));
+        Status = r.Failed == 0
+            ? $"휴지통으로 {r.Deleted}개 이동 · {SessionStorageService.FormatBytes(r.Freed)} 확보"
+            : $"휴지통으로 {r.Deleted}개 이동, {r.Failed}개 실패 · {SessionStorageService.FormatBytes(r.Freed)} 확보";
         Refresh();
     }
 
-    [RelayCommand]
+    /// <summary>
+    /// Pruning by age needs one folder to walk, and a group bucket has none — its sessions are
+    /// spread across projects. Rather than let the button open a danger dialog and then quietly
+    /// delete nothing, it is simply unavailable while the list is bucketed by group.
+    /// </summary>
+    private bool CanPruneProject()
+        => !GroupMode && SelectedProject is not null && !string.IsNullOrEmpty(SelectedProject.Path);
+
+    [RelayCommand(CanExecute = nameof(CanPruneProject))]
     private void PruneProject()
     {
-        if (SelectedProject is null) return;
+        if (SelectedProject is null || string.IsNullOrEmpty(SelectedProject.Path)) return;
         var days = PruneDays;
         if (days <= 0) { Status = "prune days must be > 0"; return; }
         var cutoff = DateTime.Now.AddDays(-days);
         var confirm = ConfirmDialog.Show(null,
             "Prune old sessions",
-            $"'{SelectedProject.Slug}' 프로젝트에서 {days}일 이상 지난 세션(.jsonl) 파일을 모두 삭제합니다.\n기준일: {cutoff:yyyy-MM-dd HH:mm}\n\n계속할까요?",
+            $"'{SelectedProject.Slug}' 프로젝트에서 {days}일 이상 지난 세션(.jsonl) 파일을 휴지통으로 보냅니다.\n기준일: {cutoff:yyyy-MM-dd HH:mm}\n\n계속할까요?",
             ConfirmKind.Danger);
         if (!confirm) return;
 
-        var (count, freed) = SessionStorageService.DeleteOlderThan(SelectedProject.Path, cutoff);
-        Status = $"pruned {count} files · freed {SessionStorageService.FormatBytes(freed)}";
+        var r = SessionStorageService.DeleteOlderThan(SelectedProject.Path, cutoff);
+        Status = PruneStatus(r);
         Refresh();
     }
+
+    /// <summary>Failures are always named. A prune that silently skipped locked files reported
+    /// space it never freed.</summary>
+    private static string PruneStatus(RecycleBin.Outcome r)
+        => r.Failed == 0
+            ? $"휴지통으로 {r.Deleted}개 이동 · {SessionStorageService.FormatBytes(r.Freed)} 확보"
+            : $"휴지통으로 {r.Deleted}개 이동, {r.Failed}개 실패(사용 중이거나 접근 불가) · {SessionStorageService.FormatBytes(r.Freed)} 확보";
 
     [RelayCommand]
     private void PruneAll()
@@ -287,12 +428,12 @@ public partial class SessionsViewModel : ModuleBase
         var cutoff = DateTime.Now.AddDays(-days);
         var confirm = ConfirmDialog.Show(null,
             "Prune ALL projects",
-            $"모든 프로젝트에서 {days}일 이상 지난 세션(.jsonl) 파일을 삭제합니다.\n기준일: {cutoff:yyyy-MM-dd HH:mm}\n\n이 작업은 되돌릴 수 없습니다.",
+            $"모든 프로젝트에서 {days}일 이상 지난 세션(.jsonl) 파일을 휴지통으로 보냅니다.\n기준일: {cutoff:yyyy-MM-dd HH:mm}\n\n이 작업은 되돌릴 수 없습니다.",
             ConfirmKind.Danger);
         if (!confirm) return;
 
-        var (count, freed) = SessionStorageService.DeleteAllOlderThan(cutoff);
-        Status = $"pruned {count} files · freed {SessionStorageService.FormatBytes(freed)}";
+        var r = SessionStorageService.DeleteAllOlderThan(cutoff);
+        Status = PruneStatus(r);
         Refresh();
     }
 }

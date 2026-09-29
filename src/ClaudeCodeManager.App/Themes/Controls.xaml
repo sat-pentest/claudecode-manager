@@ -135,6 +135,38 @@
         </Setter>
     </Style>
 
+    <!--
+        Shell divider. The shared splitter paints its whole width, which at four pixels plus the
+        rail's own border read as a heavy bar between two dark panels that barely differ in tone.
+        Here the paint and the grab area are separated: a single soft pixel is drawn, while the
+        control keeps its full width so it is still easy to catch.
+    -->
+    <Style x:Key="Splitter.Shell" TargetType="GridSplitter" BasedOn="{StaticResource {x:Type GridSplitter}}">
+        <Setter Property="Width" Value="4"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="VerticalAlignment" Value="Stretch"/>
+        <Setter Property="Cursor" Value="SizeWE"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="GridSplitter">
+                    <Grid Background="Transparent">
+                        <Rectangle x:Name="Line" Width="1" HorizontalAlignment="Left"
+                                   Fill="{StaticResource B.BorderSoft}"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Line" Property="Fill" Value="{StaticResource B.RustDim}"/>
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Line" Property="Fill" Value="{StaticResource B.Ember}"/>
+                            <Setter TargetName="Line" Property="Effect" Value="{StaticResource Glow.Soft}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="Splitter.Vertical" TargetType="GridSplitter" BasedOn="{StaticResource {x:Type GridSplitter}}">
         <Setter Property="Width" Value="4"/>
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
@@ -355,7 +387,87 @@
     </Style>
 
     <!-- Nav rail button -->
-    <Style x:Key="Btn.Nav" TargetType="ToggleButton">
+    <!--
+        Nav section header. Deliberately quieter than the rows it holds: it is a landmark to scan
+        past, not a destination. Smaller type, dim colour, and the only strong mark is the chevron,
+        which is the one part that carries state.
+    -->
+    <Style x:Key="Btn.NavGroup" TargetType="ToggleButton">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Pixel}"/>
+        <Setter Property="FontSize" Value="8"/>
+        <Setter Property="Foreground" Value="{StaticResource B.TextMuted}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Padding" Value="18,10,16,8"/>
+        <Setter Property="TextOptions.TextRenderingMode" Value="Aliased"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Grid x:Name="Root" Background="Transparent">
+                        <Border x:Name="HoverBg" Opacity="0" Background="{StaticResource B.BG.Hover}"/>
+                        <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Stretch"
+                                          Margin="{TemplateBinding Padding}"
+                                          TextOptions.TextRenderingMode="Aliased"
+                                          TextOptions.TextFormattingMode="Display"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource B.Ember}"/>
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="HoverBg"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="0.55" Duration="0:0:0.12"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="HoverBg"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="0" Duration="0:0:0.18"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                        </Trigger>
+                        <!--
+                            Brightness is the whole state signal now, so it transitions rather
+                            than snapping: a section that dims on its way shut reads as the same
+                            header changing, where an instant swap reads as a different one.
+                        -->
+                        <Trigger Property="IsChecked" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Root"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="1" Duration="0:0:0.20"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Root"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="0.48" Duration="0:0:0.20"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Btn.Nav" TargetType="Button">
         <Setter Property="FontFamily" Value="{StaticResource Font.Pixel}"/>
         <Setter Property="FontSize" Value="8"/>
         <Setter Property="Foreground" Value="{StaticResource B.TextMuted}"/>
@@ -364,7 +476,7 @@
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
         <Setter Property="HorizontalContentAlignment" Value="Left"/>
-        <Setter Property="Padding" Value="18,14"/>
+        <Setter Property="Padding" Value="18,8"/>
         <Setter Property="TextOptions.TextRenderingMode" Value="Aliased"/>
         <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
         <Setter Property="Template">
@@ -376,7 +488,7 @@
                     would compete with it, which is why there is no wash and no per-row indicator -
                     only the hover state and the label colour.
                 -->
-                <ControlTemplate TargetType="ToggleButton">
+                <ControlTemplate TargetType="Button">
                     <Grid>
                         <Border x:Name="HoverBg" Opacity="0" Margin="4,0,0,0"
                                 Background="{StaticResource B.BG.Hover}"/>
@@ -410,9 +522,10 @@
                             </Trigger.ExitActions>
                         </Trigger>
 
-                        <Trigger Property="IsChecked" Value="True">
+                        <!-- Selection is the shell's state, read from the module, never toggled here. -->
+                        <DataTrigger Binding="{Binding IsCurrent}" Value="True">
                             <Setter Property="Foreground" Value="{StaticResource B.Ember}"/>
-                        </Trigger>
+                        </DataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>

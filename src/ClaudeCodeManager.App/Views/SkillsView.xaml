@@ -35,10 +35,16 @@
                         ToolTip="Static rule scan over skill and agent definitions, with a review baseline">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="SECURITY" VerticalAlignment="Center"/>
-                        <Border Padding="5,1" Margin="8,0,0,0" VerticalAlignment="Center"
+                        <!--
+                            Press Start 2P draws taller than the box a 7px size reserves, so a one
+                            pixel gutter clipped the digit's foot. Eight is on the font's own grid
+                            and the gutter is wide enough to hold the glyph whole.
+                        -->
+                        <Border Padding="6,3" Margin="8,0,0,0" VerticalAlignment="Center"
                                 Background="{StaticResource B.Danger}"
                                 Visibility="{Binding HasSecurityAttention, Converter={x:Static vm:BoolToVisibility.Instance}}">
-                            <TextBlock Text="{Binding NeedsAttentionCount}" FontFamily="{StaticResource Font.Pixel}" FontSize="7"
+                            <TextBlock Text="{Binding NeedsAttentionCount}" FontFamily="{StaticResource Font.Pixel}" FontSize="8"
+                                       VerticalAlignment="Center"
                                        Foreground="{StaticResource B.Text}"/>
                         </Border>
                     </StackPanel>

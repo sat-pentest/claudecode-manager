@@ -14,7 +14,8 @@ public sealed class SessionFileInfo
     public long Size { get; set; }
     public DateTime ModifiedAt { get; set; }
     public bool IsJsonl { get; set; }
-    /// <summary>Claude Code's auto-generated title (from `{"type":"ai-title",...}` line in the JSONL).</summary>
+    /// <summary>The session's current name: the operator's own title when one was set, otherwise
+    /// the one Claude Code generated. Null when the session has neither.</summary>
     public string? AiTitle { get; set; }
     /// <summary>First user message text as fallback when AiTitle is absent.</summary>
     public string? FirstUserText { get; set; }
@@ -109,10 +110,12 @@ public static class SessionStorageService
             };
             if (isJsonl)
             {
-                var (aiTitle, firstUser) = TryReadJsonlMetadata(f);
-                sf.AiTitle = aiTitle;
+                var (title, firstUser) = TryReadJsonlMetadata(f);
+                sf.AiTitle = title;
                 sf.FirstUserText = firstUser;
-                sf.DisplayLabel = !string.IsNullOrWhiteSpace(aiTitle) ? aiTitle
+                // Titles are free text and some carry newlines, which would break the row layout;
+                // they go through the same flattening as the fallback rather than straight in.
+                sf.DisplayLabel = !string.IsNullOrWhiteSpace(title) ? Truncate(title!, 80)
                                 : !string.IsNullOrWhiteSpace(firstUser) ? Truncate(firstUser!, 70)
                                 : fi.Name;
             }
@@ -144,59 +147,61 @@ public static class SessionStorageService
     }
 
     /// <summary>
-    /// Delete a single session file. Returns bytes freed, or -1 on failure.
+    /// Send a single session file to the Recycle Bin. Returns bytes freed, or -1 on failure.
     /// </summary>
     public static long DeleteSessionFile(string path)
     {
-        try
-        {
-            if (!File.Exists(path)) return -1;
-            var size = new FileInfo(path).Length;
-            File.Delete(path);
-            return size;
-        }
-        catch { return -1; }
+        var r = RecycleBin.Send(path);
+        return r.Deleted > 0 ? r.Freed : -1;
     }
 
+    /// <summary>Send several session files to the Recycle Bin in one shell operation.</summary>
+    public static RecycleBin.Outcome DeleteSessionFiles(IEnumerable<string> paths)
+        => RecycleBin.Send(paths);
+
     /// <summary>
-    /// Delete all JSONL session files under a project older than the cutoff. Returns (deletedCount, bytesFreed).
+    /// Send every JSONL session under a project older than the cutoff to the Recycle Bin.
+    ///
+    /// Failures are counted, not swallowed. A locked file used to be skipped silently, so pruning
+    /// forty files while three were open reported "37 pruned" and never mentioned the rest — the
+    /// operator had no way to know the space was not actually reclaimed.
     /// </summary>
-    public static (int deleted, long freed) DeleteOlderThan(string projectDir, DateTime cutoff)
+    public static RecycleBin.Outcome DeleteOlderThan(string projectDir, DateTime cutoff)
     {
-        if (!Directory.Exists(projectDir)) return (0, 0);
-        int count = 0;
-        long freed = 0;
+        if (!Directory.Exists(projectDir)) return new RecycleBin.Outcome(0, 0, 0);
+
+        var doomed = new List<string>();
+        int unreadable = 0;
         foreach (var f in Directory.EnumerateFiles(projectDir, "*.jsonl", SearchOption.TopDirectoryOnly))
         {
             try
             {
-                var fi = new FileInfo(f);
-                if (fi.LastWriteTime >= cutoff) continue;
-                var size = fi.Length;
-                File.Delete(f);
-                count++;
-                freed += size;
+                if (new FileInfo(f).LastWriteTime >= cutoff) continue;
+                doomed.Add(f);
             }
-            catch { /* skip locked/inaccessible */ }
+            catch { unreadable++; }   // could not even be inspected — still a failure to report
         }
-        return (count, freed);
+
+        var r = RecycleBin.Send(doomed);
+        return unreadable == 0 ? r : r with { Failed = r.Failed + unreadable };
     }
 
     /// <summary>
     /// Delete all JSONL session files across every project older than the cutoff.
     /// </summary>
-    public static (int deleted, long freed) DeleteAllOlderThan(DateTime cutoff)
+    public static RecycleBin.Outcome DeleteAllOlderThan(DateTime cutoff)
     {
-        if (!Directory.Exists(ClaudePaths.ProjectsRoot)) return (0, 0);
-        int count = 0;
+        if (!Directory.Exists(ClaudePaths.ProjectsRoot)) return new RecycleBin.Outcome(0, 0, 0);
+        int count = 0, failed = 0;
         long freed = 0;
         foreach (var projectDir in Directory.EnumerateDirectories(ClaudePaths.ProjectsRoot))
         {
-            var (c, f) = DeleteOlderThan(projectDir, cutoff);
-            count += c;
-            freed += f;
+            var r = DeleteOlderThan(projectDir, cutoff);
+            count += r.Deleted;
+            freed += r.Freed;
+            failed += r.Failed;
         }
-        return (count, freed);
+        return new RecycleBin.Outcome(count, freed, failed);
     }
 
     /// <summary>
@@ -205,10 +210,83 @@ public static class SessionStorageService
     /// Also captures the first user message text as fallback. Bounded to the first
     /// ~200 lines so large sessions don't get slow-scanned.
     /// </summary>
-    public static (string? aiTitle, string? firstUserText) TryReadJsonlMetadata(string jsonlPath)
+    /// <summary>
+    /// Title and opening text for one session file.
+    ///
+    /// A session carries two kinds of title and they are not interchangeable:
+    /// <c>{"type":"custom-title","customTitle":…}</c> is the name the operator typed, and
+    /// <c>{"type":"ai-title","aiTitle":…}</c> is the one Claude Code generated. The typed name wins
+    /// whenever it exists — it is what the session is called everywhere else.
+    ///
+    /// Both records are appended, never edited, so a renamed session holds every name it has ever
+    /// had and only the last one is current. They are also written continuously as the session
+    /// runs, which puts the current pair at the very end of the file: measured across twenty live
+    /// sessions the last record sat at most 27 KB from EOF, so the tail is read rather than the
+    /// whole file, which for a 95 MB session is the difference between a list that opens and one
+    /// that does not.
+    /// </summary>
+    public static (string? title, string? firstUserText) TryReadJsonlMetadata(string jsonlPath)
     {
-        string? aiTitle = null;
-        string? firstUser = null;
+        return (ReadTitleFromTail(jsonlPath), ReadFirstUserText(jsonlPath));
+    }
+
+    /// <summary>How much of the end of the file to search for the current title.</summary>
+    private const int TitleTailBytes = 256 * 1024;
+
+    private static string? ReadTitleFromTail(string jsonlPath)
+    {
+        string? custom = null, ai = null;
+        try
+        {
+            using var stream = new FileStream(jsonlPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            var start = Math.Max(0, stream.Length - TitleTailBytes);
+            stream.Seek(start, SeekOrigin.Begin);
+            using var reader = new StreamReader(stream);
+
+            // The first line of a mid-file chunk is usually cut in half; it simply fails to parse.
+            var lines = new List<string>();
+            string? line;
+            while ((line = reader.ReadLine()) != null)
+            {
+                if (line.Length < 40) continue;
+                if (line.Contains("-title\"", StringComparison.Ordinal)) lines.Add(line);
+            }
+
+            // Walk backwards: the last of each kind is the one in force.
+            for (var i = lines.Count - 1; i >= 0 && (custom is null || ai is null); i--)
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(lines[i]);
+                    if (doc.RootElement.ValueKind != JsonValueKind.Object) continue;
+                    if (!doc.RootElement.TryGetProperty("type", out var t) || t.ValueKind != JsonValueKind.String) continue;
+
+                    switch (t.GetString())
+                    {
+                        case "custom-title" when custom is null
+                            && doc.RootElement.TryGetProperty("customTitle", out var ct)
+                            && ct.ValueKind == JsonValueKind.String:
+                            custom = ct.GetString();
+                            break;
+                        case "ai-title" when ai is null
+                            && doc.RootElement.TryGetProperty("aiTitle", out var at)
+                            && at.ValueKind == JsonValueKind.String:
+                            ai = at.GetString();
+                            break;
+                    }
+                }
+                catch { /* truncated or malformed line — skip */ }
+            }
+        }
+        catch { /* file locked or permissions — best-effort */ }
+
+        return !string.IsNullOrWhiteSpace(custom) ? custom
+             : !string.IsNullOrWhiteSpace(ai) ? ai
+             : null;
+    }
+
+    private static string? ReadFirstUserText(string jsonlPath)
+    {
         try
         {
             using var stream = new FileStream(jsonlPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
@@ -219,37 +297,24 @@ public static class SessionStorageService
             {
                 lineCount++;
                 if (string.IsNullOrWhiteSpace(line)) continue;
-
-                // Fast-path early filter — most lines don't contain either marker
-                bool maybeTitle = aiTitle is null && line.Contains("\"ai-title\"", StringComparison.Ordinal);
-                bool maybeUser = firstUser is null && line.Contains("\"type\":\"user\"", StringComparison.Ordinal);
-                if (!maybeTitle && !maybeUser) continue;
+                if (!line.Contains("\"type\":\"user\"", StringComparison.Ordinal)) continue;
 
                 try
                 {
                     using var doc = JsonDocument.Parse(line);
                     if (doc.RootElement.ValueKind != JsonValueKind.Object) continue;
-
-                    if (maybeTitle
-                        && doc.RootElement.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String && t.GetString() == "ai-title"
-                        && doc.RootElement.TryGetProperty("aiTitle", out var at) && at.ValueKind == JsonValueKind.String)
-                    {
-                        aiTitle = at.GetString();
-                    }
-                    else if (maybeUser
-                        && doc.RootElement.TryGetProperty("type", out var tu) && tu.ValueKind == JsonValueKind.String && tu.GetString() == "user"
+                    if (doc.RootElement.TryGetProperty("type", out var tu) && tu.ValueKind == JsonValueKind.String && tu.GetString() == "user"
                         && doc.RootElement.TryGetProperty("message", out var msg) && msg.ValueKind == JsonValueKind.Object)
                     {
-                        firstUser = ExtractFirstUserText(msg);
+                        var text = ExtractFirstUserText(msg);
+                        if (!string.IsNullOrWhiteSpace(text)) return text;
                     }
                 }
                 catch { /* malformed line — skip */ }
-
-                if (aiTitle is not null && firstUser is not null) break;
             }
         }
         catch { /* file locked or permissions — best-effort */ }
-        return (aiTitle, firstUser);
+        return null;
     }
 
     private static string? ExtractFirstUserText(JsonElement message)
