@@ -61,6 +61,7 @@ public static class SkillLoader
                 Name = !string.IsNullOrEmpty(fm.Name) ? fm.Name! : Path.GetFileName(dir),
                 Description = fm.Description,
                 Model = fm.Model,
+                Category = fm.Category,
                 Tools = fm.Tools,
                 Triggers = ExtractTriggers(fm.Description),
                 Body = body,

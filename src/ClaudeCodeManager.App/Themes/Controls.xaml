@@ -467,6 +467,47 @@
         </Setter>
     </Style>
 
+    <!--
+        SKILLS list section header. Unlike the nav rail's near-invisible group header, this one is
+        a filled bar so it reads as a header standing over its rows rather than a separator lost
+        between them: sunken background, a rust accent on the left edge, ember pixel title, and a
+        chevron that turns down when open. The row content (title + count + chevron) is supplied by
+        the caller; the style only paints the bar and the states.
+    -->
+    <Style x:Key="Btn.SkillGroup" TargetType="ToggleButton">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Pixel}"/>
+        <Setter Property="FontSize" Value="8"/>
+        <Setter Property="Foreground" Value="{StaticResource B.Ember}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Margin" Value="0,4,0,0"/>
+        <Setter Property="TextOptions.TextRenderingMode" Value="Aliased"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Bar" Background="{StaticResource B.BG.Sunken}"
+                            BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="0,0,0,1">
+                        <ContentPresenter VerticalAlignment="Center"
+                                          Margin="13,7,10,7"
+                                          TextOptions.TextRenderingMode="Aliased"
+                                          TextOptions.TextFormattingMode="Display"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bar" Property="Background" Value="{StaticResource B.BG.Hover}"/>
+                        </Trigger>
+                        <!-- Shut section dims its accent so open ones read as the live area. -->
+                        <Trigger Property="IsChecked" Value="False">
+                            <Setter Property="Foreground" Value="{StaticResource B.TextMuted}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="Btn.Nav" TargetType="Button">
         <Setter Property="FontFamily" Value="{StaticResource Font.Pixel}"/>
         <Setter Property="FontSize" Value="8"/>

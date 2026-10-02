@@ -60,39 +60,137 @@
                 <ColumnDefinition Width="*" MinWidth="420"/>
             </Grid.ColumnDefinitions>
 
-            <!-- LEFT: skill list (MemoryView entry list 스타일) -->
+            <!-- LEFT: grouped skill list -->
             <DockPanel Background="{StaticResource B.BG.Panel}">
-                <TextBlock DockPanel.Dock="Top" Text="◢ INSTALLED" Style="{StaticResource T.Pixel.Section}" Margin="16,14,0,8"/>
-                <ListBox ItemsSource="{Binding Skills}" SelectedItem="{Binding Selected}" Margin="8,0,8,8" Background="{StaticResource B.BG.Sunken}">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="●" Width="14" VerticalAlignment="Center"
-                                               svc:PulseBehavior.IsActive="{Binding Disabled, Converter={x:Static vm:InverseBool.Instance}}">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Foreground" Value="{StaticResource B.Success}"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Disabled}" Value="True">
-                                                        <Setter Property="Foreground" Value="{StaticResource B.TextDim}"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <TextBlock Text="{Binding Name}" FontFamily="{StaticResource Font.Mono}" FontSize="14" VerticalAlignment="Center"/>
-                                    <Border Padding="5,4,5,4" Margin="8,0,0,0" VerticalAlignment="Center"
-                                            Background="{StaticResource B.RustDim}"
-                                            Visibility="{Binding Disabled, Converter={x:Static vm:BoolToVisibility.Instance}}">
-                                        <TextBlock Text="OFF" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Text}" VerticalAlignment="Center"/>
+                <DockPanel.Resources>
+                    <!-- One skill row, shared by every group's inner list. -->
+                    <DataTemplate x:Key="SkillRowTemplate">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="●" Width="14" VerticalAlignment="Center"
+                                           svc:PulseBehavior.IsActive="{Binding Disabled, Converter={x:Static vm:InverseBool.Instance}}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{StaticResource B.Success}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Disabled}" Value="True">
+                                                    <Setter Property="Foreground" Value="{StaticResource B.TextDim}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Text="{Binding Name}" FontFamily="{StaticResource Font.Mono}" FontSize="14" VerticalAlignment="Center"/>
+                                <Border Padding="5,4,5,4" Margin="8,0,0,0" VerticalAlignment="Center"
+                                        Background="{StaticResource B.RustDim}"
+                                        Visibility="{Binding Disabled, Converter={x:Static vm:BoolToVisibility.Instance}}">
+                                    <TextBlock Text="OFF" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Text}" VerticalAlignment="Center"/>
+                                </Border>
+                            </StackPanel>
+                            <TextBlock helper:MarkdownInlineHelper.Text="{Binding Description}" Style="{StaticResource T.Muted}" FontSize="12" Margin="14,3,4,0" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </DockPanel.Resources>
+
+                <!-- Header: title + GROUP BY axis selector -->
+                <Grid DockPanel.Dock="Top" Margin="16,14,12,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="◢ INSTALLED" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="GROUP" Style="{StaticResource T.Pixel.Section}" FontSize="6" Foreground="{StaticResource B.TextDim}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ComboBox ItemsSource="{Binding GroupAxes}"
+                                  SelectedItem="{Binding GroupAxis, Mode=TwoWay}"
+                                  Width="110" FontFamily="{StaticResource Font.Mono}" FontSize="11"
+                                  ToolTip="좌측 목록 그룹 기준 · CATEGORY(용도) / STATUS(활성) / NONE(평면)"/>
+                    </StackPanel>
+                </Grid>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="8,0,8,8">
+                    <ItemsControl ItemsSource="{Binding Groups}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="0,0,0,2">
+                                    <!-- Section header — a filled bar, click folds the group. -->
+                                    <ToggleButton Style="{StaticResource Btn.SkillGroup}"
+                                                  IsChecked="{Binding IsExpanded, Mode=TwoWay}"
+                                                  AutomationProperties.Name="{Binding Title}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <!-- Chevron: down when open, right when shut. -->
+                                            <Path x:Name="Chevron" Width="7" Height="7" Margin="0,0,9,0"
+                                                  VerticalAlignment="Center" Data="M0,0 L7,3.5 L0,7 Z"
+                                                  Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+                                                  RenderTransformOrigin="0.5,0.5">
+                                                <Path.RenderTransform>
+                                                    <RotateTransform Angle="0"/>
+                                                </Path.RenderTransform>
+                                            </Path>
+                                            <TextBlock Grid.Column="1" Text="{Binding Title}" VerticalAlignment="Center"
+                                                       FontFamily="{StaticResource Font.Pixel}" FontSize="9"
+                                                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"/>
+                                            <!--
+                                                Count pill. Press Start 2P draws taller than a 7px
+                                                box reserves, so the digit's top was clipping; 8px is
+                                                on the font's grid and the gutter holds it whole.
+                                            -->
+                                            <Border Grid.Column="2" Background="{StaticResource B.RustDim}" Padding="7,3,7,4" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Count}" FontFamily="{StaticResource Font.Pixel}" FontSize="8"
+                                                           Foreground="{StaticResource B.Text}" VerticalAlignment="Center"/>
+                                            </Border>
+                                        </Grid>
+                                    </ToggleButton>
+
+                                    <!-- Body — folds via the shared height animation. Inner list binds
+                                         its selection to the module's one Selected, so selecting a skill
+                                         in any group clears the others without coordination. Inner
+                                         scrolling is off: the outer ScrollViewer is the only scroller,
+                                         and the list sizes to its content so the fold measures right. -->
+                                    <Border ClipToBounds="True" local:NavGroupAnimation.IsOpen="{Binding IsExpanded}">
+                                        <ListBox ItemsSource="{Binding Skills}"
+                                                 SelectedItem="{Binding DataContext.Selected, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"
+                                                 Background="Transparent" BorderThickness="0"
+                                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                 ItemTemplate="{StaticResource SkillRowTemplate}"/>
                                     </Border>
                                 </StackPanel>
-                                <TextBlock helper:MarkdownInlineHelper.Text="{Binding Description}" Style="{StaticResource T.Muted}" FontSize="12" Margin="14,3,4,0" TextTrimming="CharacterEllipsis"/>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+
+                                <DataTemplate.Triggers>
+                                    <!-- Chevron reflects fold state, correct on first load: entering
+                                         the expanded state rotates to 90°, and a group that starts
+                                         collapsed keeps the default 0° (pointing right). -->
+                                    <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                        <DataTrigger.EnterActions>
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation Storyboard.TargetName="Chevron"
+                                                                     Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                                                     To="90" Duration="0:0:0.16"/>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </DataTrigger.EnterActions>
+                                        <DataTrigger.ExitActions>
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation Storyboard.TargetName="Chevron"
+                                                                     Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                                                     To="0" Duration="0:0:0.16"/>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </DataTrigger.ExitActions>
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
             </DockPanel>
 
             <GridSplitter Grid.Column="1" Style="{StaticResource Splitter.Vertical}"/>
@@ -230,13 +328,25 @@
                             </Grid.RowDefinitions>
 
                             <TextBlock Text="MODEL" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding ModelOptions}"
-                                      SelectedItem="{Binding ModelChoice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                      IsEditable="True"
-                                      Width="220" HorizontalAlignment="Left"
-                                      FontFamily="{StaticResource Font.Mono}" FontSize="13"
-                                      ToolTip="Model selection. Change persists to SKILL.md immediately (snapshot created). Custom IDs supported."/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <ComboBox ItemsSource="{Binding ModelOptions}"
+                                          SelectedItem="{Binding ModelChoice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          IsEditable="True"
+                                          Width="180"
+                                          FontFamily="{StaticResource Font.Mono}" FontSize="13"
+                                          ToolTip="Model selection. Change persists to SKILL.md immediately (snapshot created). Custom IDs supported."/>
+                                <TextBlock Text="CATEGORY" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center" Margin="18,0,8,0"/>
+                                <!--
+                                    Group override. "(auto)" clears the frontmatter field and lets the
+                                    heuristic decide; anything else pins the skill to that group and
+                                    writes category: to SKILL.md.
+                                -->
+                                <ComboBox ItemsSource="{Binding CategoryOptions}"
+                                          SelectedItem="{Binding CategoryChoice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          Width="130"
+                                          FontFamily="{StaticResource Font.Mono}" FontSize="13"
+                                          ToolTip="그룹 카테고리. (auto)=휴리스틱 자동 · 지정 시 SKILL.md 에 category 로 저장"/>
+                            </StackPanel>
 
                             <TextBlock Grid.Row="1" Text="TOOLS" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Top" Margin="0,10,0,0"/>
                             <ItemsControl Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Selected.Tools}" Margin="0,8,0,0">

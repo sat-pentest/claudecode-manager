@@ -10,6 +10,8 @@ public sealed class Skill
     public string Name { get; set; } = "";
     public string? Description { get; set; }
     public string? Model { get; set; }
+    /// <summary>Frontmatter category override (null = grouped by heuristic).</summary>
+    public string? Category { get; set; }
     public List<string> Tools { get; set; } = new();
     public List<string> Triggers { get; set; } = new();
     public bool HasTriggers => Triggers.Count > 0;

@@ -45,6 +45,7 @@ public static class FrontmatterParser
                         case "description": fm.Description = ScalarValue(kv.Value); break;
                         case "type": fm.Type = ScalarValue(kv.Value); break;
                         case "model": fm.Model = ScalarValue(kv.Value); break;
+                        case "category": fm.Category = ScalarValue(kv.Value); break;
                         case "tools":
                             if (kv.Value is YamlSequenceNode seq)
                                 fm.Tools = seq.Children.OfType<YamlScalarNode>().Select(n => n.Value ?? "").Where(s => !string.IsNullOrEmpty(s)).ToList();
