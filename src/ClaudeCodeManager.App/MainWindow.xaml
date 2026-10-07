@@ -21,9 +21,10 @@
         BorderThickness="1"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
-        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextFormattingMode="Ideal"
         TextOptions.TextRenderingMode="ClearType"
-        TextOptions.TextHintingMode="Fixed">
+        TextOptions.TextHintingMode="Fixed"
+        FontFamily="{StaticResource Font.UI}" FontSize="13">
 
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="62"
@@ -144,7 +145,7 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0,0,0">
-                    <Image Source="Assets/icon.ico" Width="34" Height="34" Margin="0,0,14,0"/>
+                    <Image Source="Assets/icon.ico" Width="32" Height="32" Margin="0,0,12,0" VerticalAlignment="Center"/>
                     <StackPanel VerticalAlignment="Center">
                         <!-- CLAUDECODE with scanning ember glow behind (clipped to text width so glow stops at E edge) -->
                         <Grid>
@@ -152,7 +153,7 @@
                             <Border ClipToBounds="True"
                                     HorizontalAlignment="Left" VerticalAlignment="Center"
                                     Width="{Binding ActualWidth, ElementName=TitleText, Converter={x:Static vm:SubtractDoubleConverter.Instance}, ConverterParameter=2}"
-                                    Height="28">
+                                    Height="24">
                                 <Border.OpacityMask>
                                     <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
                                         <GradientStop Color="Transparent" Offset="0"/>
@@ -183,7 +184,7 @@
                                     </Ellipse.RenderTransform>
                                 </Ellipse>
                             </Border>
-                            <TextBlock x:Name="TitleText" Text="CLAUDECODE" Style="{StaticResource T.Pixel.Title}" FontSize="15" VerticalAlignment="Center">
+                            <TextBlock x:Name="TitleText" Text="CLAUDECODE" Style="{StaticResource T.Pixel.Title}" FontSize="21" VerticalAlignment="Center">
                                 <TextBlock.Effect>
                                     <DropShadowEffect x:Name="TitleGlow" Color="{StaticResource C.Ember}"
                                                       BlurRadius="14" ShadowDepth="0" Opacity="0.75"/>
@@ -242,7 +243,7 @@
                                 </EventTrigger>
                             </Grid.Triggers>
                         </Grid>
-                        <TextBlock Text="MANAGER  ▌  v1.0" Style="{StaticResource T.Pixel.Section}" FontSize="8" Margin="0,3,0,0"/>
+                        <TextBlock Text="MANAGER · v2.0" Style="{StaticResource T.Label}" Margin="1,-1,0,0"/>
                     </StackPanel>
                 </StackPanel>
 
@@ -264,7 +265,7 @@
                         </ControlTemplate>
                     </Button.Template>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Ellipse Width="9" Height="9" Margin="0,0,8,0"
+                        <Ellipse Width="7" Height="7" Margin="0,0,10,0"
                                  svc:PulseBehavior.IsActive="{Binding ClaudeRootExists}">
                             <Ellipse.Style>
                                 <Style TargetType="Ellipse">
@@ -283,6 +284,19 @@
                 </Button>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="ENV" Style="{StaticResource T.Mono}" FontSize="12"
+                               Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <ComboBox ItemsSource="{Binding Environments}" SelectedItem="{Binding ActiveEnvironment, Mode=TwoWay}"
+                              DisplayMemberPath="Name" Width="124" Margin="0,0,8,0" VerticalAlignment="Center"
+                              shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                              ToolTip="활성 Claude 설정 환경 전환 — PENTEST(~/.claude) · STUDIO(~/.claude-studio). 전환 시 전 모듈이 그 환경을 바라봄"/>
+                    <ComboBox ItemsSource="{Binding LaunchTargets}" SelectedItem="{Binding LaunchTarget, Mode=TwoWay}"
+                              Width="78" Margin="0,0,6,0" VerticalAlignment="Center"
+                              shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                              ToolTip="세션 실행 대상 — CLI(터미널) 또는 VSCode(편집기 창). VSCode는 새 인스턴스에서만 환경변수가 확실히 적용됨"/>
+                    <Button Style="{StaticResource Btn.Pixel}" Content="LAUNCH" Command="{Binding LaunchSessionCommand}"
+                            Margin="0,0,12,0" shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                            ToolTip="선택한 대상(CLI/VSCode)으로 활성 환경 세션 실행 (CLAUDE_CONFIG_DIR 세팅)"/>
                     <Button Style="{StaticResource Btn.Pixel}" Content="SNAPSHOT" Command="{Binding QuickSnapshotCommand}" Margin="0,0,12,0" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
                     <Button Style="{StaticResource Btn.Caption}" Content="—" Click="Caption_Minimize" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
                     <Button Style="{StaticResource Btn.Caption}" Content="▢" Click="Caption_MaxRestore" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
@@ -294,7 +308,7 @@
         <!-- BODY -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="186" MinWidth="120"/>
+                <ColumnDefinition Width="208" MinWidth="140"/>
                 <ColumnDefinition Width="4"/>
                 <ColumnDefinition Width="*" MinWidth="480"/>
             </Grid.ColumnDefinitions>
@@ -311,25 +325,25 @@
                         folded: a result the operator cannot see is the same as no result.
                     -->
                     <Border DockPanel.Dock="Bottom" Margin="14,10,14,12" Padding="8,5"
-                            Background="{StaticResource B.BG.Sunken}"
+                            Background="{StaticResource B.BG.Sunken}" CornerRadius="{StaticResource R.Sm}"
                             BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="⌕" FontFamily="{StaticResource Font.CRT}" FontSize="18"
+                            <TextBlock Text="⌕" FontFamily="{StaticResource Font.UI}" FontSize="15"
                                        Foreground="{StaticResource B.RustDim}"
                                        Margin="0,0,7,0" VerticalAlignment="Center"/>
                             <Grid Grid.Column="1">
                                 <TextBox x:Name="ModuleFilterBox"
                                          Text="{Binding ModuleFilter, UpdateSourceTrigger=PropertyChanged}"
                                          Background="Transparent" BorderThickness="0" Padding="0"
-                                         FontSize="12" VerticalAlignment="Center"
+                                         FontSize="13" VerticalAlignment="Center"
                                          AutomationProperties.Name="MODULE FILTER"/>
                                 <!-- Placeholder: only while the box is empty and unfocused. -->
                                 <TextBlock Text="모듈 검색…" IsHitTestVisible="False"
-                                           FontSize="12" VerticalAlignment="Center"
+                                           FontSize="13" VerticalAlignment="Center"
                                            Foreground="{StaticResource B.TextDim}">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
@@ -427,7 +441,7 @@
                         MainWindow.xaml.cs drives its offset. Hit testing is off so the rows keep
                         receiving clicks through it.
                     -->
-                    <Border x:Name="NavRail" Width="4" Height="0"
+                    <Border x:Name="NavRail" Width="3" Height="0" CornerRadius="1.5"
                             HorizontalAlignment="Left" VerticalAlignment="Top"
                             Background="{StaticResource B.Rust}"
                             Effect="{StaticResource Glow.Rust}"
@@ -449,7 +463,7 @@
             <GridSplitter Grid.Column="1" Style="{StaticResource Splitter.Shell}"/>
 
             <!-- CONTENT -->
-            <ContentControl Grid.Column="2" Content="{Binding Current}" Margin="0"/>
+            <ContentControl x:Name="ContentHost" Grid.Column="2" Content="{Binding Current}" Margin="0"/>
         </Grid>
 
         <!-- STATUS BAR -->
@@ -463,9 +477,9 @@
                      so a plain VerticalAlignment=Center makes them look "raised". Explicit
                      Padding pushes them down a few pixels for optical center in the 28px bar. -->
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0,0,0">
-                    <TextBlock Text="{Binding Current.Title}" Style="{StaticResource T.Pixel.Section}" FontSize="8"
-                               VerticalAlignment="Center" Padding="0,4,0,0"/>
-                    <TextBlock Text="  ▌  " Foreground="{StaticResource B.RustDim}" VerticalAlignment="Center" Margin="6,0"/>
+                    <TextBlock Text="{Binding Current.Title}" Style="{StaticResource T.Pixel.Section}" FontSize="11.5"
+                               VerticalAlignment="Center"/>
+                    <Rectangle Width="1" Height="12" Fill="{StaticResource B.BorderStrong}" VerticalAlignment="Center" Margin="12,0"/>
                     <TextBlock Text="{Binding Current.Status}" Style="{StaticResource T.Mono}" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center"/>
                 </StackPanel>
                 <TextBlock Grid.Column="1" Text="{Binding ExternalChangeNotice}" Style="{StaticResource T.Mono}" Foreground="{StaticResource B.Warn}" VerticalAlignment="Center" Margin="0,0,20,0"/>

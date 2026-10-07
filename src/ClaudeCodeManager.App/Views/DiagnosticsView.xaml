@@ -18,7 +18,7 @@
                 BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
             <StackPanel Orientation="Horizontal">
                 <Path Style="{StaticResource Icon.Module}" Data="{Binding Glyph, Converter={x:Static vm:StringToGeometry.Instance}}"/>
-                <TextBlock Text="DIAGNOSTICS" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
+                <TextBlock Text="DIAGNOSTICS" Style="{StaticResource T.Module.Title}" VerticalAlignment="Center"/>
             </StackPanel>
         </Border>
 
@@ -37,7 +37,7 @@
                             <CheckBox Content="warnings" IsChecked="{Binding ShowWarning}" Foreground="{StaticResource B.Warn}" Margin="12,0,0,0" VerticalAlignment="Center"/>
                             <CheckBox Content="info" IsChecked="{Binding ShowInfo}" Margin="12,0,0,0" VerticalAlignment="Center"/>
                             <TextBox Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}" Width="260" Margin="20,0,0,0"/>
-                            <TextBlock Text="{Binding Status}" Style="{StaticResource T.Muted}" FontSize="12" Margin="20,0,0,0"
+                            <TextBlock Text="{Binding Status}" Style="{StaticResource T.Muted}" FontSize="13" Margin="20,0,0,0"
                                        VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
                     </Border>
@@ -56,14 +56,14 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
-                                        <TextBlock Text="{Binding Severity}" FontFamily="{StaticResource Font.Pixel}" FontSize="9"
+                                        <TextBlock Text="{Binding Severity}" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="12"
                                                    Foreground="{Binding Severity, Converter={x:Static vm:SeverityToBrush.Instance}}"/>
-                                        <TextBlock Text="{Binding Category}" Style="{StaticResource T.Muted}" FontSize="12" Margin="0,3,0,0"/>
+                                        <TextBlock Text="{Binding Category}" Style="{StaticResource T.Muted}" FontSize="13" Margin="0,3,0,0"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1">
-                                        <TextBlock Text="{Binding Message}" Style="{StaticResource T.Body}" FontSize="14" TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding File}" Style="{StaticResource T.Mono}" FontSize="12" Foreground="{StaticResource B.TextMuted}" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="{Binding Hint}" Style="{StaticResource T.Muted}" FontSize="13" Margin="0,3,0,0" Visibility="{Binding Hint, Converter={x:Static vm:NullToVisibility.Instance}}"/>
+                                        <TextBlock Text="{Binding Message}" Style="{StaticResource T.Body}" FontSize="15" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding File}" Style="{StaticResource T.Mono}" FontSize="13" Foreground="{StaticResource B.TextMuted}" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Hint}" Style="{StaticResource T.Muted}" FontSize="14" Margin="0,3,0,0" Visibility="{Binding Hint, Converter={x:Static vm:NullToVisibility.Instance}}"/>
                                     </StackPanel>
                                 </Grid>
                             </DataTemplate>
@@ -85,19 +85,19 @@
                             <Button Content="SCAN" Style="{StaticResource Btn.Pixel.Primary}"
                                     Command="{Binding RunSecurityScanCommand}"
                                     IsEnabled="{Binding IsScanning, Converter={x:Static vm:InverseBool.Instance}}"/>
-                            <TextBlock Text="scanning…" Style="{StaticResource T.Muted}" FontSize="12" Margin="12,0,0,0" VerticalAlignment="Center"
+                            <TextBlock Text="scanning…" Style="{StaticResource T.Muted}" FontSize="13" Margin="12,0,0,0" VerticalAlignment="Center"
                                        Foreground="{StaticResource B.Ember}"
                                        Visibility="{Binding IsScanning, Converter={x:Static vm:BoolToVisibility.Instance}}"/>
                             <CheckBox Content="show resolved" IsChecked="{Binding ShowResolvedChecks}" Margin="20,0,0,0" VerticalAlignment="Center"
                                       ToolTip="Include passing checks, accepted risks, and probes that could not be determined"/>
-                            <TextBlock Text="{Binding SecurityStatus}" Style="{StaticResource T.Muted}" FontSize="12" Margin="20,0,0,0"
+                            <TextBlock Text="{Binding SecurityStatus}" Style="{StaticResource T.Muted}" FontSize="13" Margin="20,0,0,0"
                                        VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
                     </Border>
 
                     <!-- Empty state -->
                     <TextBlock DockPanel.Dock="Top" Margin="24,28,24,0" TextWrapping="Wrap"
-                               Style="{StaticResource T.Muted}" FontSize="13"
+                               Style="{StaticResource T.Muted}" FontSize="14"
                                Visibility="{Binding HasSecurityResults, Converter={x:Static vm:InverseBoolToVisibility.Instance}}"
                                Text="Press SCAN to probe host controls, the agent's permission surface, MCP endpoints, secrets in auto-loaded context, and the engagement safety layer. Read-only — nothing here changes machine state."/>
 
@@ -115,33 +115,33 @@
 
                                     <!-- verdict + category -->
                                     <StackPanel>
-                                        <TextBlock Text="{Binding EffectiveStatus}" FontFamily="{StaticResource Font.Pixel}" FontSize="9"
+                                        <TextBlock Text="{Binding EffectiveStatus}" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="12"
                                                    Foreground="{Binding EffectiveStatus, Converter={x:Static vm:CheckStatusToBrush.Instance}}"/>
-                                        <TextBlock Text="{Binding Severity}" Style="{StaticResource T.Muted}" FontSize="11" Margin="0,4,0,0"/>
-                                        <TextBlock Text="{Binding Category}" Style="{StaticResource T.Muted}" FontSize="11" Margin="0,2,0,0"/>
+                                        <TextBlock Text="{Binding Severity}" Style="{StaticResource T.Muted}" FontSize="12" Margin="0,4,0,0"/>
+                                        <TextBlock Text="{Binding Category}" Style="{StaticResource T.Muted}" FontSize="12" Margin="0,2,0,0"/>
                                     </StackPanel>
 
                                     <!-- finding -->
                                     <StackPanel Grid.Column="1" Margin="0,0,12,0">
-                                        <TextBlock Text="{Binding Name}" Style="{StaticResource T.Body}" FontSize="14" TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding Detail}" Style="{StaticResource T.Muted}" FontSize="12" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding Name}" Style="{StaticResource T.Body}" FontSize="15" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding Detail}" Style="{StaticResource T.Muted}" FontSize="13" Margin="0,3,0,0" TextWrapping="Wrap"/>
 
                                         <!-- remediation -->
                                         <Border Margin="0,6,0,0" Padding="8,6" Background="{StaticResource B.BG.Panel}"
                                                 BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1"
                                                 Visibility="{Binding Fix, Converter={x:Static vm:StringNotEmptyToVisibility.Instance}}">
-                                            <TextBlock Text="{Binding Fix}" Style="{StaticResource T.Mono}" FontSize="11"
+                                            <TextBlock Text="{Binding Fix}" Style="{StaticResource T.Mono}" FontSize="12"
                                                        Foreground="{StaticResource B.TextDim}" TextWrapping="Wrap"/>
                                         </Border>
 
                                         <!-- accepted-risk rationale -->
-                                        <TextBlock Margin="0,6,0,0" FontSize="11" TextWrapping="Wrap"
+                                        <TextBlock Margin="0,6,0,0" FontSize="12" TextWrapping="Wrap"
                                                    Style="{StaticResource T.Muted}"
                                                    Foreground="{StaticResource B.Ember}"
                                                    Visibility="{Binding AcceptedNote, Converter={x:Static vm:StringNotEmptyToVisibility.Instance}}">
                                             <Run Text="ACCEPTED · "/><Run Text="{Binding AcceptedNote, Mode=OneWay}"/>
                                         </TextBlock>
-                                        <TextBlock Text="{Binding Id}" Style="{StaticResource T.Mono}" FontSize="10"
+                                        <TextBlock Text="{Binding Id}" Style="{StaticResource T.Mono}" FontSize="12"
                                                    Foreground="{StaticResource B.TextMuted}" Margin="0,4,0,0"/>
                                     </StackPanel>
 

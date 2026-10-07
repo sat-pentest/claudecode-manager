@@ -57,7 +57,7 @@ public partial class AgentsViewModel : ModuleBase
     partial void OnSelectedChanged(AgentDefinition? value)
     {
         _suppressModelSave = true;
-        ModelChoice = string.IsNullOrWhiteSpace(value?.Model) ? "(inherit)" : value.Model!;
+        ModelChoice = ModelAlias.ToChoice(value?.Model);
         _suppressModelSave = false;
     }
 
@@ -70,7 +70,7 @@ public partial class AgentsViewModel : ModuleBase
     private async Task SaveModelAsync(string choice)
     {
         if (Selected is null) return;
-        string? newModel = choice == "(inherit)" ? null : choice;
+        string? newModel = ModelAlias.ToFrontmatter(choice);
         var cur = string.IsNullOrWhiteSpace(Selected.Model) ? null : Selected.Model;
         if (cur == newModel) return;
 

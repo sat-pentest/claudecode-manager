@@ -7,7 +7,7 @@ namespace ClaudeCodeManager.Core.Services;
 
 public sealed class FileWatcherHub : IDisposable
 {
-    private readonly FileSystemWatcher? _watcher;
+    private FileSystemWatcher? _watcher;
 
     /// <summary>Directories whose events are currently the app's own doing, with the time each
     /// mute lapses. Without this every save/toggle bounced back as an "external change" and made
@@ -16,7 +16,21 @@ public sealed class FileWatcherHub : IDisposable
 
     public event Action<string>? Changed;
 
-    public FileWatcherHub()
+    public FileWatcherHub() => Attach();
+
+    /// <summary>
+    /// Re-aim the watcher at the current <see cref="ClaudePaths.ClaudeRoot"/>. Called after an
+    /// environment switch so file events come from the newly selected config directory, not the old.
+    /// </summary>
+    public void Repoint()
+    {
+        _watcher?.Dispose();
+        _watcher = null;
+        _muted.Clear();
+        Attach();
+    }
+
+    private void Attach()
     {
         if (!Directory.Exists(ClaudePaths.ClaudeRoot)) return;
         _watcher = new FileSystemWatcher(ClaudePaths.ClaudeRoot)

@@ -17,8 +17,9 @@
         BorderThickness="1"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
-        TextOptions.TextFormattingMode="Display"
-        TextOptions.TextRenderingMode="ClearType">
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="ClearType"
+        FontFamily="{StaticResource Font.UI}" FontSize="13">
     <!-- CaptionHeight=0 disables the default WPF caption band (was showing as a red stripe
          at the top); ResizeBorderThickness gives users a grabbable edge for resizing;
          GlassFrameThickness=0 removes the DWM glass edge. -->
@@ -43,23 +44,22 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="▧" Foreground="{StaticResource B.Ember}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBlock Text="▧" Foreground="{StaticResource B.Ember}" FontSize="13" VerticalAlignment="Center" Margin="0,0,10,0"/>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <TextBlock Text="EDIT HARNESS FLOWS"
-                               FontFamily="{StaticResource Font.Pixel}" FontSize="10"
+                               FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="13"
                                Foreground="{StaticResource B.Ember}"
                                Effect="{StaticResource Glow.Soft}"
-                               TextOptions.TextRenderingMode="Aliased"
-                               TextOptions.TextFormattingMode="Display"/>
+                               TextOptions.TextFormattingMode="Ideal"/>
                     <TextBlock x:Name="PathText"
-                               FontFamily="{StaticResource Font.Mono}" FontSize="10"
+                               FontFamily="{StaticResource Font.Mono}" FontSize="12"
                                Foreground="{StaticResource B.TextMuted}"
                                Margin="0,3,0,0"
                                TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
                 <Button Grid.Column="2" Content="✕" Click="OnClose"
                         Background="Transparent" Foreground="{StaticResource B.TextMuted}"
-                        BorderThickness="0" FontFamily="{StaticResource Font.Mono}" FontSize="14"
+                        BorderThickness="0" FontFamily="{StaticResource Font.Mono}" FontSize="15"
                         Width="36" Height="26" Cursor="Hand"
                         VerticalAlignment="Center" HorizontalAlignment="Right">
                     <Button.Template>
@@ -100,7 +100,7 @@
                         ToolTip="Reveal the JSON file in File Explorer"/>
                 <TextBlock x:Name="DirtyIndicator"
                            Text="●"
-                           FontSize="14"
+                           FontSize="15"
                            Foreground="{StaticResource B.Warn}"
                            VerticalAlignment="Center"
                            Margin="8,0,0,0"
@@ -123,12 +123,12 @@
                     <Border x:Name="StatusPill" Padding="7,2" Margin="0,0,10,0"
                             Background="{StaticResource B.Success}">
                         <TextBlock x:Name="StatusPillText" Text="OK"
-                                   FontFamily="{StaticResource Font.Pixel}" FontSize="7"
+                                   FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="11"
                                    Foreground="{StaticResource B.BG.Primary}"/>
                     </Border>
                     <TextBlock x:Name="StatusText"
                                Text="valid JSON · 0 flows"
-                               FontFamily="{StaticResource Font.Mono}" FontSize="11"
+                               FontFamily="{StaticResource Font.Mono}" FontSize="12"
                                Foreground="{StaticResource B.TextMuted}"
                                VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis"/>
@@ -136,7 +136,7 @@
                 <TextBlock Grid.Column="1"
                            Text="Ctrl+S 저장 · Esc 닫기"
                            Style="{StaticResource T.Muted}"
-                           FontSize="10"
+                           FontSize="12"
                            VerticalAlignment="Center"/>
             </Grid>
         </Border>
@@ -144,8 +144,8 @@
         <!-- ═══ EDITOR ═══ -->
         <Grid Background="{StaticResource B.BG.Primary}">
             <avalon:TextEditor x:Name="Editor"
-                               FontFamily="{StaticResource Font.Mono}"
-                               FontSize="14"
+                               FontFamily="{StaticResource Font.Code}"
+                               FontSize="13"
                                Background="{StaticResource B.BG.Primary}"
                                Foreground="{StaticResource B.Text}"
                                ShowLineNumbers="True"

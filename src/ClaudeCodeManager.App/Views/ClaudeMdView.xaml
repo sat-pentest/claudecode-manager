@@ -36,8 +36,8 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel>
-                            <TextBlock Text="{Binding Label}" FontFamily="{StaticResource Font.Mono}" FontSize="13"/>
-                            <TextBlock Text="{Binding Path}" Style="{StaticResource T.Muted}" FontSize="12" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding Label}" FontFamily="{StaticResource Font.Mono}" FontSize="14"/>
+                            <TextBlock Text="{Binding Path}" Style="{StaticResource T.Muted}" FontSize="13" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
@@ -55,20 +55,24 @@
                             <StackPanel Orientation="Horizontal" Background="Transparent"
                                         MouseLeftButtonDown="OnProfileNameMouseDown"
                                         ToolTip="Double-click name to rename this profile">
-                                <TextBlock Text="●" Width="14" VerticalAlignment="Center">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Foreground" Value="{StaticResource B.TextDim}"/>
+                                <!-- 활성 프로필 = 초록 점멸 닷(앱 전역 LIVE 닷과 동일 언어), 비활성 = 딤 -->
+                                <Ellipse Width="8" Height="8" Margin="0,0,9,0" VerticalAlignment="Center"
+                                         svc:PulseBehavior.IsActive="{Binding IsActive}">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Fill" Value="{StaticResource B.TextDim}"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                    <Setter Property="Foreground" Value="{StaticResource B.Ember}"/>
-                                                    <Setter Property="Effect" Value="{StaticResource Glow.Soft}"/>
+                                                    <Setter Property="Fill" Value="{StaticResource B.Success}"/>
+                                                    <Setter Property="Effect">
+                                                        <Setter.Value><DropShadowEffect Color="#7CC45A" BlurRadius="8" ShadowDepth="0" Opacity="0.7"/></Setter.Value>
+                                                    </Setter>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                                <TextBlock Text="{Binding Name}" FontFamily="{StaticResource Font.Mono}" FontSize="13" VerticalAlignment="Center">
+                                    </Ellipse.Style>
+                                </Ellipse>
+                                <TextBlock Text="{Binding Name}" FontFamily="{StaticResource Font.Mono}" FontSize="14" VerticalAlignment="Center">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Style.Triggers>
@@ -84,15 +88,15 @@
                                         Background="{StaticResource B.Success}"
                                         svc:PulseBehavior.IsActive="{Binding IsActive}"
                                         Visibility="{Binding IsActive, Converter={x:Static vm:BoolToVisibility.Instance}}">
-                                    <TextBlock Text="ACTIVE" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.BG.Primary}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="ACTIVE" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="11" Foreground="{StaticResource B.BG.Primary}" VerticalAlignment="Center"/>
                                 </Border>
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
                                         Visibility="{Binding IsActive, Converter={x:Static vm:InverseBoolToVisibility.Instance}}">
-                                <Button Content="USE" Style="{StaticResource Btn.Pixel.Primary}" Padding="6,2" FontSize="8"
+                                <Button Content="USE" Style="{StaticResource Btn.Pixel.Primary}" Padding="6,2" FontSize="12"
                                         Command="{Binding DataContext.ActivateProfileCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         CommandParameter="{Binding}" Margin="0,0,4,0"/>
-                                <Button Content="X" Style="{StaticResource Btn.Pixel.Danger}" Padding="6,2" FontSize="8"
+                                <Button Content="X" Style="{StaticResource Btn.Pixel.Danger}" Padding="6,2" FontSize="12"
                                         Command="{Binding DataContext.DeleteProfileCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         CommandParameter="{Binding}"/>
                             </StackPanel>
@@ -102,7 +106,7 @@
             </ListBox>
 
             <StackPanel DockPanel.Dock="Top" Margin="10,0,10,10">
-                <TextBlock Text="save current as new profile" Style="{StaticResource T.Muted}" FontSize="11" Margin="0,2,0,4"/>
+                <TextBlock Text="save current as new profile" Style="{StaticResource T.Muted}" FontSize="12" Margin="0,2,0,4"/>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -115,7 +119,7 @@
                     </TextBox>
                     <Button Grid.Column="1" Content="SAVE" Style="{StaticResource Btn.Pixel}" Command="{Binding SaveAsProfileCommand}" Margin="4,0,0,0"/>
                 </Grid>
-                <TextBlock Text="{Binding ProfileError}" Style="{StaticResource T.Muted}" FontSize="11" Foreground="{StaticResource B.Danger}" Margin="0,4,0,0"
+                <TextBlock Text="{Binding ProfileError}" Style="{StaticResource T.Muted}" FontSize="12" Foreground="{StaticResource B.Danger}" Margin="0,4,0,0"
                            Visibility="{Binding ProfileError, Converter={x:Static vm:NullToVisibility.Instance}}"/>
             </StackPanel>
 
@@ -153,7 +157,7 @@
                     <Border Padding="6,4,6,4" Margin="4,0,0,0" VerticalAlignment="Center"
                             Background="{StaticResource B.RustDim}"
                             Visibility="{Binding IsEditingProfile, Converter={x:Static vm:BoolToVisibility.Instance}}">
-                        <TextBlock Text="PROFILE" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Text}" VerticalAlignment="Center"/>
+                        <TextBlock Text="PROFILE" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="11" Foreground="{StaticResource B.Text}" VerticalAlignment="Center"/>
                     </Border>
                     <TextBlock Text="●" Foreground="{StaticResource B.Warn}" VerticalAlignment="Center" Margin="10,0" Visibility="{Binding IsDirty, Converter={x:Static vm:BoolToVisibility.Instance}}"/>
                     <TextBlock Text="{Binding EditingFilePath}" Style="{StaticResource T.Mono}" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center" Margin="10,0,0,0" TextTrimming="CharacterEllipsis"/>
@@ -163,8 +167,8 @@
                 <TabItem Header="EDITOR">
                     <Grid>
                         <avalon:TextEditor x:Name="Editor"
-                                           FontFamily="{StaticResource Font.Mono}"
-                                           FontSize="16"
+                                           FontFamily="{StaticResource Font.Code}"
+                                           FontSize="13.5"
                                            Foreground="{StaticResource B.Text}"
                                            Background="{StaticResource B.BG.Sunken}"
                                            LineNumbersForeground="{StaticResource B.TextDim}"
@@ -222,7 +226,7 @@
                     </Grid.ColumnDefinitions>
                     <TextBlock Text="◢ OUTLINE" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center" Margin="6,0,0,0"
                                Visibility="{Binding IsOutlineCollapsed, Converter={x:Static vm:InverseBoolToVisibility.Instance}}"/>
-                    <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="14"
+                    <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="15"
                                Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"
                                HorizontalAlignment="Center" Margin="4,0" FontWeight="Bold">
                         <TextBlock.Style>
@@ -256,7 +260,7 @@
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Button.Template>
-                <TextBlock Text="OUTLINE" Style="{StaticResource T.Pixel.Section}" FontSize="9" HorizontalAlignment="Center">
+                <TextBlock Text="OUTLINE" Style="{StaticResource T.Pixel.Section}" FontSize="12" HorizontalAlignment="Center">
                     <TextBlock.LayoutTransform>
                         <RotateTransform Angle="90"/>
                     </TextBlock.LayoutTransform>
@@ -270,8 +274,8 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding Level}" Width="22" Foreground="{StaticResource B.Rust}" FontFamily="{StaticResource Font.CRT}" FontSize="18"/>
-                            <TextBlock Text="{Binding Title}" Style="{StaticResource T.Body}" FontSize="14" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding Level}" Width="22" Foreground="{StaticResource B.Rust}" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="15"/>
+                            <TextBlock Text="{Binding Title}" Style="{StaticResource T.Body}" FontSize="15" TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>

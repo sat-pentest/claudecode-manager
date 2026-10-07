@@ -92,7 +92,10 @@ public partial class MemoryViewModel : ModuleBase
 
         Projects.Clear();
         foreach (var p in MemoryIndexer.DiscoverProjects()) Projects.Add(p);
-        SelectedProject = curPath is null ? Projects.FirstOrDefault() : Projects.FirstOrDefault(p => p.MemoryDir == curPath) ?? Projects.FirstOrDefault();
+        // First visit: open the project that actually holds memories (alphabetical-first was often an
+        // empty workspace), afterwards keep whatever the user had selected.
+        var richest = Projects.OrderByDescending(p => p.Entries.Count).FirstOrDefault();
+        SelectedProject = curPath is null ? richest : Projects.FirstOrDefault(p => p.MemoryDir == curPath) ?? richest;
 
         if (curEntry is not null && SelectedEntry is null)
         {

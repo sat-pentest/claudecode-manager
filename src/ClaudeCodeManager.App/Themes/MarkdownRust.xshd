@@ -1,20 +1,20 @@
 <?xml version="1.0"?>
 <SyntaxDefinition name="MarkdownRust" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
 
-  <Color name="Heading1"       foreground="#F26A2E" fontWeight="bold"/>
-  <Color name="Heading2"       foreground="#D9441C" fontWeight="bold"/>
-  <Color name="HeadingN"       foreground="#D9A02C" fontWeight="bold"/>
-  <Color name="Bold"           foreground="#F26A2E" fontWeight="bold"/>
-  <Color name="Code"           foreground="#D9A02C"/>
-  <Color name="CodeBlock"      foreground="#D9A02C"/>
-  <Color name="CodeFence"      foreground="#7A2812" fontWeight="bold"/>
-  <Color name="Link"           foreground="#6FA844"/>
-  <Color name="LinkUrl"        foreground="#7A8B5E" fontStyle="italic"/>
-  <Color name="Blockquote"     foreground="#9A8A78" fontStyle="italic"/>
-  <Color name="Frontmatter"    foreground="#9A8A78"/>
-  <Color name="HtmlTag"        foreground="#7A8B5E"/>
-  <Color name="Disabled"       foreground="#5A4F44" fontStyle="italic"/>
-  <Color name="HtmlComment"    foreground="#7A6F64" fontStyle="italic"/>
+  <Color name="Heading1" foreground="#F26A2E" fontWeight="bold"/>
+  <Color name="Heading2" foreground="#FF9A6B" fontWeight="bold"/>
+  <Color name="HeadingN" foreground="#E6AC3C" fontWeight="bold"/>
+  <Color name="Bold" foreground="#F1ECE6" fontWeight="bold"/>
+  <Color name="Code" foreground="#E6AC3C"/>
+  <Color name="CodeBlock" foreground="#D8D2CA"/>
+  <Color name="CodeFence" foreground="#746B63"/>
+  <Color name="Link" foreground="#FF9A6B"/>
+  <Color name="LinkUrl" foreground="#6F665D"/>
+  <Color name="Blockquote" foreground="#AAA096" fontStyle="italic"/>
+  <Color name="Frontmatter" foreground="#8A8178"/>
+  <Color name="HtmlTag" foreground="#746B63"/>
+  <Color name="Disabled" foreground="#4E4640" fontStyle="italic"/>
+  <Color name="HtmlComment" foreground="#5E564F" fontStyle="italic"/>
 
   <RuleSet ignoreCase="false">
 

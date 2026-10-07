@@ -449,7 +449,7 @@ public partial class HarnessViewModel : ModuleBase
                 StateBadge = s.Disabled ? "DISABLED" : "ENABLED",
                 IsActive = !s.Disabled,
                 ConnectionState = s.Disabled ? "DISABLED" : "ONLINE",
-                Subtitle = $"{s.Model ?? "(inherit)"} · {s.Tools.Count} tools",
+                Subtitle = $"{ModelAlias.ToChoice(s.Model)} · {s.Tools.Count} tools",
                 TargetModuleKey = "SKIL",
                 NavigateFile = s.SkillFilePath
             });
@@ -469,7 +469,7 @@ public partial class HarnessViewModel : ModuleBase
                 StateBadge = a.Disabled ? "DISABLED" : "ENABLED",
                 IsActive = !a.Disabled,
                 ConnectionState = a.Disabled ? "DISABLED" : "ONLINE",
-                Subtitle = $"{a.Model ?? "(inherit)"} · {a.Tools.Count} tools",
+                Subtitle = $"{ModelAlias.ToChoice(a.Model)} · {a.Tools.Count} tools",
                 TargetModuleKey = "AGNT",
                 NavigateFile = a.FilePath
             });

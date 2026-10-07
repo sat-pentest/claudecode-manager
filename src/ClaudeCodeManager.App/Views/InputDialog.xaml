@@ -17,8 +17,9 @@
         BorderThickness="1"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
-        TextOptions.TextFormattingMode="Display"
-        TextOptions.TextRenderingMode="ClearType">
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="ClearType"
+        FontFamily="{StaticResource Font.UI}" FontSize="13">
 
     <DockPanel>
         <!-- Header (draggable) -->
@@ -33,17 +34,16 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="◆" Foreground="{StaticResource B.Rust}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBlock Text="◆" Foreground="{StaticResource B.Rust}" FontSize="13" VerticalAlignment="Center" Margin="0,0,10,0"/>
                 <TextBlock Grid.Column="1" x:Name="HeaderText"
-                           FontFamily="{StaticResource Font.Pixel}" FontSize="10"
+                           FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="13"
                            Foreground="{StaticResource B.Ember}"
                            Effect="{StaticResource Glow.Soft}"
                            VerticalAlignment="Center"
-                           TextOptions.TextRenderingMode="Aliased"
-                           TextOptions.TextFormattingMode="Display"/>
+                           TextOptions.TextFormattingMode="Ideal"/>
                 <Button Grid.Column="2" Content="✕" Click="OnCancel"
                         Background="Transparent" Foreground="{StaticResource B.TextMuted}"
-                        BorderThickness="0" FontFamily="{StaticResource Font.Mono}" FontSize="14"
+                        BorderThickness="0" FontFamily="{StaticResource Font.Mono}" FontSize="15"
                         Width="36" Height="26" Cursor="Hand"
                         VerticalAlignment="Center" HorizontalAlignment="Right">
                     <Button.Template>
@@ -84,19 +84,19 @@
                 <TextBlock x:Name="MessageText"
                            TextWrapping="Wrap"
                            FontFamily="{StaticResource Font.UI}"
-                           FontSize="13"
+                           FontSize="14"
                            Foreground="{StaticResource B.Text}"
                            LineHeight="20"/>
                 <TextBox x:Name="InputBox"
                          Margin="0,12,0,0"
                          Padding="10,6"
                          FontFamily="{StaticResource Font.Mono}"
-                         FontSize="14"
+                         FontSize="15"
                          KeyDown="OnInputKeyDown"/>
                 <TextBlock x:Name="ErrorText"
                            Style="{StaticResource T.Muted}"
                            Foreground="{StaticResource B.Danger}"
-                           FontSize="12"
+                           FontSize="13"
                            Margin="0,6,0,0"
                            Visibility="Collapsed"/>
             </StackPanel>

@@ -17,9 +17,10 @@
         WindowStartupLocation="CenterOwner"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
-        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextFormattingMode="Ideal"
         TextOptions.TextRenderingMode="ClearType"
-        TextOptions.TextHintingMode="Fixed">
+        TextOptions.TextHintingMode="Fixed"
+        FontFamily="{StaticResource Font.UI}" FontSize="13">
 
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="42"
@@ -48,15 +49,15 @@
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
                     <Image Source="../Assets/icon.ico" Width="22" Height="22" Margin="0,0,10,0"/>
-                    <TextBlock Text="CCM" Style="{StaticResource T.Pixel.Section}" FontSize="11" Foreground="{StaticResource B.Rust}" VerticalAlignment="Center"/>
-                    <TextBlock Text="  ▌  RESULT JSON" Style="{StaticResource T.Pixel.Section}" FontSize="10" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                    <TextBlock Text="CCM" Style="{StaticResource T.Pixel.Section}" FontSize="14" Foreground="{StaticResource B.Rust}" VerticalAlignment="Center"/>
+                    <TextBlock Text="  ▌  RESULT JSON" Style="{StaticResource T.Pixel.Section}" FontSize="13" VerticalAlignment="Center" Margin="4,0,0,0"/>
                 </StackPanel>
 
                 <!-- Which result this JSON belongs to -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <TextBlock x:Name="HeadlineText" FontFamily="{StaticResource Font.Mono}" FontSize="12"
+                    <TextBlock x:Name="HeadlineText" FontFamily="{StaticResource Font.Mono}" FontSize="13"
                                Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="520"/>
-                    <TextBlock x:Name="AgentText" Style="{StaticResource T.Muted}" FontSize="11" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                    <TextBlock x:Name="AgentText" Style="{StaticResource T.Muted}" FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
@@ -70,11 +71,11 @@
         <!-- TOOLBAR -->
         <Border Grid.Row="1" Background="{StaticResource B.BG.Panel}" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1" Padding="14,9">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="ZOOM" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBlock Text="ZOOM" Style="{StaticResource T.Pixel.Section}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
                 <Button Style="{StaticResource Btn.Pixel}" Content="−" Padding="14,7" Click="OnZoomOut" ToolTip="축소 (Ctrl+− · Ctrl+휠)"/>
                 <Border Background="{StaticResource B.BG.Sunken}" BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1"
                         Padding="12,7" Margin="6,0" MinWidth="66">
-                    <TextBlock x:Name="ZoomText" Text="14 pt" FontFamily="{StaticResource Font.Mono}" FontSize="12"
+                    <TextBlock x:Name="ZoomText" Text="14 pt" FontFamily="{StaticResource Font.Mono}" FontSize="13"
                                Foreground="{StaticResource B.Ember}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <Button Style="{StaticResource Btn.Pixel}" Content="+" Padding="14,7" Click="OnZoomIn" ToolTip="확대 (Ctrl++ · Ctrl+휠)"/>
@@ -99,13 +100,13 @@
             <RichTextBox x:Name="JsonBox" IsReadOnly="True" IsDocumentEnabled="True"
                          Background="Transparent" Foreground="{StaticResource B.Text}"
                          BorderThickness="0" Padding="14,12"
-                         FontFamily="{StaticResource Font.Mono}" FontSize="14"
+                         FontFamily="{StaticResource Font.Mono}" FontSize="15"
                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"/>
         </Border>
 
         <!-- STATUS -->
         <Border Grid.Row="3" Background="{StaticResource B.BG.Panel}" BorderBrush="{StaticResource B.Border}" BorderThickness="0,1,0,0" Padding="14,7">
-            <TextBlock x:Name="StatusText" Style="{StaticResource T.Muted}" FontSize="11"/>
+            <TextBlock x:Name="StatusText" Style="{StaticResource T.Muted}" FontSize="12"/>
         </Border>
     </Grid>
 </Window>

@@ -58,13 +58,24 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public SnapshotManager Snapshots { get; }
     public FileWatcherHub Watcher { get; }
 
+    /// <summary>Config environments found side by side under the user profile (PENTEST · STUDIO · …).</summary>
+    public ObservableCollection<ClaudeEnvironment> Environments { get; } = new();
+
+    /// <summary>The selected environment. Switching re-points every module at its config dir.</summary>
+    [ObservableProperty] private ClaudeEnvironment? _activeEnvironment;
+
     public MainViewModel()
     {
+        // Restore the environment chosen last run BEFORE anything reads a path, so the watcher and
+        // every module below load against the right config dir from the start.
+        EnvironmentRegistry.RestorePersisted();
+
         ClaudeRootExists = ClaudePaths.ClaudeRootExists();
         Snapshots = new SnapshotManager();
         Watcher = new FileWatcherHub();
 
         BuildGroups();
+        LoadEnvironments();
 
         Current = Modules.First();
         Current?.OnActivated();
@@ -144,6 +155,93 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         if (_filtering) return;   // a fold forced open by a search is not a choice
         NavGroupStore.SaveCollapsed(Groups.Where(g => !g.IsExpanded).Select(g => g.Key));
+    }
+
+    // ── Environment switching ─────────────────────────────────────────────────────────────────
+    //
+    // One machine holds several Claude config dirs (~/.claude pentest, ~/.claude-studio, …). The
+    // active one is ClaudePaths.ClaudeRoot; switching it re-points every module at once.
+
+    private void LoadEnvironments()
+    {
+        Environments.Clear();
+        foreach (var e in EnvironmentRegistry.Discover()) Environments.Add(e);
+        var active = EnvironmentRegistry.Active;
+        // Set the backing field directly so wiring up the initial selection is not treated as a switch.
+#pragma warning disable MVVMTK0034
+        _activeEnvironment = Environments.FirstOrDefault(e =>
+                                 string.Equals(e.Path, active.Path, StringComparison.OrdinalIgnoreCase))
+                             ?? Environments.FirstOrDefault();
+#pragma warning restore MVVMTK0034
+        OnPropertyChanged(nameof(ActiveEnvironment));
+    }
+
+    partial void OnActiveEnvironmentChanged(ClaudeEnvironment? value)
+    {
+        if (_starting || value is null) return;
+        if (string.Equals(value.Path, ClaudePaths.ClaudeRoot, StringComparison.OrdinalIgnoreCase)) return;
+
+        EnvironmentRegistry.SetActive(value);
+        ClaudeRootPath = ClaudePaths.ClaudeRoot;
+        ClaudeRootExists = ClaudePaths.ClaudeRootExists();
+        Watcher.Repoint();
+
+        // The visible module reloads now; the rest re-read when next navigated to (OnActivated).
+        try { Current?.OnActivated(); }
+        catch (Exception ex) { ExternalChangeNotice = "env switch err: " + ex.Message; return; }
+        ExternalChangeNotice = $"environment · {value.Name}  ·  {value.Path}";
+    }
+
+    /// <summary>Where <see cref="LaunchSession"/> opens the session — a terminal or an editor.</summary>
+    public ObservableCollection<string> LaunchTargets { get; } = new() { "CLI", "VSCode", "Cursor" };
+
+    [ObservableProperty] private string _launchTarget = "CLI";
+
+    /// <summary>Open a new session with CLAUDE_CONFIG_DIR set to the active environment — so it loads
+    /// this env's skills/memory/CLAUDE.md, not the default. CLI opens a terminal running
+    /// <c>claude</c>; VSCode opens an editor window (env only reliably applies to a fresh VSCode
+    /// instance — an already-running one reuses its own environment).</summary>
+    [RelayCommand]
+    private void LaunchSession()
+    {
+        var env = ActiveEnvironment ?? EnvironmentRegistry.Active;
+        var work = EnvironmentRegistry.ResolveWorkDir(env); // STUDIO → C:\studio, not home
+        try
+        {
+            System.Diagnostics.ProcessStartInfo psi;
+            if (LaunchTarget == "CLI")
+            {
+                // An interactive terminal that stays open is the point here — /k keeps it.
+                // No space before '&&': cmd would otherwise fold it into the set value.
+                var inner = $"title claude [{env.Name}]&& set CLAUDE_CONFIG_DIR={env.Path}&& claude";
+                psi = new System.Diagnostics.ProcessStartInfo("cmd.exe", $"/k \"{inner}\"")
+                {
+                    UseShellExecute = true,
+                    WorkingDirectory = work
+                };
+            }
+            else
+            {
+                // Editor launch: the cmd is only a one-shot springboard, so run it hidden and let it
+                // exit — no lingering console window. The env var is injected directly (not via `set`),
+                // which also sidesteps cmd's trailing-space quirk entirely.
+                var folder = $"\"{work}\"";
+                var runCmd = LaunchTarget == "Cursor"
+                    ? $"cursor --new-window {folder}"
+                    : $"code --new-window {folder}";
+                psi = new System.Diagnostics.ProcessStartInfo("cmd.exe", $"/c {runCmd}")
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WorkingDirectory = work
+                };
+                psi.EnvironmentVariables["CLAUDE_CONFIG_DIR"] = env.Path;
+            }
+
+            System.Diagnostics.Process.Start(psi);
+            ExternalChangeNotice = $"session launched · {env.Name} · {LaunchTarget}";
+        }
+        catch (Exception ex) { ExternalChangeNotice = "launch err: " + ex.Message; }
     }
 
 

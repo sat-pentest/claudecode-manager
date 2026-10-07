@@ -15,8 +15,8 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="⌕" FontFamily="{StaticResource Font.CRT}" FontSize="26" Foreground="{StaticResource B.Rust}" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                    <TextBox Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" Width="540" FontSize="14">
+                    <TextBlock Text="⌕" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="22" Foreground="{StaticResource B.Rust}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <TextBox Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" Width="540" FontSize="15">
                         <TextBox.InputBindings>
                             <KeyBinding Key="Enter" Command="{Binding RunCommand}"/>
                         </TextBox.InputBindings>
@@ -97,19 +97,19 @@
                                         BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1"
                                         Visibility="{Binding IsRanked, Converter={x:Static vm:BoolToVisibility.Instance}}"
                                         ToolTip="BM25 relevance score">
-                                    <TextBlock Text="{Binding ScoreText}" FontFamily="{StaticResource Font.Pixel}" FontSize="8"
+                                    <TextBlock Text="{Binding ScoreText}" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="12"
                                                Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"/>
                                 </Border>
-                                <TextBlock Text="{Binding File}" Style="{StaticResource T.Mono}" FontSize="12" Foreground="{StaticResource B.TextMuted}"/>
+                                <TextBlock Text="{Binding File}" Style="{StaticResource T.Mono}" FontSize="13" Foreground="{StaticResource B.TextMuted}"/>
                                 <Border Padding="5,3,5,3" Margin="10,0,0,0" VerticalAlignment="Center"
                                         Background="{StaticResource B.RustDim}"
                                         Visibility="{Binding Status, Converter={x:Static vm:SearchHitStatusConverter.InactiveVisibility}}">
-                                    <TextBlock Text="PROFILE" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Text}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="PROFILE" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="11" Foreground="{StaticResource B.Text}" VerticalAlignment="Center"/>
                                 </Border>
                                 <Border Padding="5,3,5,3" Margin="10,0,0,0" VerticalAlignment="Center"
                                         Background="{StaticResource B.Danger}"
                                         Visibility="{Binding Status, Converter={x:Static vm:SearchHitStatusConverter.DisabledVisibility}}">
-                                    <TextBlock Text="OFF" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Text}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="OFF" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="11" Foreground="{StaticResource B.Text}" VerticalAlignment="Center"/>
                                 </Border>
                             </StackPanel>
                             <TextBlock Text="{Binding Preview}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis">
@@ -126,7 +126,7 @@
                                 </TextBlock.Style>
                             </TextBlock>
                         </StackPanel>
-                        <TextBlock Grid.Column="2" Text="{Binding Line, StringFormat=L\{0\}}" Foreground="{StaticResource B.Ember}" FontFamily="{StaticResource Font.CRT}" FontSize="20" Margin="14,0,4,0" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="2" Text="{Binding Line, StringFormat=L\{0\}}" Foreground="{StaticResource B.Ember}" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="18" Margin="14,0,4,0" VerticalAlignment="Center"/>
                     </Grid>
                 </DataTemplate>
             </ListBox.ItemTemplate>

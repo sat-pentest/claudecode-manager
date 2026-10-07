@@ -20,7 +20,7 @@
                 <TextBlock Text="◢ ACTIVE RUNS" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
                 <Button Content="REFRESH NOW" Style="{StaticResource Btn.Pixel}" Command="{Binding RefreshLiveCommand}" Margin="16,0,0,0"/>
                 <CheckBox Content="show idle (30m+)" IsChecked="{Binding IncludeIdleRuns}" Margin="14,0,0,0" VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding LiveStatus}" Style="{StaticResource T.Muted}" FontSize="12" Margin="20,0,0,0" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding LiveStatus}" Style="{StaticResource T.Muted}" FontSize="13" Margin="20,0,0,0" VerticalAlignment="Center"/>
             </StackPanel>
         </Border>
 
@@ -37,10 +37,10 @@
                         </Style.Triggers>
                     </Style>
                 </StackPanel.Style>
-                <TextBlock Text="⏱" FontFamily="{StaticResource Font.CRT}" FontSize="72" Foreground="{StaticResource B.RustDim}" HorizontalAlignment="Center" Opacity="0.5"/>
-                <TextBlock Text="NO ACTIVE RUNS" Style="{StaticResource T.Pixel.Section}" FontSize="10" HorizontalAlignment="Center" Margin="0,12,0,0"/>
-                <TextBlock Text="실행 중인 워크플로우가 없거나 30분 이상 유휴 상태입니다" Style="{StaticResource T.Muted}" FontSize="12" HorizontalAlignment="Center" Margin="0,6,0,0"/>
-                <TextBlock Text="'show idle' 체크하면 유휴 run도 표시됩니다" Style="{StaticResource T.Muted}" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                <TextBlock Text="⏱" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="52" Foreground="{StaticResource B.RustDim}" HorizontalAlignment="Center" Opacity="0.5"/>
+                <TextBlock Text="NO ACTIVE RUNS" Style="{StaticResource T.Pixel.Section}" FontSize="13" HorizontalAlignment="Center" Margin="0,12,0,0"/>
+                <TextBlock Text="실행 중인 워크플로우가 없거나 30분 이상 유휴 상태입니다" Style="{StaticResource T.Muted}" FontSize="13" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                <TextBlock Text="'show idle' 체크하면 유휴 run도 표시됩니다" Style="{StaticResource T.Muted}" FontSize="12" HorizontalAlignment="Center" Margin="0,3,0,0"/>
             </StackPanel>
 
             <!-- Runs list + detail split -->
@@ -76,23 +76,23 @@
                                                 </Style.Triggers>
                                             </Style>
                                         </Border.Style>
-                                        <TextBlock Text="{Binding Status}" FontFamily="{StaticResource Font.Pixel}" FontSize="8" Foreground="{StaticResource B.BG.Primary}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding Status}" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="12" Foreground="{StaticResource B.BG.Primary}" VerticalAlignment="Center"/>
                                     </Border>
-                                    <TextBlock Text="{Binding ShortId}" FontFamily="{StaticResource Font.Mono}" FontSize="13" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"/>
-                                    <TextBlock Text="{Binding ShortSession, StringFormat=' · sess {0}'}" Style="{StaticResource T.Muted}" FontSize="10" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                                    <TextBlock Text="{Binding ShortId}" FontFamily="{StaticResource Font.Mono}" FontSize="14" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding ShortSession, StringFormat=' · sess {0}'}" Style="{StaticResource T.Muted}" FontSize="12" VerticalAlignment="Center" Margin="6,0,0,0"/>
                                 </StackPanel>
-                                <TextBlock Text="{Binding Target}" Style="{StaticResource T.Muted}" FontSize="12" Margin="0,4,4,0" TextTrimming="CharacterEllipsis" TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding Target}" Style="{StaticResource T.Muted}" FontSize="13" Margin="0,4,4,0" TextTrimming="CharacterEllipsis" TextWrapping="Wrap"/>
                                 <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressPct, Mode=OneWay}"
                                              Height="8" Margin="0,6,4,0"
                                              Background="{StaticResource B.BG.Sunken}"
                                              Foreground="{StaticResource B.Ember}"
                                              BorderThickness="0"/>
                                 <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
-                                    <TextBlock Text="{Binding ProgressText}" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Ember}"/>
-                                    <TextBlock Text=" agents · " Style="{StaticResource T.Muted}" FontSize="11"/>
-                                    <TextBlock Text="{Binding AgentsPending}" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Text}"/>
-                                    <TextBlock Text=" pending · last " Style="{StaticResource T.Muted}" FontSize="11"/>
-                                    <TextBlock Text="{Binding LastActivityText}" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.TextMuted}"/>
+                                    <TextBlock Text="{Binding ProgressText}" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.Ember}"/>
+                                    <TextBlock Text=" agents · " Style="{StaticResource T.Muted}" FontSize="12"/>
+                                    <TextBlock Text="{Binding AgentsPending}" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.Text}"/>
+                                    <TextBlock Text=" pending · last " Style="{StaticResource T.Muted}" FontSize="12"/>
+                                    <TextBlock Text="{Binding LastActivityText}" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.TextMuted}"/>
                                 </StackPanel>
                             </StackPanel>
                         </DataTemplate>
@@ -129,10 +129,10 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="◆" FontSize="14" Foreground="{StaticResource B.Rust}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <TextBlock Text="{Binding SelectedRun.RunId}" FontFamily="{StaticResource Font.CRT}" FontSize="22" Foreground="{StaticResource B.Ember}" Effect="{StaticResource Glow.Soft}" VerticalAlignment="Center"/>
+                                <TextBlock Text="◆" FontSize="15" Foreground="{StaticResource B.Rust}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <TextBlock Text="{Binding SelectedRun.RunId}" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="18" Foreground="{StaticResource B.Ember}" Effect="{StaticResource Glow.Soft}" VerticalAlignment="Center"/>
                             </StackPanel>
-                            <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="14"
+                            <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="15"
                                        Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,8,0">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
@@ -163,7 +163,7 @@
                                         Command="{Binding CopyRunIdCommand}" CommandParameter="{Binding SelectedRun}"
                                         ToolTip="workflow ID만 클립보드에 복사"/>
                             </StackPanel>
-                            <TextBlock Text="{Binding SelectedRun.Target}" Style="{StaticResource T.Body}" FontSize="13" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                            <TextBlock Text="{Binding SelectedRun.Target}" Style="{StaticResource T.Body}" FontSize="14" TextWrapping="Wrap" Margin="0,10,0,0"/>
                         </StackPanel>
                     </Border>
 
@@ -182,12 +182,12 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="STATUS" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center" Margin="0,0,14,0"/>
-                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedRun.Status}" FontFamily="{StaticResource Font.Mono}" FontSize="14" Foreground="{StaticResource B.Ember}"/>
-                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Session:" Style="{StaticResource T.Muted}" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding SelectedRun.ShortSession}" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.TextMuted}"/>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="STATUS" Style="{StaticResource T.Pixel.Section}" FontSize="12" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedRun.Status}" FontFamily="{StaticResource Font.Mono}" FontSize="15" Foreground="{StaticResource B.Ember}"/>
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Session:" Style="{StaticResource T.Muted}" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding SelectedRun.ShortSession}" FontFamily="{StaticResource Font.Mono}" FontSize="13" Foreground="{StaticResource B.TextMuted}"/>
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="PROGRESS" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center" Margin="0,10,14,0"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="PROGRESS" Style="{StaticResource T.Pixel.Section}" FontSize="12" VerticalAlignment="Center" Margin="0,10,14,0"/>
                             <Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" Margin="0,10,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -248,18 +248,18 @@
                                     </Border>
                                 </Grid>
                                 <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                                    <Run Text="{Binding SelectedRun.AgentsCompleted, Mode=OneWay}" Foreground="{StaticResource B.Ember}" FontFamily="Consolas" FontSize="14"/>
+                                    <Run Text="{Binding SelectedRun.AgentsCompleted, Mode=OneWay}" Foreground="{StaticResource B.Ember}" FontFamily="Consolas" FontSize="15"/>
                                     <Run Text=" / "/>
-                                    <Run Text="{Binding SelectedRun.AgentsStarted, Mode=OneWay}" FontFamily="Consolas" FontSize="14"/>
+                                    <Run Text="{Binding SelectedRun.AgentsStarted, Mode=OneWay}" FontFamily="Consolas" FontSize="15"/>
                                     <Run Text="  ("/>
                                     <Run Text="{Binding SelectedRun.AgentsPending, Mode=OneWay}" Foreground="{StaticResource B.Text}"/>
                                     <Run Text=" pending)"/>
                                 </TextBlock>
                             </Grid>
 
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="LAST LOG" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center" Margin="0,10,14,0"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="LAST LOG" Style="{StaticResource T.Pixel.Section}" FontSize="12" VerticalAlignment="Center" Margin="0,10,14,0"/>
                             <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Margin="0,10,0,0" VerticalAlignment="Center">
-                                <Run Text="{Binding SelectedRun.LastActivityText, Mode=OneWay}" FontFamily="Consolas" FontSize="12"/>
+                                <Run Text="{Binding SelectedRun.LastActivityText, Mode=OneWay}" FontFamily="Consolas" FontSize="13"/>
                                 <Run Text="  · idle "/>
                                 <Run Text="{Binding SelectedRun.IdleMinutes, Mode=OneWay}" Foreground="{StaticResource B.TextMuted}"/>
                                 <Run Text="m" Foreground="{StaticResource B.TextMuted}"/>
@@ -332,13 +332,12 @@
                                                     </Style.Triggers>
                                                 </Style>
                                             </Border.Style>
-                                            <TextBlock Text="NOW" FontFamily="{StaticResource Font.Pixel}" FontSize="9"
-                                                       Foreground="{StaticResource B.BG.Primary}"
-                                                       TextOptions.TextRenderingMode="Aliased" TextOptions.TextFormattingMode="Display"/>
+                                            <TextBlock Text="NOW" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="12"
+                                                       Foreground="{StaticResource B.BG.Primary}" TextOptions.TextFormattingMode="Ideal"/>
                                         </Border>
                                     </StackPanel>
                                     <TextBlock Grid.Column="1" Text="{Binding SelectedRun.CurrentTask, Mode=OneWay}"
-                                               FontFamily="{StaticResource Font.Mono}" FontSize="13" TextWrapping="Wrap"
+                                               FontFamily="{StaticResource Font.Mono}" FontSize="14" TextWrapping="Wrap"
                                                Foreground="{StaticResource B.Text}" VerticalAlignment="Center"/>
                                 </Grid>
                             </Border>
@@ -367,8 +366,8 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="◢ RECENT RESULTS (last 5)" Style="{StaticResource T.Pixel.Section}" FontSize="9" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="14"
+                            <TextBlock Text="◢ RECENT RESULTS (last 5)" Style="{StaticResource T.Pixel.Section}" FontSize="12" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="15"
                                        Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,8,0">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
@@ -447,7 +446,7 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Border.Style>
-                                                <TextBlock Text="{Binding SeverityBadge}" FontFamily="{StaticResource Font.Pixel}" FontSize="9"
+                                                <TextBlock Text="{Binding SeverityBadge}" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="12"
                                                            Foreground="{StaticResource B.BG.Primary}" HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            TextTrimming="CharacterEllipsis">
                                                     <TextBlock.Style>
@@ -464,7 +463,7 @@
                                             </Border>
 
                                             <StackPanel Grid.Column="1">
-                                                <TextBlock Text="{Binding Headline}" FontFamily="{StaticResource Font.Mono}" FontSize="13"
+                                                <TextBlock Text="{Binding Headline}" FontFamily="{StaticResource Font.Mono}" FontSize="14"
                                                            Foreground="{StaticResource B.Text}" TextWrapping="Wrap"/>
 
                                                 <ItemsControl ItemsSource="{Binding Tags}" Margin="0,5,0,0"
@@ -479,7 +478,7 @@
                                                             <Border BorderBrush="{StaticResource B.RustDim}" BorderThickness="1"
                                                                     Background="{StaticResource B.BG.Panel}"
                                                                     Padding="6,1,6,2" Margin="0,0,4,3">
-                                                                <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="10" Foreground="{StaticResource B.Ember}"/>
+                                                                <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.Ember}"/>
                                                             </Border>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
@@ -490,19 +489,19 @@
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
                                                             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                                                <TextBlock Text="›" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.Rust}" Margin="0,0,6,0"/>
-                                                                <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.TextMuted}" TextWrapping="Wrap"/>
+                                                                <TextBlock Text="›" FontFamily="{StaticResource Font.Mono}" FontSize="13" Foreground="{StaticResource B.Rust}" Margin="0,0,6,0"/>
+                                                                <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="13" Foreground="{StaticResource B.TextMuted}" TextWrapping="Wrap"/>
                                                             </StackPanel>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
                                             </StackPanel>
 
-                                            <TextBlock Grid.Column="2" Text="{Binding AgentIdShort}" FontFamily="{StaticResource Font.Mono}" FontSize="9"
+                                            <TextBlock Grid.Column="2" Text="{Binding AgentIdShort}" FontFamily="{StaticResource Font.Mono}" FontSize="11"
                                                        Foreground="{StaticResource B.TextDim}" VerticalAlignment="Top" Margin="10,2,0,0"/>
 
                                             <!-- Chevron indicating expand/collapse -->
-                                            <TextBlock Grid.Column="3" FontFamily="{StaticResource Font.Mono}" FontSize="12" FontWeight="Bold"
+                                            <TextBlock Grid.Column="3" FontFamily="{StaticResource Font.Mono}" FontSize="13" FontWeight="Bold"
                                                        Foreground="{StaticResource B.Ember}" VerticalAlignment="Top" Margin="8,2,0,0">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
@@ -534,18 +533,18 @@
                                                         <RowDefinition Height="Auto"/>
                                                     </Grid.RowDefinitions>
 
-                                                    <TextBlock Text="AGENT ID" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center"/>
-                                                    <TextBlock Grid.Column="1" Text="{Binding AgentIdFull}" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                                                    <Button Grid.Column="2" Content="OPEN LOG" Style="{StaticResource Btn.Pixel}" Padding="8,2,8,3" FontSize="8"
+                                                    <TextBlock Text="AGENT ID" Style="{StaticResource T.Pixel.Section}" FontSize="12" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding AgentIdFull}" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                    <Button Grid.Column="2" Content="OPEN LOG" Style="{StaticResource Btn.Pixel}" Padding="8,2,8,3" FontSize="12"
                                                             Click="OnOpenAgentLog" DataContext="{Binding}"
                                                             ToolTip="Explorer로 agent-*.jsonl 로그 파일 열기"/>
 
-                                                    <TextBlock Grid.Row="1" Text="KIND" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center" Margin="0,6,0,0"/>
-                                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Kind}" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Text}" VerticalAlignment="Center" Margin="0,6,0,0"/>
+                                                    <TextBlock Grid.Row="1" Text="KIND" Style="{StaticResource T.Pixel.Section}" FontSize="12" VerticalAlignment="Center" Margin="0,6,0,0"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Kind}" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.Text}" VerticalAlignment="Center" Margin="0,6,0,0"/>
                                                 </Grid>
 
                                                 <!-- Full JSON -->
-                                                <TextBlock Text="FULL JSON" Style="{StaticResource T.Pixel.Section}" FontSize="9" Margin="0,4,0,5"/>
+                                                <TextBlock Text="FULL JSON" Style="{StaticResource T.Pixel.Section}" FontSize="12" Margin="0,4,0,5"/>
                                                 <!-- The inline panel is capped and shares the card; clicking hands the
                                                      whole result to a standalone reader with zoom and wrap. -->
                                                 <Border Background="{StaticResource B.BG.Sunken}" BorderThickness="1" Padding="12,10" MaxHeight="440"
@@ -567,7 +566,7 @@
                                                              Colour comes from the attached highlighter, which fills Inlines. -->
                                                         <TextBlock svc:JsonHighlighter.Json="{Binding FullJson, Mode=OneWay}"
                                                                    Foreground="{StaticResource B.Text}"
-                                                                   FontFamily="{StaticResource Font.Mono}" FontSize="14"
+                                                                   FontFamily="{StaticResource Font.Mono}" FontSize="15"
                                                                    TextWrapping="NoWrap"/>
                                                     </ScrollViewer>
                                                 </Border>

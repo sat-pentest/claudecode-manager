@@ -15,7 +15,7 @@
     <PublishTrimmed>false</PublishTrimmed>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <Version>1.0.0</Version>
+    <Version>2.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -34,6 +34,15 @@
     <Resource Include="Fonts\VT323-Regular.ttf" />
     <Resource Include="Fonts\IBMPlexSansKR-Regular.ttf" />
     <Resource Include="Fonts\IBMPlexSansKR-Medium.ttf" />
+    <Resource Include="Fonts\Pretendard-Regular.otf" />
+    <Resource Include="Fonts\Pretendard-Medium.otf" />
+    <Resource Include="Fonts\Pretendard-SemiBold.otf" />
+    <Resource Include="Fonts\Pretendard-Bold.otf" />
+    <Resource Include="Fonts\JetBrainsMono-Regular.ttf" />
+    <Resource Include="Fonts\JetBrainsMono-Medium.ttf" />
+    <Resource Include="Fonts\Rajdhani-Medium.ttf" />
+    <Resource Include="Fonts\Rajdhani-SemiBold.ttf" />
+    <Resource Include="Fonts\Rajdhani-Bold.ttf" />
     <Resource Include="Themes\MarkdownRust.xshd" />
     <Resource Include="Themes\ES6JavaScript.xshd" />
   </ItemGroup>

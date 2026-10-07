@@ -1,5 +1,6 @@
 <UserControl x:Class="ClaudeCodeManager.App.Views.SessionsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:svc="clr-namespace:ClaudeCodeManager.App.Services"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:ClaudeCodeManager.App.ViewModels"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -19,7 +20,7 @@
                 <Grid Margin="0,0,0,12">
                     <StackPanel Orientation="Horizontal">
                         <Path Style="{StaticResource Icon.Module}" Data="{Binding Glyph, Converter={x:Static vm:StringToGeometry.Instance}}"/>
-                        <TextBlock Text="SESSIONS" Style="{StaticResource T.Pixel.Section}" FontSize="13" VerticalAlignment="Center"/>
+                        <TextBlock Text="SESSIONS" Style="{StaticResource T.Module.Title}" FontSize="14" VerticalAlignment="Center"/>
                         <TextBlock Text="  ▌  ~/.claude/projects/" Style="{StaticResource T.Mono}" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center" Margin="6,0,0,0"/>
                     </StackPanel>
                     <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
@@ -28,13 +29,13 @@
                     </StackPanel>
                 </Grid>
 
-                <UniformGrid Columns="4" Rows="1">
+                <UniformGrid Columns="4" Rows="1" svc:Fx.StaggerChildren="True">
                     <Border Style="{StaticResource Panel.Rust}" Margin="0,0,8,0">
                         <StackPanel>
-                            <TextBlock Text="TOTAL SIZE" Style="{StaticResource T.Pixel.Section}" FontSize="9"/>
+                            <TextBlock Text="TOTAL SIZE" Style="{StaticResource T.Pixel.Section}" FontSize="12"/>
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                                 <TextBlock Text="{Binding TotalSize}" Style="{StaticResource T.CRT.Stat}"/>
-                                <TextBlock Text="{Binding WarningLevel}" FontFamily="{StaticResource Font.Pixel}" FontSize="7" VerticalAlignment="Bottom" Margin="8,0,0,10">
+                                <TextBlock Text="{Binding WarningLevel}" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="11" VerticalAlignment="Bottom" Margin="8,0,0,10">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="{StaticResource B.Success}"/>
@@ -50,26 +51,26 @@
                                 <Run Text="{Binding TotalSessionFiles, Mode=OneWay}"/><Run Text=" JSONL files"/>
                             </TextBlock>
                             <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                <TextBlock Text="{Binding DiskDriveLabel}" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.RustDim}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding DiskDriveLabel}" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="11" Foreground="{StaticResource B.RustDim}" VerticalAlignment="Center"/>
                                 <TextBlock Text="{Binding DiskFreeText}" Style="{StaticResource T.Muted}" Margin="6,0,0,0"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource Panel.Rust}" Margin="4,0,4,0">
                         <StackPanel>
-                            <TextBlock Text="PROJECTS" Style="{StaticResource T.Pixel.Section}" FontSize="9"/>
+                            <TextBlock Text="PROJECTS" Style="{StaticResource T.Pixel.Section}" FontSize="12"/>
                             <TextBlock Text="{Binding TotalProjects}" Style="{StaticResource T.CRT.Stat}" Margin="0,6,0,0"/>
                             <TextBlock Text="tracked" Style="{StaticResource T.Muted}"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource Panel.Rust}" Margin="4,0,4,0">
                         <StackPanel>
-                            <TextBlock Text="RETENTION" Style="{StaticResource T.Pixel.Section}" FontSize="9"/>
+                            <TextBlock Text="RETENTION" Style="{StaticResource T.Pixel.Section}" FontSize="12"/>
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                                 <TextBlock Text="{Binding RetentionValue}" FontSize="36" Foreground="{StaticResource B.Text}" VerticalAlignment="Bottom">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
-                                            <Setter Property="FontFamily" Value="{StaticResource Font.CRT}"/>
+                                            <Setter Property="FontFamily" Value="{StaticResource Font.UI}"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding RetentionInfinite}" Value="True">
                                                     <Setter Property="FontFamily" Value="Segoe UI Symbol, Segoe UI, IBM Plex Sans KR"/>
@@ -88,8 +89,8 @@
                     </Border>
                     <Border Style="{StaticResource Panel.Rust}" Margin="8,0,0,0">
                         <StackPanel>
-                            <TextBlock Text="OLDEST / NEWEST" Style="{StaticResource T.Pixel.Section}" FontSize="9"/>
-                            <TextBlock Text="{Binding OldestSession}" Style="{StaticResource T.Mono}" FontSize="13" Margin="0,6,0,0"/>
+                            <TextBlock Text="OLDEST / NEWEST" Style="{StaticResource T.Pixel.Section}" FontSize="12"/>
+                            <TextBlock Text="{Binding OldestSession}" Style="{StaticResource T.Mono}" FontSize="14" Margin="0,6,0,0"/>
                             <TextBlock Text="{Binding NewestSession}" Style="{StaticResource T.Muted}"/>
                         </StackPanel>
                     </Border>
@@ -148,10 +149,10 @@
                         -->
                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                             <RadioButton Content="PROJECTS" Style="{StaticResource Btn.PixelToggle}"
-                                         GroupName="BucketMode" Padding="9,5" FontSize="7"
+                                         GroupName="BucketMode" Padding="9,5" FontSize="11"
                                          IsChecked="{Binding ProjectMode, Mode=TwoWay}"/>
                             <RadioButton Content="GROUPS" Style="{StaticResource Btn.PixelToggle}"
-                                         GroupName="BucketMode" Padding="9,5" FontSize="7" Margin="4,0,0,0"
+                                         GroupName="BucketMode" Padding="9,5" FontSize="11" Margin="4,0,0,0"
                                          IsChecked="{Binding GroupMode, Mode=TwoWay}"/>
                         </StackPanel>
                     </Grid>
@@ -166,7 +167,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="{Binding Slug}" Style="{StaticResource T.Body}" FontFamily="{StaticResource Font.Mono}" TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Grid.Column="1" Text="{Binding SizeText}" FontFamily="{StaticResource Font.CRT}" FontSize="16" Foreground="{StaticResource B.Ember}" Margin="8,0,0,0"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding SizeText}" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="14" Foreground="{StaticResource B.Ember}" Margin="8,0,0,0"/>
                                 </Grid>
                                 <!-- Relative comparison bar (largest project = 100%). Hidden when only 1 project — meaningless. -->
                                 <Border Height="3" Background="{StaticResource B.BorderSoft}" Margin="0,4,0,0" CornerRadius="0"
@@ -199,18 +200,18 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="▸" Foreground="{StaticResource B.Ember}" FontFamily="{StaticResource Font.CRT}" FontSize="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="▸" Foreground="{StaticResource B.Ember}" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                 <TextBlock Text="{Binding SelectedProject.Slug, TargetNullValue='(no project selected)'}"
-                                           FontFamily="{StaticResource Font.Mono}" FontSize="15" FontWeight="SemiBold"
+                                           FontFamily="{StaticResource Font.Mono}" FontSize="16" FontWeight="SemiBold"
                                            Foreground="{StaticResource B.Text}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="28,4,0,0">
-                                <TextBlock FontFamily="{StaticResource Font.Pixel}" FontSize="8" Foreground="{StaticResource B.TextMuted}">
+                                <TextBlock FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="12" Foreground="{StaticResource B.TextMuted}">
                                     <Run Text="{Binding SelectedProject.SessionCount, Mode=OneWay, TargetNullValue='0'}"/>
                                     <Run Text=" SESSIONS"/>
                                 </TextBlock>
                                 <TextBlock Text=" ▌ " Foreground="{StaticResource B.RustDim}" VerticalAlignment="Center" Margin="4,0"/>
-                                <TextBlock Text="{Binding SelectedProject.SizeText, TargetNullValue='—'}" FontFamily="{StaticResource Font.CRT}" FontSize="16" Foreground="{StaticResource B.Ember}"/>
+                                <TextBlock Text="{Binding SelectedProject.SizeText, TargetNullValue='—'}" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="14" Foreground="{StaticResource B.Ember}"/>
                             </StackPanel>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
@@ -261,7 +262,7 @@
                                                         </Style>
                                                     </TextBlock.Style>
                                                 </TextBlock>
-                                                <TextBlock Text="{Binding FileName}" FontFamily="{StaticResource Font.Mono}" FontSize="10" Foreground="{StaticResource B.TextDim}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding FileName}" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.TextDim}" TextTrimming="CharacterEllipsis"/>
                                             </StackPanel>
                                         </Grid>
                                     </DataTemplate>
@@ -311,7 +312,7 @@
                                                 </Style>
                                             </Border.Style>
                                             <TextBlock Text="{Binding GroupName}" Style="{StaticResource T.Muted}"
-                                                       FontSize="11" TextTrimming="CharacterEllipsis"
+                                                       FontSize="12" TextTrimming="CharacterEllipsis"
                                                        Foreground="{StaticResource B.TextMuted}"/>
                                         </Border>
                                     </DataTemplate>

@@ -12,12 +12,12 @@
             Padding="10,6"
             Effect="{StaticResource Glow.Soft}">
         <StackPanel Orientation="Horizontal">
-            <TextBlock Text="◢ FIND" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBlock Text="◢ FIND" Style="{StaticResource T.Pixel.Section}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
             <TextBox x:Name="Input" Width="220" Padding="10,3" KeyDown="OnInputKeyDown"/>
-            <Button Content="↑" Click="OnPrev" Style="{StaticResource Btn.Pixel}" Margin="6,0,0,0" Padding="8,3" FontSize="12" ToolTip="Prev match (Shift+Enter)"/>
-            <Button Content="↓" Click="OnNext" Style="{StaticResource Btn.Pixel}" Margin="4,0,0,0" Padding="8,3" FontSize="12" ToolTip="Next match (Enter)"/>
-            <Button Content="✕" Click="OnClose" Style="{StaticResource Btn.Pixel.Danger}" Margin="6,0,0,0" Padding="8,3" FontSize="12" ToolTip="Close (Esc)"/>
-            <TextBlock x:Name="Status" Style="{StaticResource T.Muted}" FontSize="11" VerticalAlignment="Center" Margin="10,0,0,0"/>
+            <Button Content="↑" Click="OnPrev" Style="{StaticResource Btn.Pixel}" Margin="6,0,0,0" Padding="8,3" FontSize="14" ToolTip="Prev match (Shift+Enter)"/>
+            <Button Content="↓" Click="OnNext" Style="{StaticResource Btn.Pixel}" Margin="4,0,0,0" Padding="8,3" FontSize="14" ToolTip="Next match (Enter)"/>
+            <Button Content="✕" Click="OnClose" Style="{StaticResource Btn.Pixel.Danger}" Margin="6,0,0,0" Padding="8,3" FontSize="14" ToolTip="Close (Esc)"/>
+            <TextBlock x:Name="Status" Style="{StaticResource T.Muted}" FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0"/>
         </StackPanel>
     </Border>
 </UserControl>

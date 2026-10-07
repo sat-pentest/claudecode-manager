@@ -23,7 +23,7 @@ public partial class SkillsViewModel : ModuleBase
     // Shared model choices for both skills and agents. "(inherit)" clears the frontmatter line.
     public static IReadOnlyList<string> ModelOptions { get; } = new[]
     {
-        "(inherit)", "opus", "sonnet", "haiku", "fable"
+        "(inherit)", "mythos", "opus", "sonnet", "haiku", "fable"
     };
 
     /// <summary>Category choices for the DETAIL override combo — "(auto)" clears the frontmatter
@@ -239,7 +239,7 @@ public partial class SkillsViewModel : ModuleBase
     {
         // Refresh the model + category combos when selection changes — but suppress auto-save.
         _suppressModelSave = true;
-        ModelChoice = string.IsNullOrWhiteSpace(value?.Model) ? "(inherit)" : value.Model!;
+        ModelChoice = ModelAlias.ToChoice(value?.Model);
         _suppressModelSave = false;
 
         _suppressCategorySave = true;
@@ -288,7 +288,7 @@ public partial class SkillsViewModel : ModuleBase
     private async Task SaveModelAsync(string choice)
     {
         if (Selected is null) return;
-        string? newModel = choice == "(inherit)" ? null : choice;
+        string? newModel = ModelAlias.ToFrontmatter(choice);
         // No-op if unchanged (Selected.Model may be null for inherit)
         var cur = string.IsNullOrWhiteSpace(Selected.Model) ? null : Selected.Model;
         if (cur == newModel) return;
@@ -438,5 +438,33 @@ public partial class SkillsViewModel : ModuleBase
             }
         }
         catch (System.Exception ex) { Status = "remove trigger failed: " + ex.Message; }
+    }
+}
+
+/// <summary>
+/// Model alias ↔ frontmatter id. Short aliases (opus/sonnet/haiku/fable) are accepted by the CLI as-is,
+/// but Mythos has no short alias yet ("--model mythos" → 404) so the combo shows "mythos" while the
+/// SKILL.md / agent frontmatter stores the full id. Unknown values pass through unchanged.
+/// </summary>
+public static class ModelAlias
+{
+    private static readonly (string Choice, string Id)[] Map =
+    {
+        ("mythos", "claude-mythos-5-1"),
+    };
+
+    public static string? ToFrontmatter(string choice)
+    {
+        if (string.IsNullOrWhiteSpace(choice) || choice == "(inherit)") return null;
+        foreach (var (c, id) in Map) if (c == choice) return id;
+        return choice;
+    }
+
+    public static string ToChoice(string? frontmatter)
+    {
+        if (string.IsNullOrWhiteSpace(frontmatter)) return "(inherit)";
+        var v = frontmatter.Trim();
+        foreach (var (c, id) in Map) if (id == v || c == v) return c;
+        return v;
     }
 }

@@ -16,7 +16,7 @@
         <Border Background="{StaticResource B.BG.Panel}" Padding="16,10" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
             <StackPanel Orientation="Horizontal">
                 <Path Style="{StaticResource Icon.Module}" Data="{Binding Glyph, Converter={x:Static vm:StringToGeometry.Instance}}"/>
-                <TextBlock Text="SETTINGS FILE" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
+                <TextBlock Text="SETTINGS FILE" Style="{StaticResource T.Module.Title}" VerticalAlignment="Center"/>
                 <ComboBox SelectedValue="{Binding ActiveFile}" SelectedValuePath="Content" Width="220" Margin="14,0,0,0">
                     <ComboBoxItem Content="settings.json"/>
                     <ComboBoxItem Content="settings.local.json"/>
@@ -62,7 +62,7 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="14" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"/>
+                                            <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="15" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"/>
                                             <Button Grid.Column="1" Content="✕" VerticalAlignment="Center" Margin="8,0,4,0"
                                                     Command="{Binding DataContext.RemoveAllowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"
@@ -101,7 +101,7 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="14" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"/>
+                                            <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="15" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"/>
                                             <Button Grid.Column="1" Content="✕" VerticalAlignment="Center" Margin="8,0,4,0"
                                                     Command="{Binding DataContext.RemoveDenyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"
@@ -129,9 +129,9 @@
                                 </Style.Triggers>
                             </Style>
                         </StackPanel.Style>
-                        <TextBlock Text="⚡" FontFamily="{StaticResource Font.CRT}" FontSize="72" Foreground="{StaticResource B.RustDim}" HorizontalAlignment="Center" Opacity="0.5"/>
-                        <TextBlock Text="NO HOOKS CONFIGURED" Style="{StaticResource T.Pixel.Section}" FontSize="10" HorizontalAlignment="Center" Margin="0,12,0,0"/>
-                        <TextBlock Text="hooks 블록이 없거나 비어 있습니다. RAW JSON 탭에서 직접 추가할 수 있습니다." Style="{StaticResource T.Muted}" FontSize="12" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                        <TextBlock Text="⚡" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="52" Foreground="{StaticResource B.RustDim}" HorizontalAlignment="Center" Opacity="0.5"/>
+                        <TextBlock Text="NO HOOKS CONFIGURED" Style="{StaticResource T.Pixel.Section}" FontSize="13" HorizontalAlignment="Center" Margin="0,12,0,0"/>
+                        <TextBlock Text="hooks 블록이 없거나 비어 있습니다. RAW JSON 탭에서 직접 추가할 수 있습니다." Style="{StaticResource T.Muted}" FontSize="13" HorizontalAlignment="Center" Margin="0,6,0,0"/>
                     </StackPanel>
 
                     <!-- Hook list (visible when Hooks has items) -->
@@ -145,7 +145,7 @@
                               AlternatingRowBackground="{StaticResource B.BG.Panel}"
                               HeadersVisibility="Column"
                               SelectionMode="Single" SelectionUnit="FullRow"
-                              FontFamily="{StaticResource Font.Mono}" FontSize="13" RowHeight="36">
+                              FontFamily="{StaticResource Font.Mono}" FontSize="14" RowHeight="36">
                         <DataGrid.Style>
                             <Style TargetType="DataGrid">
                                 <Setter Property="Visibility" Value="Visible"/>
@@ -160,8 +160,9 @@
                             <Style TargetType="DataGridColumnHeader">
                                 <Setter Property="Background" Value="{StaticResource B.BG.Panel}"/>
                                 <Setter Property="Foreground" Value="{StaticResource B.Ember}"/>
-                                <Setter Property="FontFamily" Value="{StaticResource Font.Pixel}"/>
-                                <Setter Property="FontSize" Value="8"/>
+                                <Setter Property="FontFamily" Value="{StaticResource Font.UI}"/>
+                                <Setter Property="FontWeight" Value="Medium"/>
+                                <Setter Property="FontSize" Value="12"/>
                                 <Setter Property="Padding" Value="12,10"/>
                                 <Setter Property="BorderBrush" Value="{StaticResource B.Border}"/>
                                 <Setter Property="BorderThickness" Value="0,0,1,1"/>
@@ -238,7 +239,7 @@
                 </Grid>
             </TabItem>
             <TabItem Header="RAW JSON">
-                <TextBox Text="{Binding RawJson, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Margin="16" BorderThickness="1" FontFamily="{StaticResource Font.Mono}" FontSize="15"/>
+                <TextBox Text="{Binding RawJson, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Margin="16" BorderThickness="1" FontFamily="{StaticResource Font.Mono}" FontSize="16"/>
             </TabItem>
         </TabControl>
     </Grid>

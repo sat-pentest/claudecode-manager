@@ -45,7 +45,7 @@
                 <Border Grid.Column="1" Padding="10,6" BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1" Background="{StaticResource B.BG.Sunken}">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <!-- Load level dot + label (colored per level) -->
-                        <Ellipse Width="9" Height="9" Margin="0,0,8,0" VerticalAlignment="Center" Effect="{StaticResource Glow.Soft}">
+                        <Ellipse Width="8" Height="8" Margin="0,0,9,0" VerticalAlignment="Center" Effect="{StaticResource Glow.Soft}">
                             <Ellipse.Style>
                                 <Style TargetType="Ellipse">
                                     <Setter Property="Fill" Value="{StaticResource B.Success}"/>
@@ -64,7 +64,7 @@
                             </Ellipse.Style>
                         </Ellipse>
 
-                        <TextBlock Text="{Binding LoadLevel}" FontFamily="{StaticResource Font.Pixel}" FontSize="8" VerticalAlignment="Center" Margin="0,0,10,0">
+                        <TextBlock Text="{Binding LoadLevel}" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="Foreground" Value="{StaticResource B.Success}"/>
@@ -84,7 +84,7 @@
                         </TextBlock>
 
                         <!-- Active / Total count -->
-                        <TextBlock FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.Text}" VerticalAlignment="Center">
+                        <TextBlock FontFamily="{StaticResource Font.Mono}" FontSize="13" Foreground="{StaticResource B.Text}" VerticalAlignment="Center">
                             <Run Text="{Binding ActiveEntries, Mode=OneWay}" Foreground="{StaticResource B.Success}"/>
                             <Run Text=" active · "/>
                             <Run Text="{Binding DisabledEntries, Mode=OneWay}" Foreground="{StaticResource B.TextDim}"/>
@@ -98,7 +98,7 @@
                             <ToggleButton.Template>
                                 <ControlTemplate TargetType="ToggleButton">
                                     <Border x:Name="Bd" CornerRadius="9" Background="{StaticResource B.BorderSoft}">
-                                        <TextBlock Text="?" FontFamily="{StaticResource Font.Mono}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource B.Ember}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Text="?" FontFamily="{StaticResource Font.Mono}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource B.Ember}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
@@ -118,12 +118,12 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="MEMORY LOAD THRESHOLDS" Style="{StaticResource T.Pixel.Section}" FontSize="8" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"/>
-                                        <Button Grid.Column="1" Content="✕" Width="18" Height="18" Padding="0" FontSize="10" Foreground="{StaticResource B.TextMuted}"
+                                        <TextBlock Text="MEMORY LOAD THRESHOLDS" Style="{StaticResource T.Pixel.Section}" FontSize="12" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"/>
+                                        <Button Grid.Column="1" Content="✕" Width="18" Height="18" Padding="0" FontSize="12" Foreground="{StaticResource B.TextMuted}"
                                                 Background="Transparent" BorderThickness="0" Cursor="Hand"
                                                 Click="OnCloseHelpClicked"/>
                                     </Grid>
-                                    <TextBlock Text="활성 메모리 개수에 따른 성능·정확도 영향" Style="{StaticResource T.Muted}" FontSize="11" Margin="0,4,0,10" TextWrapping="Wrap"/>
+                                    <TextBlock Text="활성 메모리 개수에 따른 성능·정확도 영향" Style="{StaticResource T.Muted}" FontSize="12" Margin="0,4,0,10" TextWrapping="Wrap"/>
 
                                     <Grid Margin="0,0,0,4">
                                         <Grid.ColumnDefinitions>
@@ -132,8 +132,8 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{StaticResource B.Success}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                        <TextBlock Grid.Column="1" Text="HEALTHY" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Success}" Width="80" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="2" Text="~80 활성 · 성능 영향 없음" Style="{StaticResource T.Muted}" FontSize="11" TextWrapping="Wrap"/>
+                                        <TextBlock Grid.Column="1" Text="HEALTHY" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="11" Foreground="{StaticResource B.Success}" Width="80" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="~80 활성 · 성능 영향 없음" Style="{StaticResource T.Muted}" FontSize="12" TextWrapping="Wrap"/>
                                     </Grid>
                                     <Grid Margin="0,3,0,4">
                                         <Grid.ColumnDefinitions>
@@ -142,8 +142,8 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{StaticResource B.Warn}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                        <TextBlock Grid.Column="1" Text="CAUTION" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Warn}" Width="80" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="2" Text="80~150 · MEMORY.md 200줄 truncation 위험 시작" Style="{StaticResource T.Muted}" FontSize="11" TextWrapping="Wrap"/>
+                                        <TextBlock Grid.Column="1" Text="CAUTION" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="11" Foreground="{StaticResource B.Warn}" Width="80" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="80~150 · MEMORY.md 200줄 truncation 위험 시작" Style="{StaticResource T.Muted}" FontSize="12" TextWrapping="Wrap"/>
                                     </Grid>
                                     <Grid Margin="0,3,0,4">
                                         <Grid.ColumnDefinitions>
@@ -152,8 +152,8 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{StaticResource B.Ember}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                        <TextBlock Grid.Column="1" Text="WARN" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Ember}" Width="80" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="2" Text="150~300 · 세만틱 검색 노이즈·응답 지연 감지" Style="{StaticResource T.Muted}" FontSize="11" TextWrapping="Wrap"/>
+                                        <TextBlock Grid.Column="1" Text="WARN" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="11" Foreground="{StaticResource B.Ember}" Width="80" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="150~300 · 세만틱 검색 노이즈·응답 지연 감지" Style="{StaticResource T.Muted}" FontSize="12" TextWrapping="Wrap"/>
                                     </Grid>
                                     <Grid Margin="0,3,0,4">
                                         <Grid.ColumnDefinitions>
@@ -162,19 +162,19 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{StaticResource B.Danger}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                        <TextBlock Grid.Column="1" Text="CRITICAL" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Danger}" Width="80" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="2" Text="300+ · 명확한 저하, 아카이브 필수" Style="{StaticResource T.Muted}" FontSize="11" TextWrapping="Wrap"/>
+                                        <TextBlock Grid.Column="1" Text="CRITICAL" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="11" Foreground="{StaticResource B.Danger}" Width="80" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="300+ · 명확한 저하, 아카이브 필수" Style="{StaticResource T.Muted}" FontSize="12" TextWrapping="Wrap"/>
                                     </Grid>
 
                                     <Border BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="0,1,0,0" Margin="0,8,0,0" Padding="0,6,0,0">
                                         <StackPanel>
-                                            <TextBlock FontSize="10" Foreground="{StaticResource B.TextMuted}" TextWrapping="Wrap">
+                                            <TextBlock FontSize="12" Foreground="{StaticResource B.TextMuted}" TextWrapping="Wrap">
                                                 <Run Text="※ 비활성(disabled) 메모리는 컨텍스트에 로드되지 않아 성능 영향 없음."/>
                                             </TextBlock>
-                                            <TextBlock FontSize="10" Foreground="{StaticResource B.TextMuted}" TextWrapping="Wrap" Margin="0,3,0,0">
+                                            <TextBlock FontSize="12" Foreground="{StaticResource B.TextMuted}" TextWrapping="Wrap" Margin="0,3,0,0">
                                                 <Run Text="※ 개수보다 description 품질(when-to-use 명확도)이 세만틱 매칭에 더 영향."/>
                                             </TextBlock>
-                                            <TextBlock FontSize="10" Foreground="{StaticResource B.TextMuted}" TextWrapping="Wrap" Margin="0,3,0,0">
+                                            <TextBlock FontSize="12" Foreground="{StaticResource B.TextMuted}" TextWrapping="Wrap" Margin="0,3,0,0">
                                                 <Run Text="※ project_* 메모리는 프로그램 종료 후 아카이브/삭제 권장."/>
                                             </TextBlock>
                                         </StackPanel>
@@ -209,7 +209,7 @@
                     <ToggleButton Grid.Column="1" Style="{StaticResource Btn.PixelToggle}"
                                   IsChecked="{Binding IsGraphMode}" Cursor="Hand"
                                   ToolTip="링크 그래프로 전환 — [[링크]] 연결 구조·끊긴 링크·고립 항목">
-                        <TextBlock FontFamily="{StaticResource Font.Pixel}" FontSize="7">
+                        <TextBlock FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="11">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="Text" Value="GRAPH"/>
@@ -235,10 +235,10 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="TYPE" Style="{StaticResource T.Pixel.Section}" FontSize="7" VerticalAlignment="Center" Margin="4,0,6,0"/>
-                        <ComboBox Grid.Column="1" MinWidth="72" ItemsSource="{Binding TypeFilterOptions}" SelectedItem="{Binding TypeFilter, Mode=TwoWay}" FontFamily="{StaticResource Font.Mono}" FontSize="12"/>
-                        <TextBlock Grid.Column="2" Text="STATUS" Style="{StaticResource T.Pixel.Section}" FontSize="7" VerticalAlignment="Center" Margin="10,0,6,0"/>
-                        <ComboBox Grid.Column="3" MinWidth="72" ItemsSource="{Binding StatusFilterOptions}" SelectedItem="{Binding StatusFilter, Mode=TwoWay}" FontFamily="{StaticResource Font.Mono}" FontSize="12"
+                        <TextBlock Grid.Column="0" Text="TYPE" Style="{StaticResource T.Pixel.Section}" FontSize="11" VerticalAlignment="Center" Margin="4,0,6,0"/>
+                        <ComboBox Grid.Column="1" MinWidth="72" ItemsSource="{Binding TypeFilterOptions}" SelectedItem="{Binding TypeFilter, Mode=TwoWay}" FontFamily="{StaticResource Font.Mono}" FontSize="13"/>
+                        <TextBlock Grid.Column="2" Text="STATUS" Style="{StaticResource T.Pixel.Section}" FontSize="11" VerticalAlignment="Center" Margin="10,0,6,0"/>
+                        <ComboBox Grid.Column="3" MinWidth="72" ItemsSource="{Binding StatusFilterOptions}" SelectedItem="{Binding StatusFilter, Mode=TwoWay}" FontFamily="{StaticResource Font.Mono}" FontSize="13"
                                   ToolTip="ACTIVE = 활성 엔트리만 · DISABLED = 비활성(.disabled) 엔트리만"/>
                     </Grid>
                 </Border>
@@ -252,21 +252,21 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBox Grid.Column="0" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged, Delay=150}" Padding="10,2.5" FontSize="12" VerticalContentAlignment="Center" MinHeight="0">
+                        <TextBox Grid.Column="0" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged, Delay=150}" Padding="10,2.5" FontSize="13" VerticalContentAlignment="Center" MinHeight="0">
                             <TextBox.Style>
                                 <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
                                     <Setter Property="Background" Value="{StaticResource B.BG.Sunken}"/>
                                 </Style>
                             </TextBox.Style>
                         </TextBox>
-                        <Button Grid.Column="1" Content="X" Style="{StaticResource Btn.Pixel}" Padding="8,2.5" FontSize="9" Margin="4,0,0,0"
+                        <Button Grid.Column="1" Content="X" Style="{StaticResource Btn.Pixel}" Padding="8,2.5" FontSize="12" Margin="4,0,0,0"
                                 Command="{Binding SearchClearCommand}"
                                 Visibility="{Binding SearchText, Converter={x:Static vm:NullToVisibility.Instance}}"/>
                         <ToggleButton Grid.Column="2" IsChecked="{Binding OverLengthOnly, Mode=TwoWay}" Padding="8,2.5" Margin="6,0,0,0" Cursor="Hand" ToolTip="MEMORY.md 인덱스 라인이 150자 초과인 엔트리만 표시">
                             <ToggleButton.Template>
                                 <ControlTemplate TargetType="ToggleButton">
                                     <Border x:Name="Bd" Background="{StaticResource B.BG.Sunken}" BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="1" Padding="{TemplateBinding Padding}">
-                                        <TextBlock x:Name="Lbl" Text="&gt;150ch" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="Lbl" Text="&gt;150ch" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="11" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center"/>
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
@@ -292,7 +292,7 @@
                         </Button>
                     </Grid>
                 </Border>
-                <TextBlock DockPanel.Dock="Top" Text="{Binding SearchStats}" Style="{StaticResource T.Muted}" Margin="12,0,12,4" FontSize="11"
+                <TextBlock DockPanel.Dock="Top" Text="{Binding SearchStats}" Style="{StaticResource T.Muted}" Margin="12,0,12,4" FontSize="12"
                            Visibility="{Binding SearchStats, Converter={x:Static vm:NullToVisibility.Instance}}"/>
                 <ListBox x:Name="EntriesList"
                          ItemsSource="{Binding Entries}" SelectedItem="{Binding SelectedEntry}" Margin="8,0,8,8" Background="{StaticResource B.BG.Sunken}"
@@ -330,23 +330,23 @@
 
                                 <StackPanel Grid.Column="0">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="●" Width="14" VerticalAlignment="Center"
+                                        <Ellipse Width="8" Height="8" Margin="0,0,9,0" VerticalAlignment="Center"
                                                    svc:PulseBehavior.IsActive="{Binding ReferencedInIndex}">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Foreground" Value="{StaticResource B.TextDim}"/>
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                                    <Setter Property="Fill" Value="{StaticResource B.TextDim}"/>
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding ReferencedInIndex}" Value="True">
-                                                            <Setter Property="Foreground" Value="{StaticResource B.Success}"/>
+                                                            <Setter Property="Fill" Value="{StaticResource B.Success}"/>
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding Disabled}" Value="True">
-                                                            <Setter Property="Foreground" Value="{StaticResource B.TextDim}"/>
+                                                            <Setter Property="Fill" Value="{StaticResource B.TextDim}"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                        <TextBlock Text="{Binding DisplayName}" FontFamily="{StaticResource Font.Mono}" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                                    </Ellipse.Style>
+                                </Ellipse>
+                                        <TextBlock Text="{Binding DisplayName}" FontFamily="{StaticResource Font.Mono}" FontSize="14" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
                                                     <Style.Triggers>
@@ -361,7 +361,7 @@
                                         <Border Padding="5,4,5,4" Margin="8,0,0,0" VerticalAlignment="Center"
                                                 Background="{StaticResource B.RustDim}"
                                                 Visibility="{Binding Disabled, Converter={x:Static vm:BoolToVisibility.Instance}}">
-                                            <TextBlock Text="OFF" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Text}" VerticalAlignment="Center"/>
+                                            <TextBlock Text="OFF" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="11" Foreground="{StaticResource B.Text}" VerticalAlignment="Center"/>
                                         </Border>
                                     </StackPanel>
                                     <TextBlock Text="{Binding Frontmatter.Description}" Style="{StaticResource T.Muted}" Margin="14,2,0,0" TextTrimming="CharacterEllipsis"/>
@@ -422,7 +422,7 @@
                     </Grid.RowDefinitions>
                     <Border Style="{StaticResource Panel.Sunken}" BorderThickness="0" Padding="16,12">
                         <StackPanel>
-                            <TextBlock Text="FRONTMATTER" Style="{StaticResource T.Pixel.Section}" FontSize="8"/>
+                            <TextBlock Text="FRONTMATTER" Style="{StaticResource T.Pixel.Section}" FontSize="12"/>
                             <Grid Margin="0,8,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="100"/>
@@ -442,7 +442,7 @@
                                         <ToggleButton.Template>
                                             <ControlTemplate TargetType="ToggleButton">
                                                 <Border x:Name="Bd" CornerRadius="8" Background="{StaticResource B.BorderSoft}">
-                                                    <TextBlock Text="?" FontFamily="{StaticResource Font.Mono}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource B.Ember}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="?" FontFamily="{StaticResource Font.Mono}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource B.Ember}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <ControlTemplate.Triggers>
                                                     <Trigger Property="IsMouseOver" Value="True">
@@ -462,52 +462,52 @@
                                                         <ColumnDefinition Width="*"/>
                                                         <ColumnDefinition Width="Auto"/>
                                                     </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="MEMORY TYPES (STANDARD)" Style="{StaticResource T.Pixel.Section}" FontSize="8" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"/>
-                                                    <Button Grid.Column="1" Content="✕" Width="18" Height="18" Padding="0" FontSize="10" Foreground="{StaticResource B.TextMuted}"
+                                                    <TextBlock Text="MEMORY TYPES (STANDARD)" Style="{StaticResource T.Pixel.Section}" FontSize="12" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"/>
+                                                    <Button Grid.Column="1" Content="✕" Width="18" Height="18" Padding="0" FontSize="12" Foreground="{StaticResource B.TextMuted}"
                                                             Background="Transparent" BorderThickness="0" Cursor="Hand"
                                                             Click="OnCloseTypeHelpClicked"/>
                                                 </Grid>
-                                                <TextBlock Text="Claude Code 표준 4개 타입 · 세만틱 매칭 힌트로 사용됨" Style="{StaticResource T.Muted}" FontSize="11" Margin="0,4,0,10" TextWrapping="Wrap"/>
+                                                <TextBlock Text="Claude Code 표준 4개 타입 · 세만틱 매칭 힌트로 사용됨" Style="{StaticResource T.Muted}" FontSize="12" Margin="0,4,0,10" TextWrapping="Wrap"/>
 
                                                 <Grid Margin="0,3">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="70"/>
                                                         <ColumnDefinition Width="*"/>
                                                     </Grid.ColumnDefinitions>
-                                                    <TextBlock Grid.Column="0" Text="user" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Ember}" FontWeight="SemiBold" VerticalAlignment="Top"/>
-                                                    <TextBlock Grid.Column="1" Style="{StaticResource T.Muted}" FontSize="11" TextWrapping="Wrap" Text="사용자 프로필·역할·선호·지식 범위. Claude 응답 톤·설명 깊이 맞추는 데 사용"/>
+                                                    <TextBlock Grid.Column="0" Text="user" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.Ember}" FontWeight="SemiBold" VerticalAlignment="Top"/>
+                                                    <TextBlock Grid.Column="1" Style="{StaticResource T.Muted}" FontSize="12" TextWrapping="Wrap" Text="사용자 프로필·역할·선호·지식 범위. Claude 응답 톤·설명 깊이 맞추는 데 사용"/>
                                                 </Grid>
                                                 <Grid Margin="0,3">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="70"/>
                                                         <ColumnDefinition Width="*"/>
                                                     </Grid.ColumnDefinitions>
-                                                    <TextBlock Grid.Column="0" Text="feedback" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Ember}" FontWeight="SemiBold" VerticalAlignment="Top"/>
-                                                    <TextBlock Grid.Column="1" Style="{StaticResource T.Muted}" FontSize="11" TextWrapping="Wrap" Text="작업 접근 방식 가이드 (하지 말 것 · 이렇게 할 것). Why + How to apply 포함 시 판단 향상"/>
+                                                    <TextBlock Grid.Column="0" Text="feedback" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.Ember}" FontWeight="SemiBold" VerticalAlignment="Top"/>
+                                                    <TextBlock Grid.Column="1" Style="{StaticResource T.Muted}" FontSize="12" TextWrapping="Wrap" Text="작업 접근 방식 가이드 (하지 말 것 · 이렇게 할 것). Why + How to apply 포함 시 판단 향상"/>
                                                 </Grid>
                                                 <Grid Margin="0,3">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="70"/>
                                                         <ColumnDefinition Width="*"/>
                                                     </Grid.ColumnDefinitions>
-                                                    <TextBlock Grid.Column="0" Text="project" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Ember}" FontWeight="SemiBold" VerticalAlignment="Top"/>
-                                                    <TextBlock Grid.Column="1" Style="{StaticResource T.Muted}" FontSize="11" TextWrapping="Wrap" Text="진행 중 작업·인가 스코프·발견 결과. 상태 변화 잦으니 완료 후 아카이브"/>
+                                                    <TextBlock Grid.Column="0" Text="project" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.Ember}" FontWeight="SemiBold" VerticalAlignment="Top"/>
+                                                    <TextBlock Grid.Column="1" Style="{StaticResource T.Muted}" FontSize="12" TextWrapping="Wrap" Text="진행 중 작업·인가 스코프·발견 결과. 상태 변화 잦으니 완료 후 아카이브"/>
                                                 </Grid>
                                                 <Grid Margin="0,3">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="70"/>
                                                         <ColumnDefinition Width="*"/>
                                                     </Grid.ColumnDefinitions>
-                                                    <TextBlock Grid.Column="0" Text="reference" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Ember}" FontWeight="SemiBold" VerticalAlignment="Top"/>
-                                                    <TextBlock Grid.Column="1" Style="{StaticResource T.Muted}" FontSize="11" TextWrapping="Wrap" Text="외부 시스템·도구·스킬·에이전트 위치 포인터. 어디 있는지·언제 참조하는지"/>
+                                                    <TextBlock Grid.Column="0" Text="reference" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.Ember}" FontWeight="SemiBold" VerticalAlignment="Top"/>
+                                                    <TextBlock Grid.Column="1" Style="{StaticResource T.Muted}" FontSize="12" TextWrapping="Wrap" Text="외부 시스템·도구·스킬·에이전트 위치 포인터. 어디 있는지·언제 참조하는지"/>
                                                 </Grid>
 
                                                 <Border BorderBrush="{StaticResource B.BorderSoft}" BorderThickness="0,1,0,0" Margin="0,8,0,0" Padding="0,6,0,0">
                                                     <StackPanel>
-                                                        <TextBlock FontSize="10" Foreground="{StaticResource B.TextMuted}" TextWrapping="Wrap">
+                                                        <TextBlock FontSize="12" Foreground="{StaticResource B.TextMuted}" TextWrapping="Wrap">
                                                             <Run Text="※ type 없으면 '분류 안 됨' — 동작은 하나 매칭 힌트 약화."/>
                                                         </TextBlock>
-                                                        <TextBlock FontSize="10" Foreground="{StaticResource B.TextMuted}" TextWrapping="Wrap" Margin="0,3,0,0">
+                                                        <TextBlock FontSize="12" Foreground="{StaticResource B.TextMuted}" TextWrapping="Wrap" Margin="0,3,0,0">
                                                             <Run Text="※ 커스텀 타입 (skill/agent 등)도 자유롭게 사용 가능."/>
                                                         </TextBlock>
                                                     </StackPanel>
@@ -532,8 +532,8 @@
                             <avalon:TextEditor
                                 Background="{StaticResource B.BG.Sunken}"
                                 Foreground="{StaticResource B.Text}"
-                                FontFamily="{StaticResource Font.Mono}"
-                                FontSize="16"
+                                FontFamily="{StaticResource Font.Code}"
+                                FontSize="13"
                                 WordWrap="True"
                                 ShowLineNumbers="False"
                                 SyntaxHighlighting="MarkdownRust"
@@ -568,18 +568,18 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="◢ LINK GRAPH" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
                         <TextBlock Grid.Column="1" Text="{Binding GraphStats}" Style="{StaticResource T.Muted}"
-                                   FontSize="11" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                                   FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"/>
                         <StackPanel Grid.Column="2" Orientation="Horizontal">
                             <CheckBox Content="비활성 포함" IsChecked="{Binding ShowDisabledInGraph}"
-                                      VerticalAlignment="Center" Margin="0,0,14,0" FontSize="11"
+                                      VerticalAlignment="Center" Margin="0,0,14,0" FontSize="12"
                                       ToolTip="비활성(.md.disabled) 항목을 그래프에 표시. 끄면 Claude Code 가 실제로 읽는 항목만 남는다."/>
                             <TextBlock Text="휠 확대 · 드래그 이동 · 노드 드래그 고정 · 더블클릭 열기"
-                                       Style="{StaticResource T.Muted}" FontSize="10" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                       Style="{StaticResource T.Muted}" FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0"/>
                             <!-- Btn.Pixel 은 RELOAD·AUTO-CLASSIFY 와 같은 앱 표준 버튼. Padding 만
                                  좁혀 이 헤더 행의 밀도에 맞춘다 — 색·hover 엠버 글로우·aliased 픽셀
                                  렌더링은 공용 스타일에서 그대로 온다. -->
                             <Button Content="RELAYOUT" Click="OnGraphRelayout"
-                                    Style="{StaticResource Btn.Pixel}" Padding="10,5" FontSize="7"
+                                    Style="{StaticResource Btn.Pixel}" Padding="10,5" FontSize="11"
                                     ToolTip="고정한 노드를 모두 풀고 다시 배치"/>
                         </StackPanel>
                     </Grid>
@@ -625,7 +625,7 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="◢ MEMORY.MD" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"
                                            Visibility="{Binding IsIndexCollapsed, Converter={x:Static vm:InverseBoolToVisibility.Instance}}"/>
-                                <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="14"
+                                <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="15"
                                            Foreground="{StaticResource B.Ember}" VerticalAlignment="Center"
                                            HorizontalAlignment="Center" Margin="4,0" FontWeight="Bold">
                                     <TextBlock.Style>
@@ -665,7 +665,7 @@
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Button.Template>
-                    <TextBlock Text="MEMORY.MD" Style="{StaticResource T.Pixel.Section}" FontSize="9" HorizontalAlignment="Center">
+                    <TextBlock Text="MEMORY.MD" Style="{StaticResource T.Pixel.Section}" FontSize="12" HorizontalAlignment="Center">
                         <TextBlock.LayoutTransform>
                             <RotateTransform Angle="90"/>
                         </TextBlock.LayoutTransform>
@@ -678,8 +678,8 @@
                     <avalon:TextEditor
                         Background="{StaticResource B.BG.Sunken}"
                         Foreground="{StaticResource B.Text}"
-                        FontFamily="{StaticResource Font.Mono}"
-                        FontSize="15"
+                        FontFamily="{StaticResource Font.Code}"
+                        FontSize="13"
                         WordWrap="False"
                         ShowLineNumbers="False"
                         SyntaxHighlighting="MarkdownRust"

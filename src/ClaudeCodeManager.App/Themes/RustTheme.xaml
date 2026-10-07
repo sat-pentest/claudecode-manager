@@ -1,40 +1,55 @@
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
 
     <!-- ═══════════════════════════════════════════════════════
-         RUST PALETTE  ·  CLAUDE CODE MANAGER
+         EMBER / GRAPHITE PALETTE  ·  CLAUDE CODE MANAGER  v2
+         2026-10-07 전면 개편: 러스트(ember) 악센트는 유지하되
+         배경·보더를 갈색 틴트 → 웜 그라파이트 중립색으로, 텍스트 대비 상향.
+         키 이름은 v1 과 동일 — 모든 뷰가 그대로 새 팔레트를 받는다.
          ═══════════════════════════════════════════════════════ -->
 
-    <Color x:Key="C.BG.Primary">#FF0A0908</Color>
-    <Color x:Key="C.BG.Panel">#FF14110F</Color>
-    <Color x:Key="C.BG.Sunken">#FF050403</Color>
-    <Color x:Key="C.BG.Hover">#FF1F1A16</Color>
+    <Color x:Key="C.BG.Primary">#FF0D0C0E</Color>
+    <Color x:Key="C.BG.Panel">#FF151317</Color>
+    <Color x:Key="C.BG.Raised">#FF1B191E</Color>
+    <Color x:Key="C.BG.Sunken">#FF09090B</Color>
+    <Color x:Key="C.BG.Hover">#FF211E25</Color>
     <Color x:Key="C.Rust">#FFD9441C</Color>
     <Color x:Key="C.Ember">#FFF26A2E</Color>
-    <Color x:Key="C.RustDim">#FF7A2812</Color>
-    <Color x:Key="C.Border">#FF4A1F0E</Color>
-    <Color x:Key="C.BorderSoft">#FF2A1408</Color>
-    <Color x:Key="C.Text">#FFE8DDD0</Color>
-    <Color x:Key="C.TextMuted">#FF9A8A78</Color>
-    <Color x:Key="C.TextDim">#FF5A4F44</Color>
-    <Color x:Key="C.Danger">#FFB22020</Color>
-    <Color x:Key="C.Success">#FF6FA844</Color>
-    <Color x:Key="C.Warn">#FFD9A02C</Color>
+    <Color x:Key="C.EmberSoft">#FFFF9A6B</Color>
+    <Color x:Key="C.RustDim">#FF4A2214</Color>
+    <Color x:Key="C.Border">#FF2C272C</Color>
+    <Color x:Key="C.BorderSoft">#FF1F1C21</Color>
+    <Color x:Key="C.BorderStrong">#FF3B343B</Color>
+    <Color x:Key="C.Text">#FFF1ECE6</Color>
+    <Color x:Key="C.TextMuted">#FFAAA096</Color>
+    <Color x:Key="C.TextDim">#FF746B63</Color>
+    <Color x:Key="C.Danger">#FFE0463A</Color>
+    <Color x:Key="C.Success">#FF7CC45A</Color>
+    <Color x:Key="C.Warn">#FFE6AC3C</Color>
 
     <!-- Row highlight tints for status differentiation -->
-    <Color x:Key="C.Row.Inactive">#FF231A0F</Color>
-    <Color x:Key="C.Row.Disabled">#FF1A0C09</Color>
+    <Color x:Key="C.Row.Inactive">#FF1D1915</Color>
+    <Color x:Key="C.Row.Disabled">#FF1A1213</Color>
+    <Color x:Key="C.Row.Selected">#FF231C1E</Color>
+
+    <!-- Translucent accent washes (selection, focus ring) -->
+    <Color x:Key="C.Accent.Wash">#2EF26A2E</Color>
+    <Color x:Key="C.Accent.Ring">#66F26A2E</Color>
 
     <SolidColorBrush x:Key="B.BG.Primary" Color="{StaticResource C.BG.Primary}"/>
     <SolidColorBrush x:Key="B.BG.Panel" Color="{StaticResource C.BG.Panel}"/>
+    <SolidColorBrush x:Key="B.BG.Raised" Color="{StaticResource C.BG.Raised}"/>
     <SolidColorBrush x:Key="B.BG.Sunken" Color="{StaticResource C.BG.Sunken}"/>
     <SolidColorBrush x:Key="B.BG.Hover" Color="{StaticResource C.BG.Hover}"/>
     <SolidColorBrush x:Key="B.Rust" Color="{StaticResource C.Rust}"/>
     <SolidColorBrush x:Key="B.Ember" Color="{StaticResource C.Ember}"/>
+    <SolidColorBrush x:Key="B.EmberSoft" Color="{StaticResource C.EmberSoft}"/>
     <SolidColorBrush x:Key="B.RustDim" Color="{StaticResource C.RustDim}"/>
     <SolidColorBrush x:Key="B.Border" Color="{StaticResource C.Border}"/>
     <SolidColorBrush x:Key="B.BorderSoft" Color="{StaticResource C.BorderSoft}"/>
+    <SolidColorBrush x:Key="B.BorderStrong" Color="{StaticResource C.BorderStrong}"/>
     <SolidColorBrush x:Key="B.Text" Color="{StaticResource C.Text}"/>
     <SolidColorBrush x:Key="B.TextMuted" Color="{StaticResource C.TextMuted}"/>
     <SolidColorBrush x:Key="B.TextDim" Color="{StaticResource C.TextDim}"/>
@@ -43,22 +58,49 @@
     <SolidColorBrush x:Key="B.Warn" Color="{StaticResource C.Warn}"/>
     <SolidColorBrush x:Key="B.Row.Inactive" Color="{StaticResource C.Row.Inactive}"/>
     <SolidColorBrush x:Key="B.Row.Disabled" Color="{StaticResource C.Row.Disabled}"/>
+    <SolidColorBrush x:Key="B.Row.Selected" Color="{StaticResource C.Row.Selected}"/>
+    <SolidColorBrush x:Key="B.Accent.Wash" Color="{StaticResource C.Accent.Wash}"/>
+    <SolidColorBrush x:Key="B.Accent.Ring" Color="{StaticResource C.Accent.Ring}"/>
 
     <!-- ═══════════════════════════════════════════════════════
          TYPOGRAPHY
+         · Font.UI   — 본문/라벨/버튼 전부 (Pretendard)
+         · Font.Display — Rajdhani: 모듈 타이틀·섹션 라벨·통계 숫자 (영문/숫자 전용, 한글 폴백 Pretendard)
+         · Font.Code — 경로·ID·JSON 등 모노 (JetBrains Mono)
+         · Font.Pixel — 로고 워드마크 전용 (기능 텍스트에 사용 금지)
+         · Font.CRT / Font.Mono — v1 호환 키. CRT 는 더 이상 CRT 폰트가 아니라 UI 폰트로 해석.
          ═══════════════════════════════════════════════════════ -->
 
+    <FontFamily x:Key="Font.UI">pack://application:,,,/Fonts/#Pretendard, Malgun Gothic, Segoe UI</FontFamily>
+    <FontFamily x:Key="Font.Code">pack://application:,,,/Fonts/#JetBrains Mono, pack://application:,,,/Fonts/#Pretendard, Consolas, Malgun Gothic</FontFamily>
     <FontFamily x:Key="Font.Pixel">pack://application:,,,/Fonts/#Press Start 2P</FontFamily>
-    <FontFamily x:Key="Font.CRT">pack://application:,,,/Fonts/#VT323</FontFamily>
-    <FontFamily x:Key="Font.Mono">pack://application:,,,/Fonts/#IBM Plex Sans KR, Segoe UI, Malgun Gothic, Cascadia Mono, Consolas</FontFamily>
-    <FontFamily x:Key="Font.UI">pack://application:,,,/Fonts/#IBM Plex Sans KR, Segoe UI, Malgun Gothic</FontFamily>
+    <FontFamily x:Key="Font.CRT">pack://application:,,,/Fonts/#Rajdhani, pack://application:,,,/Fonts/#Pretendard, Malgun Gothic</FontFamily>
+    <FontFamily x:Key="Font.Mono">pack://application:,,,/Fonts/#Pretendard, Malgun Gothic, Segoe UI</FontFamily>
+    <!-- 디스플레이 서체: 모듈 타이틀·섹션 라벨·큰 숫자. 한글은 Pretendard 로 폴백 -->
+    <FontFamily x:Key="Font.Display">pack://application:,,,/Fonts/#Rajdhani, pack://application:,,,/Fonts/#Pretendard, Malgun Gothic</FontFamily>
+
+    <!-- Type scale (px). 라벨 11 · 본문 13 · 강조 14 · 모듈 타이틀 15 · 헤딩 20 · 통계 30 -->
+    <sys:Double x:Key="FS.Label">11</sys:Double>
+    <sys:Double x:Key="FS.Small">12</sys:Double>
+    <sys:Double x:Key="FS.Body">13</sys:Double>
+    <sys:Double x:Key="FS.Emph">14</sys:Double>
+    <sys:Double x:Key="FS.Title">15</sys:Double>
+    <sys:Double x:Key="FS.Heading">20</sys:Double>
+    <sys:Double x:Key="FS.Stat">30</sys:Double>
+
+    <!-- Radii -->
+    <CornerRadius x:Key="R.Sm">5</CornerRadius>
+    <CornerRadius x:Key="R.Md">8</CornerRadius>
+    <CornerRadius x:Key="R.Lg">12</CornerRadius>
+    <CornerRadius x:Key="R.Pill">999</CornerRadius>
 
     <!-- ═══════════════════════════════════════════════════════
-         EFFECTS
+         EFFECTS — 글로우는 악센트 포인트(로고·선택 레일·LED)에만. 텍스트에는 걸지 않는다.
          ═══════════════════════════════════════════════════════ -->
 
-    <DropShadowEffect x:Key="Glow.Ember" Color="{StaticResource C.Ember}" BlurRadius="14" ShadowDepth="0" Opacity="0.75"/>
-    <DropShadowEffect x:Key="Glow.Rust" Color="{StaticResource C.Rust}" BlurRadius="10" ShadowDepth="0" Opacity="0.6"/>
-    <DropShadowEffect x:Key="Glow.Soft" Color="{StaticResource C.RustDim}" BlurRadius="6" ShadowDepth="0" Opacity="0.45"/>
+    <DropShadowEffect x:Key="Glow.Ember" Color="{StaticResource C.Ember}" BlurRadius="14" ShadowDepth="0" Opacity="0.6"/>
+    <DropShadowEffect x:Key="Glow.Rust" Color="{StaticResource C.Rust}" BlurRadius="10" ShadowDepth="0" Opacity="0.5"/>
+    <DropShadowEffect x:Key="Glow.Soft" Color="{StaticResource C.Ember}" BlurRadius="8" ShadowDepth="0" Opacity="0.35"/>
+    <DropShadowEffect x:Key="Shadow.Popup" Color="#000000" BlurRadius="24" ShadowDepth="6" Direction="270" Opacity="0.55"/>
 
 </ResourceDictionary>

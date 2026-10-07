@@ -68,6 +68,8 @@ public partial class MainWindow : Window
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(MainViewModel.Current)) return;
+        // 모듈 전환: 새 뷰가 살짝 떠오르며 나타난다 (레이아웃 불변 — Opacity/RenderTransform 만).
+        Services.Fx.Rise(ContentHost, TimeSpan.Zero, 10, 220);
 
         // The row may not be realised yet when the module list is still being built. Retrying once
         // at Loaded priority lets layout finish first; PlaceNavRail is a no-op if it already ran.

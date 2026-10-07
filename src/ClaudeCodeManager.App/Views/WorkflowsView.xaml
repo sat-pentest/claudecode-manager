@@ -21,10 +21,10 @@
                 BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1">
             <StackPanel Orientation="Horizontal">
                 <Path Style="{StaticResource Icon.Module}" Data="{Binding Glyph, Converter={x:Static vm:StringToGeometry.Instance}}"/>
-                <TextBlock Text="WORKFLOWS" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
+                <TextBlock Text="WORKFLOWS" Style="{StaticResource T.Module.Title}" VerticalAlignment="Center"/>
                 <Button Content="REFRESH" Style="{StaticResource Btn.Pixel}" Command="{Binding RefreshCommand}" Margin="16,0,0,0"/>
                 <Button Content="OPEN FOLDER" Style="{StaticResource Btn.Pixel}" Command="{Binding OpenFolderCommand}" Margin="8,0,0,0" ToolTip="Open ~/.claude/workflows/ in Explorer"/>
-                <TextBlock Text="{Binding Status}" Style="{StaticResource T.Muted}" FontSize="12" Margin="20,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Text="{Binding Status}" Style="{StaticResource T.Muted}" FontSize="13" Margin="20,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
             </StackPanel>
         </Border>
 
@@ -45,30 +45,30 @@
                         <DataTemplate>
                             <StackPanel Margin="0,2">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="●" Width="14" VerticalAlignment="Center"
+                                    <Ellipse Width="8" Height="8" Margin="0,0,9,0" VerticalAlignment="Center"
                                                svc:PulseBehavior.IsActive="{Binding Disabled, Converter={x:Static vm:InverseBool.Instance}}">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Foreground" Value="{StaticResource B.Success}"/>
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="{StaticResource B.Success}"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding Disabled}" Value="True">
-                                                        <Setter Property="Foreground" Value="{StaticResource B.TextDim}"/>
+                                                        <Setter Property="Fill" Value="{StaticResource B.TextDim}"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <TextBlock Text="{Binding Name}" FontFamily="{StaticResource Font.Mono}" FontSize="14" VerticalAlignment="Center"/>
+                                    </Ellipse.Style>
+                                </Ellipse>
+                                    <TextBlock Text="{Binding Name}" FontFamily="{StaticResource Font.Mono}" FontSize="15" VerticalAlignment="Center"/>
                                     <Border Padding="5,4,5,4" Margin="8,0,0,0" VerticalAlignment="Center"
                                             Background="{StaticResource B.RustDim}"
                                             Visibility="{Binding Disabled, Converter={x:Static vm:BoolToVisibility.Instance}}">
-                                        <TextBlock Text="OFF" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Text}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="OFF" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="11" Foreground="{StaticResource B.Text}" VerticalAlignment="Center"/>
                                     </Border>
                                 </StackPanel>
-                                <TextBlock Text="{Binding Description}" Style="{StaticResource T.Muted}" FontSize="12" Margin="14,3,4,0" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding Description}" Style="{StaticResource T.Muted}" FontSize="13" Margin="14,3,4,0" TextTrimming="CharacterEllipsis"/>
                                 <StackPanel Orientation="Horizontal" Margin="14,4,4,0">
-                                    <TextBlock Text="{Binding Phases.Count}" FontFamily="{StaticResource Font.Pixel}" FontSize="8" Foreground="{StaticResource B.Ember}"/>
-                                    <TextBlock Text=" PHASES" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.TextMuted}" Margin="2,0,0,0"/>
+                                    <TextBlock Text="{Binding Phases.Count}" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="12" Foreground="{StaticResource B.Ember}"/>
+                                    <TextBlock Text=" PHASES" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="11" Foreground="{StaticResource B.TextMuted}" Margin="2,0,0,0"/>
                                 </StackPanel>
                             </StackPanel>
                         </DataTemplate>
@@ -93,9 +93,9 @@
                             </Style.Triggers>
                         </Style>
                     </StackPanel.Style>
-                    <TextBlock Text="◈" FontFamily="{StaticResource Font.CRT}" FontSize="72" Foreground="{StaticResource B.RustDim}" HorizontalAlignment="Center" Opacity="0.5"/>
-                    <TextBlock Text="SELECT A WORKFLOW" Style="{StaticResource T.Pixel.Section}" FontSize="10" HorizontalAlignment="Center" Margin="0,12,0,0"/>
-                    <TextBlock Text="왼쪽 리스트에서 워크플로를 선택하세요" Style="{StaticResource T.Muted}" FontSize="12" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                    <TextBlock Text="◈" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="52" Foreground="{StaticResource B.RustDim}" HorizontalAlignment="Center" Opacity="0.5"/>
+                    <TextBlock Text="SELECT A WORKFLOW" Style="{StaticResource T.Pixel.Section}" FontSize="13" HorizontalAlignment="Center" Margin="0,12,0,0"/>
+                    <TextBlock Text="왼쪽 리스트에서 워크플로를 선택하세요" Style="{StaticResource T.Muted}" FontSize="13" HorizontalAlignment="Center" Margin="0,6,0,0"/>
                 </StackPanel>
 
                 <!-- Detail content -->
@@ -114,7 +114,7 @@
                                     </Style>
                                 </Button.Style>
                             </Button>
-                            <TextBlock Text="{Binding Selected.FilePath}" Style="{StaticResource T.Mono}" FontSize="12" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center" Margin="14,0,0,0" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding Selected.FilePath}" Style="{StaticResource T.Mono}" FontSize="13" Foreground="{StaticResource B.TextMuted}" VerticalAlignment="Center" Margin="14,0,0,0" TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
                     </Border>
 
@@ -147,7 +147,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="◢ DETAIL" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="14"
+                            <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="15"
                                        Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" FontWeight="Bold">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
@@ -170,8 +170,8 @@
                         <Border Padding="20,16" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,0,1" Background="{StaticResource B.BG.Panel}">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="◆" FontSize="14" Foreground="{StaticResource B.Rust}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                    <TextBlock Text="{Binding Selected.Name}" FontFamily="{StaticResource Font.CRT}" FontSize="28" Foreground="{StaticResource B.Ember}" Effect="{StaticResource Glow.Soft}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="◆" FontSize="15" Foreground="{StaticResource B.Rust}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <TextBlock Text="{Binding Selected.Name}" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="22" Foreground="{StaticResource B.Ember}" Effect="{StaticResource Glow.Soft}" VerticalAlignment="Center"/>
                                     <Border Padding="8,5,8,5" Margin="14,2,0,0" VerticalAlignment="Center"
                                             svc:PulseBehavior.IsActive="{Binding Selected.Disabled, Converter={x:Static vm:InverseBool.Instance}, FallbackValue=False}">
                                         <Border.Style>
@@ -184,7 +184,7 @@
                                                 </Style.Triggers>
                                             </Style>
                                         </Border.Style>
-                                        <TextBlock FontFamily="{StaticResource Font.Pixel}" FontSize="8" Foreground="{StaticResource B.BG.Primary}" VerticalAlignment="Center">
+                                        <TextBlock FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="12" Foreground="{StaticResource B.BG.Primary}" VerticalAlignment="Center">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
                                                     <Setter Property="Text" Value="ENABLED"/>
@@ -198,7 +198,7 @@
                                         </TextBlock>
                                     </Border>
                                 </StackPanel>
-                                <TextBlock Text="{Binding Selected.Description}" Style="{StaticResource T.Body}" FontSize="13" TextWrapping="Wrap" LineHeight="22" Margin="0,12,0,0" Foreground="{StaticResource B.Text}"/>
+                                <TextBlock Text="{Binding Selected.Description}" Style="{StaticResource T.Body}" FontSize="14" TextWrapping="Wrap" LineHeight="22" Margin="0,12,0,0" Foreground="{StaticResource B.Text}"/>
                             </StackPanel>
                         </Border>
 
@@ -215,7 +215,7 @@
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Text="PHASES" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Top" Margin="0,2,0,0"/>
+                                <TextBlock Text="PHASES" Style="{StaticResource T.Pixel.Section}" FontSize="12" VerticalAlignment="Top" Margin="0,2,0,0"/>
                                 <ItemsControl Grid.Column="1" ItemsSource="{Binding Selected.Phases}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
@@ -228,19 +228,19 @@
                                                     Background="{StaticResource B.BG.Sunken}"
                                                     Padding="8,2,8,3" Margin="0,2,5,2">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding Index}" FontFamily="{StaticResource Font.Pixel}" FontSize="7" Foreground="{StaticResource B.Rust}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                                    <TextBlock Text="{Binding Title}" FontFamily="{StaticResource Font.Mono}" FontSize="11" Foreground="{StaticResource B.Ember}"/>
+                                                    <TextBlock Text="{Binding Index}" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="11" Foreground="{StaticResource B.Rust}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="{Binding Title}" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.Ember}"/>
                                                 </StackPanel>
                                             </Border>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
 
-                                <TextBlock Grid.Row="1" Text="MODIFIED" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center" Margin="0,10,0,0"/>
-                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Selected.ModifiedAt, StringFormat='yyyy-MM-dd HH:mm:ss'}" Style="{StaticResource T.Mono}" FontSize="11" Foreground="{StaticResource B.TextMuted}" Margin="0,10,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="1" Text="MODIFIED" Style="{StaticResource T.Pixel.Section}" FontSize="12" VerticalAlignment="Center" Margin="0,10,0,0"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Selected.ModifiedAt, StringFormat='yyyy-MM-dd HH:mm:ss'}" Style="{StaticResource T.Mono}" FontSize="12" Foreground="{StaticResource B.TextMuted}" Margin="0,10,0,0" VerticalAlignment="Center"/>
 
-                                <TextBlock Grid.Row="2" Text="FILE" Style="{StaticResource T.Pixel.Section}" FontSize="8" VerticalAlignment="Center" Margin="0,10,0,0"/>
-                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Selected.FileName}" Style="{StaticResource T.Mono}" FontSize="11" Foreground="{StaticResource B.TextMuted}" Margin="0,10,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="2" Text="FILE" Style="{StaticResource T.Pixel.Section}" FontSize="12" VerticalAlignment="Center" Margin="0,10,0,0"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Selected.FileName}" Style="{StaticResource T.Mono}" FontSize="12" Foreground="{StaticResource B.TextMuted}" Margin="0,10,0,0" VerticalAlignment="Center"/>
                             </Grid>
                         </Border>
                     </StackPanel>
@@ -270,9 +270,9 @@
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock Text="◢ PIPELINE" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
                                 <TextBlock Text="{Binding Selected.Phases.Count, StringFormat=' ▌ {0} phases'}" Style="{StaticResource T.Muted}" VerticalAlignment="Center" Margin="8,0,0,0"/>
-                                <TextBlock Text="{Binding PipelineZoomText}" Style="{StaticResource T.Muted}" FontSize="11" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" Margin="10,0,0,0" ToolTip="Ctrl+마우스휠로 확대/축소. 더블클릭으로 100% 리셋."/>
+                                <TextBlock Text="{Binding PipelineZoomText}" Style="{StaticResource T.Muted}" FontSize="12" Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" Margin="10,0,0,0" ToolTip="Ctrl+마우스휠로 확대/축소. 더블클릭으로 100% 리셋."/>
                             </StackPanel>
-                            <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="14"
+                            <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="15"
                                        Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,8,0">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
@@ -364,9 +364,9 @@
                                                                 <Binding Path="Count"/>
                                                             </MultiBinding>
                                                         </Border.Background>
-                                                        <TextBlock Text="{Binding Index}" FontFamily="{StaticResource Font.Pixel}" FontSize="10" Foreground="{StaticResource B.BG.Primary}"/>
+                                                        <TextBlock Text="{Binding Index}" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="13" Foreground="{StaticResource B.BG.Primary}"/>
                                                     </Border>
-                                                    <TextBlock Text="{Binding Title}" FontFamily="{StaticResource Font.Mono}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Title}" FontFamily="{StaticResource Font.Mono}" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center">
                                                         <TextBlock.Foreground>
                                                             <MultiBinding Converter="{x:Static vm:PipelineSweepConverter.TitleBrush}">
                                                                 <Binding Path="Clock" Source="{x:Static svc:PipelineTicker.Current}"/>
@@ -378,7 +378,7 @@
                                                 </StackPanel>
 
                                                 <!-- Detail (optional) -->
-                                                <TextBlock Text="{Binding Detail}" Style="{StaticResource T.Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,6,0,0" LineHeight="19"
+                                                <TextBlock Text="{Binding Detail}" Style="{StaticResource T.Muted}" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" LineHeight="19"
                                                            Visibility="{Binding Detail, Converter={x:Static vm:StringToVisibility.Instance}}">
                                                     <TextBlock.Foreground>
                                                         <MultiBinding Converter="{x:Static vm:PipelineSweepConverter.DetailBrush}">
@@ -402,7 +402,7 @@
                                                         <DataTemplate>
                                                             <Border Background="{StaticResource B.BG.Sunken}" BorderBrush="{StaticResource B.RustDim}" BorderThickness="1"
                                                                     Padding="7,1,7,2" Margin="0,0,5,4">
-                                                                <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{StaticResource B.Text}"/>
+                                                                <TextBlock Text="{Binding}" FontFamily="{StaticResource Font.Mono}" FontSize="13" Foreground="{StaticResource B.Text}"/>
                                                             </Border>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
@@ -411,7 +411,7 @@
                                         </Border>
 
                                         <!-- Downward arrow connector (hidden after last phase) -->
-                                        <TextBlock Text="↓" FontFamily="{StaticResource Font.CRT}" FontSize="22"
+                                        <TextBlock Text="↓" FontFamily="{StaticResource Font.UI}" FontWeight="Medium" FontSize="18"
                                                    HorizontalAlignment="Center" Margin="0,4,0,4"
                                                    Visibility="{Binding IsLast, Converter={x:Static vm:InverseBoolToVisibility.Instance}}">
                                             <TextBlock.Foreground>
@@ -451,7 +451,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="◢ SCRIPT (.mjs)" Style="{StaticResource T.Pixel.Section}" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="14"
+                            <TextBlock Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="15"
                                        Foreground="{StaticResource B.Ember}" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,8,0">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
@@ -471,8 +471,8 @@
                     <avalon:TextEditor
                         DockPanel.Dock="Top"
                         Visibility="{Binding IsBodyCollapsed, Converter={x:Static vm:InverseBoolToVisibility.Instance}}"
-                        FontFamily="{StaticResource Font.Mono}"
-                        FontSize="13"
+                        FontFamily="{StaticResource Font.Code}"
+                        FontSize="12.5"
                         Background="{StaticResource B.BG.Primary}"
                         Foreground="{StaticResource B.Text}"
                         ShowLineNumbers="True"
